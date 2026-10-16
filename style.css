@@ -1424,7 +1424,7 @@ html[data-shell="tabs"] #memoCard .card-head { flex-wrap: wrap; row-gap: 6px; }
 .bd-placeholder { border: 1.5px dashed var(--accent); background: var(--accent-soft); border-radius: 10px; }
 .board-empty { margin: auto; text-align: center; max-width: 320px; display: flex; flex-direction: column; gap: 10px; align-items: center; padding: 20px; }
 .board-empty-title { font-size: 16px; font-weight: 800; color: var(--text); }
-.board-empty-sub { font-size: 13px; line-height: 1.55; color: var(--text-sub); }
+.board-empty-sub { white-space: pre-line; font-size: 13px; line-height: 1.55; color: var(--text-sub); }
 .board-newsec { display: flex; gap: 6px; margin-bottom: 8px; }
 .board-newsec input { flex: 1; min-width: 0; font-family: inherit; font-size: 13px; padding: 8px 10px; border: 1px solid var(--accent); border-radius: 9px; outline: none; background: var(--card-bg); color: var(--text); }
 .board-menu { position: fixed; z-index: 90; min-width: 150px; background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 12px; box-shadow: 0 12px 30px rgba(0,0,0,0.25); padding: 5px; pointer-events: auto !important; }

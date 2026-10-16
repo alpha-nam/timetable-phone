@@ -259,7 +259,7 @@
     if (!secs.length) {
       var empty = el('div', 'board-empty');
       empty.appendChild(el('div', 'board-empty-title', '아직 섹션이 없어요'));
-      empty.appendChild(el('div', 'board-empty-sub', '섹션은 카드를 모아 두는 칸이에요. 이름은 마음대로 정하세요. (예: 오늘 할 일, 수업 준비 …)'));
+      empty.appendChild(el('div', 'board-empty-sub', '섹션은 카드를 모아 두는 칸이에요.\n이름은 마음대로 정하세요.\n(예: 오늘 할 일, 수업 준비 …)'));
       var b = el('button', 'board-primary', '+ 섹션 추가'); b.type = 'button';
       b.addEventListener('click', function (ev) { ev.stopPropagation(); promptAddSection(); });
       empty.appendChild(b);
