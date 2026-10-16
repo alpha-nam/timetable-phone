@@ -1481,3 +1481,7 @@ html[data-shell="tabs"] #memoCard .card-head { flex-wrap: wrap; row-gap: 6px; }
 .board-style-foot .board-primary { margin-left: auto; }
 .bd-sec.dark .bd-add { color: #fff; background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.35); }
 .bd-sec.dark .bd-sec-more, .bd-sec.dark .bd-sec-grip { color: rgba(255,255,255,0.7); }
+/* 섹션 없이 쓰는 메모: 그냥 한 줄 목록 */
+.bd-sec.bd-none-only { background: transparent; padding: 0; flex: 1 1 auto; width: auto; max-width: 640px; }
+.board--h .bd-sec.bd-none-only { flex: 1 1 auto; width: auto; max-height: 100%; }
+.bd-plain-hint { margin-top: 10px; padding: 0 4px; color: var(--text-veryfaint); }

@@ -42,14 +42,11 @@
     trash = read(KEYS.trash, []); if (!Array.isArray(trash)) trash = [];
     trashTombs = read(KEYS.trashTombs, {}) || {};
     cards.forEach(function (c) { if (!c.id) c.id = uid('m'); });
-    // 예전(섹션이 없던) 메모는 "메모" 섹션 하나에 담는다. 섹션 기본값은 없고, 이건 옮겨 담기 위한 것뿐이다.
-    var orphan = cards.filter(function (c) { return !c.sectionId || !sections.some(function (s) { return s.id === c.sectionId; }); });
-    if (orphan.length) {
-      var target = sections[0];
-      if (!target) { target = { id: uid('s'), name: '메모', order: 0, updatedAt: Date.now() }; sections.push(target); }
-      orphan.forEach(function (c, i) { c.sectionId = target.id; if (c.order == null) c.order = i; c.updatedAt = Date.now(); });
-      write(KEYS.cards, cards); write(KEYS.sections, sections);
-    }
+    // 섹션 없이 쓰는 카드는 sectionId가 ''(빈 값)이다. 섹션이 지워졌거나 없는 카드도 같은 칸(미분류)에 보인다.
+    cards.forEach(function (c) { if (c.sectionId == null) c.sectionId = ''; });
+    // order가 없던 예전 카드는 저장된 순서대로 번호를 붙인다(새 카드가 맨 위로 끼어들지 않게).
+    var seq = {};
+    cards.forEach(function (c) { if (c.order == null) { seq[c.sectionId] = (seq[c.sectionId] || 0); c.order = seq[c.sectionId]; } seq[c.sectionId] = Math.max(seq[c.sectionId] || 0, (c.order || 0)) + 1; });
     var cut = Date.now() - TRASH_KEEP_MS;   // 90일이 지난 휴지통 항목은 비운다
     trash = trash.filter(function (t) { return (t.deletedAt || 0) >= cut; });
     // 처음에는 PC·태블릿은 가로 칸, 폰은 세로로 쌓는다(바꾸면 기억).
@@ -127,8 +124,10 @@
   }
 
   // ───────── 카드·섹션 조작 ─────────
+  // sid가 ''이면 "섹션 없음" 카드(섹션을 안 만든 사람의 메모, 또는 섹션이 지워져 갈 곳 없는 카드).
+  function inNone(c) { return !c.sectionId || !sections.some(function (s) { return s.id === c.sectionId; }); }
   function sectionCards(sid) {
-    return cards.filter(function (c) { return c.sectionId === sid; }).sort(function (a, b) {
+    return cards.filter(function (c) { return sid === '' ? inNone(c) : c.sectionId === sid; }).sort(function (a, b) {
       var ao = a.order == null ? 1e9 : a.order, bo = b.order == null ? 1e9 : b.order;
       return ao - bo || (b.updatedAt || 0) - (a.updatedAt || 0) || (a.id < b.id ? -1 : 1);
     });
@@ -256,16 +255,8 @@
     if ($('memoCount')) $('memoCount').textContent = open ? '남은 일 ' + open : '';
 
     var secs = sortedSections();
-    if (!secs.length) {
-      var empty = el('div', 'board-empty');
-      empty.appendChild(el('div', 'board-empty-title', '아직 섹션이 없어요'));
-      empty.appendChild(el('div', 'board-empty-sub', '섹션은 카드를 모아 두는 칸이에요.\n이름은 마음대로 정하세요.\n(예: 오늘 할 일, 수업 준비 …)'));
-      var b = el('button', 'board-primary', '+ 섹션 추가'); b.type = 'button';
-      b.addEventListener('click', function (ev) { ev.stopPropagation(); promptAddSection(); });
-      empty.appendChild(b);
-      root.appendChild(empty);
-      return;
-    }
+    // 섹션 없음 칸: 섹션을 안 만들었으면 그냥 목록으로, 섹션이 있는데 갈 곳 없는 카드가 있으면 "미분류"로 맨 앞에 보인다.
+    if (!secs.length || cards.some(inNone)) root.appendChild(renderSection({ id: '', name: secs.length ? '미분류' : '메모', pseudo: true, plain: !secs.length }));
     secs.forEach(function (s) { root.appendChild(renderSection(s)); });
   }
 
@@ -306,21 +297,24 @@
   }
 
   function renderSection(sec) {
-    var wrap = el('div', 'bd-sec'); wrap.dataset.sid = sec.id;
+    var wrap = el('div', 'bd-sec' + (sec.plain ? ' bd-none-only' : '')); wrap.dataset.sid = sec.id;
     var secBg = sec.style && sec.style.bg;
     if (secBg) wrap.style.background = secBg;
     if (isDark(secBg)) wrap.classList.add('dark');
     var head = el('div', 'bd-sec-head');
-    var sgrip = el('span', 'bd-sec-grip', '⋮⋮'); sgrip.title = '끌어서 섹션 순서 바꾸기';
-    sgrip.addEventListener('pointerdown', function (ev) { startSectionDrag(ev, wrap, sec); });
-    head.appendChild(sgrip);
+    if (!sec.pseudo) {
+      var sgrip = el('span', 'bd-sec-grip', '⋮⋮'); sgrip.title = '끌어서 섹션 순서 바꾸기';
+      sgrip.addEventListener('pointerdown', function (ev) { startSectionDrag(ev, wrap, sec); });
+      head.appendChild(sgrip);
+    }
     var title = el('span', 'bd-sec-title', sec.name);
     title.title = '눌러서 이름 바꾸기';
     var secEff = effText(null, sec);
     applyText(title, secEff, secBg);
     if (secEff.size) title.style.fontSize = Math.max(12, secEff.size + 1) + 'px';
     if (secEff.align) title.style.flex = '1 1 auto';
-    title.addEventListener('click', function (ev) { ev.stopPropagation(); renameSection(sec, title); });
+    if (!sec.pseudo) title.addEventListener('click', function (ev) { ev.stopPropagation(); renameSection(sec, title); });
+    else { title.title = ''; title.style.cursor = 'default'; }
     var list = sectionCards(sec.id);
     var count = el('span', 'bd-sec-count', String(list.length));
     var more = el('button', 'bd-sec-more', '⋮'); more.type = 'button'; more.title = '섹션 메뉴';
@@ -334,8 +328,8 @@
       items.push('-', { label: '섹션 삭제', danger: true, onClick: function () { deleteSection(sec); } });
       openMenu(more, items);
     });
-    head.appendChild(title); head.appendChild(count); head.appendChild(more);
-    wrap.appendChild(head);
+    head.appendChild(title); head.appendChild(count); if (!sec.pseudo) head.appendChild(more);
+    if (!sec.plain) wrap.appendChild(head);
 
     var body = el('div', 'bd-sec-body');
     if (addingIn === sec.id) body.appendChild(renderAddForm(sec));
@@ -348,6 +342,7 @@
     list.forEach(function (c) { cl.appendChild(renderCard(c)); });
     body.appendChild(cl);
     wrap.appendChild(body);
+    if (sec.plain) wrap.appendChild(el('div', 'board-hint bd-plain-hint', '섹션으로 나누고 싶으면 위의 "+ 섹션"을 눌러 칸을 만들 수 있어요. (안 만들어도 됩니다)'));
     return wrap;
   }
 
@@ -638,11 +633,11 @@
     function up() {
       grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', up); grip.removeEventListener('pointercancel', cancel);
       var list = ph.parentNode;
-      var sid = list && list.dataset.sid;
+      var sid = list ? list.dataset.sid : null;
       var index = 0;
       if (list) { var seen = 0; for (var i = 0; i < list.children.length; i++) { var x = list.children[i]; if (x === ph) break; if (x.classList.contains('bd-card') && x.style.display !== 'none') seen++; } index = seen; }
       ghost.remove(); ph.remove(); row.style.display = '';
-      if (sid) placeCard(card, sid, index);
+      if (sid !== null && sid !== undefined) placeCard(card, sid, index);
       render();
     }
     function cancel() {
@@ -778,8 +773,7 @@
     var it = JSON.parse(JSON.stringify(t.item));
     if (t.kind === 'memo') {
       var sec = sections.filter(function (s) { return s.id === it.sectionId; })[0];
-      if (!sec) { sec = sections.filter(function (s) { return s.name === '복구됨'; })[0] || addSection('복구됨'); }
-      it.sectionId = sec.id; it.order = sectionCards(sec.id).length; it.done = !!it.done;
+      it.sectionId = sec ? sec.id : ''; it.order = sectionCards(it.sectionId).length; it.done = !!it.done;
       cards = cards.filter(function (c) { return c.id !== it.id; }); cards.push(it); delete tombs[it.id];
     } else if (t.kind === 'section') {
       sections = sections.filter(function (s) { return s.id !== it.id; }); it.order = sections.length; sections.push(it); delete secTombs[it.id];
@@ -855,10 +849,7 @@
     (b.memo || []).forEach(function (c0) {
       if (!c0 || !c0.id || curCardIds[c0.id]) return;
       var c = JSON.parse(JSON.stringify(c0));
-      if (!c.sectionId || !curSecIds[c.sectionId]) {
-        var rs = sections.filter(function (s) { return s.name === '복구됨'; })[0] || addSection('복구됨');
-        curSecIds[rs.id] = true; c.sectionId = rs.id;
-      }
+      if (!c.sectionId || !curSecIds[c.sectionId]) c.sectionId = '';
       c.order = sectionCards(c.sectionId).length; cards.push(c); delete tombs[c.id]; n++;
     });
     save();
@@ -873,12 +864,10 @@
     var t = Date.now();
     cards.filter(function (c) { return !bCardIds[c.id]; }).forEach(function (c) { addToTrash('memo', c); tombs[c.id] = t; n++; });
     sections.filter(function (s) { return !bSecIds[s.id]; }).forEach(function (s) { addToTrash('section', s); secTombs[s.id] = t; n++; });
-    var legacy = (b.memo || []).some(function (c) { return c && !c.sectionId; }) && !(b.sections || []).length;
     sections = (b.sections || []).map(function (s) { return JSON.parse(JSON.stringify(s)); });
     cards = (b.memo || []).map(function (c, i) { var x = JSON.parse(JSON.stringify(c)); if (x.order == null) x.order = i; return x; });
-    if (legacy) { var s0 = { id: uid('s'), name: '메모', order: 0 }; sections.push(s0); cards.forEach(function (c) { c.sectionId = s0.id; }); }
     var okSec = {}; sections.forEach(function (s) { okSec[s.id] = true; });
-    cards.forEach(function (c) { if (!c.sectionId || !okSec[c.sectionId]) { var rs = sections.filter(function (s) { return s.name === '복구됨'; })[0]; if (!rs) { rs = { id: uid('s'), name: '복구됨', order: sections.length }; sections.push(rs); okSec[rs.id] = true; } c.sectionId = rs.id; } });
+    cards.forEach(function (c) { if (!c.sectionId || !okSec[c.sectionId]) c.sectionId = ''; });
     // 되돌린 항목이 다른 기기의 삭제 표시에 밀리지 않도록 "지금"으로 다시 찍는다.
     cards.forEach(function (c) { c.updatedAt = t; delete tombs[c.id]; }); sections.forEach(function (s) { s.updatedAt = t; delete secTombs[s.id]; });
     sigCards = sigMap(cards, sigCard); sigSecs = sigMap(sections, sigSec);
@@ -894,8 +883,7 @@
     if (Array.isArray(d.memoSections)) sections = d.memoSections;
     if (Array.isArray(d.memoTodos)) cards = d.memoTodos;
     cards.forEach(function (c) { if (!c.id) c.id = uid('m'); });
-    var orphan = cards.filter(function (c) { return !c.sectionId || !sections.some(function (s) { return s.id === c.sectionId; }); });
-    if (orphan.length) { var tg = sections[0] || addSection('메모'); orphan.forEach(function (c, i) { c.sectionId = tg.id; c.order = c.order == null ? i : c.order; }); }
+    cards.forEach(function (c, i) { if (c.sectionId == null) c.sectionId = ''; if (c.order == null) c.order = i; });
     save();
   }
 
@@ -906,7 +894,7 @@
     document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { closeMenu(); closeStyle(); } });
     window.addEventListener('tt-open-recovery', function () { openRecovery(); });
     var root = $('memoBoard');
-    if (root) root.addEventListener('click', function () { if (addingIn || editingId) { addingIn = null; editingId = null; render(); } });
+    if (root) root.addEventListener('click', function () { if (addingIn !== null || editingId) { addingIn = null; editingId = null; render(); } });
     render();
   }
 
