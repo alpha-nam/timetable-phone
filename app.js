@@ -969,6 +969,7 @@
         // 같은 날짜에 행사가 여러 건이면(방학 기간 등) 첫 번째 것만 칸 안에 표시한다.
         (rows || []).forEach(function (r) {
           if (!days[r.AA_YMD]) days[r.AA_YMD] = r.EVENT_NM;
+          if (r.SBTR_DD_SC_NM === '공휴일') neisHolidays[r.AA_YMD] = true;   // 개천절·한글날처럼 이름에 "공휴일"이 없는 공휴일도 빨갛게
         });
         return days;
       })
@@ -2092,7 +2093,7 @@
         // 토요일=파랑, 일요일=빨강, 공휴일(대체공휴일 포함 — NEIS 학사일정 이름에 "공휴일"이
         // 들어간 날)은 일요일과 동일하게 표시해서 평일과 구분되게 했다.
         var dow = cellDate.getDay();
-        if (eventName && eventName.indexOf('공휴일') !== -1) cell.classList.add('cal-cell--sun');
+        if ((eventName && eventName.indexOf('공휴일') !== -1) || neisHolidays[ymd(cellDate)]) cell.classList.add('cal-cell--sun');
         else if (dow === 0) cell.classList.add('cal-cell--sun');
         else if (dow === 6) cell.classList.add('cal-cell--sat');
 
@@ -2667,32 +2668,110 @@
     body.appendChild(buildAttendancePanel(ymd(d)));
   }
 
-  // 출결 탭의 날짜(예: "10월 16일 (금)")를 누르면 달력이 떠서 원하는 날로 바로 이동한다(‹ › 로 하루씩 넘기는 것이 불편해서).
-  // 눈에 안 보이는 날짜 입력칸(<input type="date">)을 날짜 글자 아래에 두고, 글자를 누르면 그 달력을 연다.
+  // 출결 탭의 날짜(예: "10월 16일 (금)")를 누르면 작은 달력이 떠서 원하는 날로 바로 이동한다(‹ › 로 하루씩 넘기기 불편해서).
+  // 기본 날짜 선택창은 색을 바꿀 수 없어서 직접 그린다: 토요일=파랑, 일요일·공휴일(NEIS 학사일정의 "공휴일" 표시)=빨강.
+  var neisHolidays = {};        // 'YYYYMMDD' → true (NEIS가 공휴일로 표시한 날)
+  var holidayMonthsLoaded = {}; // 'YYYY-M' → true
+  function loadHolidaysFor(year, month) {
+    var key = year + '-' + month;
+    if (holidayMonthsLoaded[key]) return Promise.resolve();
+    return fetchMonthEvents(year, month).then(function (days) {
+      if (days && Object.keys(days).length) holidayMonthsLoaded[key] = true;
+    });
+  }
+
+  function closeAttCalendar() {
+    var p = $('attCalPop');
+    if (p) p.remove();
+  }
+  function openAttCalendar() {
+    closeAttCalendar();
+    var label = $('attDateLabel');
+    var r = label.getBoundingClientRect();
+    var pop = document.createElement('div');
+    pop.id = 'attCalPop';
+    pop.className = 'att-cal-pop';
+    var viewY = attViewDate.getFullYear(), viewM = attViewDate.getMonth();
+    var DOW = ['일', '월', '화', '수', '목', '금', '토'];
+
+    function render() {
+      pop.innerHTML = '';
+      var head = document.createElement('div');
+      head.className = 'att-cal-head';
+      var prev = document.createElement('button'); prev.type = 'button'; prev.textContent = '‹'; prev.title = '이전 달';
+      var next = document.createElement('button'); next.type = 'button'; next.textContent = '›'; next.title = '다음 달';
+      var ttl = document.createElement('span'); ttl.textContent = viewY + '년 ' + (viewM + 1) + '월';
+      prev.addEventListener('click', function (ev) { ev.stopPropagation(); viewM--; if (viewM < 0) { viewM = 11; viewY--; } go(); });
+      next.addEventListener('click', function (ev) { ev.stopPropagation(); viewM++; if (viewM > 11) { viewM = 0; viewY++; } go(); });
+      head.appendChild(prev); head.appendChild(ttl); head.appendChild(next);
+      pop.appendChild(head);
+
+      var grid = document.createElement('div');
+      grid.className = 'att-cal-grid';
+      DOW.forEach(function (n, i) {
+        var h = document.createElement('div');
+        h.className = 'att-cal-dow' + (i === 0 ? ' sun' : i === 6 ? ' sat' : '');
+        h.textContent = n;
+        grid.appendChild(h);
+      });
+      var first = new Date(viewY, viewM, 1);
+      var start = new Date(viewY, viewM, 1 - first.getDay());
+      var todayKey = ymd(new Date()), selKey = ymd(attViewDate);
+      for (var i = 0; i < 42; i++) {
+        var d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+        var key = ymd(d);
+        var c = document.createElement('button');
+        c.type = 'button';
+        c.textContent = d.getDate();
+        var cls = 'att-cal-day';
+        if (d.getMonth() !== viewM) cls += ' other';
+        if (d.getDay() === 0 || neisHolidays[key]) cls += ' sun';
+        else if (d.getDay() === 6) cls += ' sat';
+        if (key === todayKey) cls += ' today';
+        if (key === selKey) cls += ' sel';
+        c.className = cls;
+        (function (date) {
+          c.addEventListener('click', function (ev) {
+            ev.stopPropagation();
+            attViewDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+            closeAttCalendar();
+            renderAttendanceTab();
+          });
+        })(d);
+        grid.appendChild(c);
+      }
+      pop.appendChild(grid);
+
+      var foot = document.createElement('div');
+      foot.className = 'att-cal-foot';
+      var today = document.createElement('button'); today.type = 'button'; today.textContent = '오늘';
+      today.addEventListener('click', function (ev) { ev.stopPropagation(); attViewDate = new Date(); closeAttCalendar(); renderAttendanceTab(); });
+      foot.appendChild(today);
+      pop.appendChild(foot);
+    }
+    // 보이는 달의 공휴일을 먼저 불러온 뒤(처음 한 번) 다시 그린다.
+    function go() { render(); loadHolidaysFor(viewY, viewM).then(function () { if ($('attCalPop') === pop) render(); }); }
+
+    pop.addEventListener('click', function (ev) { ev.stopPropagation(); });
+    $('board').appendChild(pop);
+    go();
+    var w = 270;
+    pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - w - 8)) + 'px';
+    pop.style.top = (r.bottom + 6) + 'px';
+  }
   function initAttDatePicker() {
     var label = $('attDateLabel');
-    if (!label || $('attDatePicker')) return;
+    if (!label || label.dataset.calReady) return;
+    label.dataset.calReady = '1';
     label.classList.add('att-date-btn');
     label.setAttribute('role', 'button');
     label.setAttribute('tabindex', '0');
     label.title = '눌러서 날짜 고르기';
-    var input = document.createElement('input');
-    input.type = 'date'; input.id = 'attDatePicker'; input.className = 'att-date-input'; input.tabIndex = -1;
-    label.parentNode.appendChild(input);
-    function open(ev) {
-      ev.stopPropagation();
-      var d = attViewDate;
-      input.value = d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
-      try { input.showPicker(); } catch (e) { try { input.focus(); input.click(); } catch (e2) { /* 달력을 못 열면 ‹ › 로 이동 */ } }
-    }
-    label.addEventListener('click', open);
-    label.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); open(ev); } });
-    input.addEventListener('change', function () {
-      var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(input.value || '');
-      if (!m) return;
-      attViewDate = new Date(+m[1], +m[2] - 1, +m[3]);
-      renderAttendanceTab();
-    });
+    function toggle(ev) { ev.stopPropagation(); if ($('attCalPop')) closeAttCalendar(); else openAttCalendar(); }
+    label.addEventListener('click', toggle);
+    label.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); toggle(ev); } });
+    document.addEventListener('click', closeAttCalendar);
+    document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') closeAttCalendar(); });
   }
 
   function shiftAttDate(days) {

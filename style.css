@@ -1357,8 +1357,21 @@ html[data-shell="tabs"] #viewTabs { justify-content: flex-end; }
 /* 휴대폰 연동 버튼을 "출결 종합" 바로 왼쪽에 붙인다 */
 html[data-shell="tabs"] #attendanceCard #attTabSummaryBtn { margin-left: 0; }
 /* 출결 탭 날짜: 눌러서 달력 열기 */
-.att-nav { position: relative; }
 .att-date-btn { cursor: pointer; padding: 3px 8px; border-radius: 8px; }
 .att-date-btn::after { content: ' ▾'; font-size: 10px; color: var(--text-veryfaint); }
 .att-date-btn:hover, .att-date-btn:focus-visible { background: var(--accent-soft); color: var(--accent); outline: none; }
-.att-date-input { position: absolute; left: 30px; top: 100%; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0; pointer-events: none; }
+.att-cal-pop { position: fixed; z-index: 60; width: 270px; padding: 10px 10px 8px; background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 14px; box-shadow: 0 16px 40px rgba(0,0,0,0.28); pointer-events: auto !important; }
+.att-cal-pop * { pointer-events: auto !important; }
+.att-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-size: 14px; font-weight: 800; color: var(--text); }
+.att-cal-head button, .att-cal-foot button { font-family: inherit; font-size: 13px; font-weight: 700; color: var(--text-sub); background: var(--row-bg); border: none; border-radius: 8px; height: 28px; min-width: 32px; padding: 0 10px; cursor: pointer; }
+.att-cal-head button:hover, .att-cal-foot button:hover { background: var(--accent-soft); color: var(--accent); }
+.att-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.att-cal-dow { text-align: center; font-size: 11px; font-weight: 700; color: var(--text-faint); padding: 4px 0; }
+.att-cal-dow.sun, .att-cal-day.sun { color: var(--sun-color, #d6483f); }
+.att-cal-dow.sat, .att-cal-day.sat { color: var(--sat-color, #3d7fd6); }
+.att-cal-day { font-family: inherit; font-size: 13px; font-weight: 700; height: 32px; color: var(--text); background: transparent; border: 1px solid transparent; border-radius: 9px; cursor: pointer; padding: 0; }
+.att-cal-day.other { opacity: 0.38; }
+.att-cal-day:hover { background: var(--accent-soft); }
+.att-cal-day.today { border-color: var(--accent); }
+.att-cal-day.sel { background: var(--accent); color: #fff; opacity: 1; }
+.att-cal-foot { display: flex; justify-content: flex-end; margin-top: 6px; }
