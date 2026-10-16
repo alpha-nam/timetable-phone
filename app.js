@@ -735,17 +735,24 @@
       icon.className = 'weather-day-icon';
       icon.textContent = WEATHER_ICON[d.label] || '🌡️';
 
-      var hi = document.createElement('span');
-      hi.className = 'weather-day-temp';
-      hi.textContent = (d.hi != null ? Math.round(d.hi) : '-') + '°';
-
+      // 최저 / 최고를 한 줄로(최저는 파랑, 최고는 빨강 — 잘 보이게)
+      var temps = document.createElement('span');
+      temps.className = 'weather-day-temps';
       var lo = document.createElement('span');
       lo.className = 'weather-day-temp-lo';
       lo.textContent = (d.lo != null ? Math.round(d.lo) : '-') + '°';
+      var sep = document.createElement('span');
+      sep.className = 'weather-day-sep';
+      sep.textContent = '/';
+      var hi = document.createElement('span');
+      hi.className = 'weather-day-temp';
+      hi.textContent = (d.hi != null ? Math.round(d.hi) : '-') + '°';
+      temps.appendChild(lo);
+      temps.appendChild(sep);
+      temps.appendChild(hi);
 
       main.appendChild(icon);
-      main.appendChild(hi);
-      main.appendChild(lo);
+      main.appendChild(temps);
       tile.appendChild(label);
       tile.appendChild(main);
       wrap.appendChild(tile);

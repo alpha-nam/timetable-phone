@@ -1581,3 +1581,11 @@ html[data-shell="tabs"] .tabbtn svg.fl { width: 18px; height: 18px; }
 .subj-dline { display: flex; gap: 8px; flex-wrap: wrap; font-size: 12.5px; padding: 2px 0; }
 .subj-dline b { color: var(--text); } .subj-dline span { color: var(--accent); font-weight: 700; } .subj-dline i { color: var(--text-faint); font-style: normal; }
 .subj-id { font-size: 12px; font-weight: 800; color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 8px; height: 26px; line-height: 24px; padding: 0 8px; flex-shrink: 0; width: 64px; text-align: center; box-sizing: border-box; font-variant-numeric: tabular-nums; }
+
+/* 날씨: 최저 / 최고를 한 줄로, 색으로 구분 */
+.weather-day-temps { display: inline-flex; align-items: baseline; gap: 2px; white-space: nowrap; }
+.weather-day-temps .weather-day-temp-lo { color: #3d7fd6 !important; font-weight: 700; }
+.weather-day-temps .weather-day-temp { color: #d6483f !important; font-weight: 700; }
+.weather-day-sep { color: var(--text-faint); font-size: 11px; }
+html[data-shell="tabs"][data-tab="today"] .weather-day-temps .weather-day-temp-lo,
+html[data-shell="tabs"][data-tab="today"] .weather-day-temps .weather-day-temp { font-size: 13px !important; }
