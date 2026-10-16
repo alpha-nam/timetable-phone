@@ -1512,3 +1512,11 @@ html[data-shell="tabs"] .swap-bar { margin-bottom: 12px; }
 .att-sem-editor input[type=date] { font-family: inherit; font-size: 14px; padding: 6px 8px; border: 1px solid var(--panel-border); border-radius: 8px; background: var(--card-bg); color: var(--text); align-self: flex-start; }
 .att-sem-cands { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: var(--text-sub); }
 .att-sem-editor > button { align-self: flex-start; }
+/* 출결 종합: 창 전체를 쓴다. 위쪽(제목·선택·탭)은 고정하고 기록 표만 안에서 스크롤한다 */
+#attSummaryOverlay { background: var(--card-bg); align-items: stretch; justify-content: stretch; padding: 0; }
+#attSummaryOverlay .att-summary-box { width: 100%; height: 100%; max-height: none; border: none; border-radius: 0; background: transparent; box-shadow: none; padding: 14px 16px 10px; display: flex; flex-direction: column; overflow: hidden; }
+#attSummaryOverlay .day-task-title { padding-right: 46px; flex-shrink: 0; }
+#attSummaryOverlay .att-pick-row, #attSummaryOverlay .day-task-tabs, #attSummaryOverlay .att-sem-note, #attSummaryOverlay .att-category-tabs, #attSummaryOverlay .att-sem-editor { flex-shrink: 0; }
+#attSummaryOverlay .att-summary-table-wrap { flex: 1 1 auto; min-height: 0; max-height: none; overflow-y: auto; margin-bottom: 8px; }
+#attSummaryOverlay .att-summary-row--head { position: sticky; top: 0; z-index: 1; background: var(--card-bg); padding-top: 2px; padding-bottom: 4px; }
+#attSummaryOverlay .day-task-close--bottom { flex-shrink: 0; align-self: center; margin: 0; }

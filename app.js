@@ -1041,9 +1041,29 @@
   function loadPrefs() { try { var v = JSON.parse(localStorage.getItem(PREFS_KEY) || '[]'); prefs = Array.isArray(v) ? v : []; } catch (e) { prefs = []; } }
   function savePrefs() { try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (e) {} scheduleCloudSync(); }
   // 2학기 시작일(YYYYMMDD). 정해 둔 게 없으면 9월 1일. 학교마다·해마다 달라서 직접 바꿀 수 있게 한다.
+  var SEMAUTO_KEY = 'dashboardSemAuto', semAuto = {}, semAutoTried = {};
+  try { semAuto = JSON.parse(localStorage.getItem(SEMAUTO_KEY) || '{}') || {}; } catch (e) { semAuto = {}; }
   function semesterStartOf(startYear) {
     var p = prefs.filter(function (x) { return x.id === 'sem-' + startYear; })[0];
-    return p && p.date ? p.date : String(startYear) + '0901';
+    if (p && p.date) return p.date;
+    return semAuto[startYear] || String(startYear) + '0901';
+  }
+  // 학사일정(NEIS)에서 "개학"(입학 제외) 중 가장 이른 날을 그 학년도의 2학기 시작일 기본값으로 쓴다(학교마다 8월일 수도, 9월일 수도 있다).
+  function ensureSemAuto(startYear) {
+    if (semAuto[startYear] || semAutoTried[startYear] || !CONFIG || !CONFIG.neis) return Promise.resolve(false);
+    semAutoTried[startYear] = true;
+    var neis = CONFIG.neis;
+    return fetch('https://open.neis.go.kr/hub/SchoolSchedule?KEY=' + neis.key + '&Type=json&pIndex=1&pSize=100&ATPT_OFCDC_SC_CODE=' + neis.officeCode + '&SD_SCHUL_CODE=' + neis.schoolCode + '&AA_FROM_YMD=' + startYear + '0701&AA_TO_YMD=' + startYear + '0930')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var rows = (d.SchoolSchedule && d.SchoolSchedule[1] && d.SchoolSchedule[1].row) || [];
+        var days = rows.filter(function (r) { return /개학/.test(r.EVENT_NM) && !/입학/.test(r.EVENT_NM); }).map(function (r) { return r.AA_YMD; }).sort();
+        if (!days.length) return false;
+        semAuto[startYear] = days[0];
+        try { localStorage.setItem(SEMAUTO_KEY, JSON.stringify(semAuto)); } catch (e) {}
+        return true;
+      })
+      .catch(function () { return false; });
   }
   function setSemesterStart(startYear, dateStr) {
     var id = 'sem-' + startYear, p = prefs.filter(function (x) { return x.id === id; })[0];
@@ -2028,6 +2048,9 @@
       var records = attendanceRecords.filter(function (r) { return r.date >= from && r.date <= to; });
       monthSel.hidden = mode !== 'month';
       var showSem = mode === 'sem1' || mode === 'sem2';
+      if (showSem && !prefs.some(function (x) { return x.id === 'sem-' + selYear && x.date; })) {
+        ensureSemAuto(selYear).then(function (changed) { if (changed && $('attSummaryOverlay')) render(); });
+      }
       semNote.hidden = !showSem;
       if (showSem) {
         semNote.innerHTML = '';
