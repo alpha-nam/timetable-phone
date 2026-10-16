@@ -642,7 +642,8 @@ body.resizing { user-select: none; -webkit-user-select: none; }
 .event-empty { font-size: 12px; color: var(--text-veryfaint); padding: 4px 2px; }
 .event-row { display: flex; align-items: center; gap: 8px; padding: 5px 7px; border-radius: 8px; background: var(--row-bg); }
 .event-badge {
-  padding: 3px 6px; border-radius: 6px;
+  padding: 3px 0; border-radius: 6px; box-sizing: border-box;
+  width: 46px; text-align: center; font-variant-numeric: tabular-nums;   /* D-4·D-34·D-115가 같은 폭이라 오른쪽 일정 이름이 같은 자리에서 시작한다 */
   background: var(--accent-soft); color: var(--accent);
   font-size: 10px; font-weight: 800; flex-shrink: 0;
 }
