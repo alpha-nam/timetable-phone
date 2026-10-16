@@ -318,7 +318,6 @@
     if (!sec.pseudo) title.addEventListener('click', function (ev) { ev.stopPropagation(); renameSection(sec, title); });
     else { title.title = ''; title.style.cursor = 'default'; }
     var list = sectionCards(sec.id);
-    var count = el('span', 'bd-sec-count', String(list.length));
     var more = el('button', 'bd-sec-more', '⋮'); more.type = 'button'; more.title = '섹션 메뉴';
     more.addEventListener('click', function (ev) {
       ev.stopPropagation();
@@ -330,7 +329,7 @@
       items.push('-', { label: '섹션 삭제', danger: true, onClick: function () { deleteSection(sec); } });
       openMenu(more, items);
     });
-    head.appendChild(title); head.appendChild(count); if (!sec.pseudo) head.appendChild(more);
+    head.appendChild(title); if (!sec.pseudo) head.appendChild(more);
     if (!sec.plain) wrap.appendChild(head);
 
     var body = el('div', 'bd-sec-body');
