@@ -1,0 +1,165 @@
+'use strict';
+/*
+ * drive-sync-core.js — PC 앱(Node)과 폰 앱(브라우저)이 같이 쓰는 구글 드라이브 동기화 핵심.
+ * 로그인(토큰 얻기)은 각자 하고, 여기서는 "토큰이 주어졌을 때 파일 읽기·쓰기와 합치기"만 한다.
+ *
+ * 드라이브에 만드는 파일(모두 이 앱이 만든 파일, 권한 drive.file):
+ *  - TimeTablePlus-attendance.json : { records:[출결 기록] }                 폰·PC가 같이 읽고 씀
+ *  - TimeTablePlus-notes.json      : { memo:[메모], dayTasks:[날짜별 할 일] } 폰·PC가 같이 읽고 씀
+ *  - TimeTablePlus-bundle.json     : { hash, files:{...} } 시간표·명단·결보강·API 키 — PC가 올리고 폰이 읽음
+ *  - TimeTablePlus-meta.json       : { hash, updatedAt } 번들이 바뀌었는지 가볍게 확인하는 용도
+ * 기록마다 id·updatedAt이 있고 삭제는 deleted:true 표시로 남긴다. 합치는 규칙: 같은 id면 updatedAt이 큰 쪽이 이긴다(같으면 원격 우선).
+ */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.DriveSyncCore = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  var FILES = {
+    attendance: 'TimeTablePlus-attendance.json',
+    notes: 'TimeTablePlus-notes.json',
+    bundle: 'TimeTablePlus-bundle.json',
+    meta: 'TimeTablePlus-meta.json'
+  };
+  var TOMBSTONE_KEEP_MS = 90 * 24 * 3600 * 1000;
+
+  function mergeEntries(a, b) {
+    var byId = new Map();
+    [a, b].forEach(function (list, idx) {
+      (list || []).forEach(function (e) {
+        if (!e || !e.id) return;
+        var cur = byId.get(e.id);
+        var t = Number(e.updatedAt) || 0;
+        var ct = cur ? Number(cur.updatedAt) || 0 : -1;
+        if (!cur || t > ct || (t === ct && idx === 1)) byId.set(e.id, e);   // 같은 시각이면 b(원격) 우선
+      });
+    });
+    return Array.from(byId.values());
+  }
+
+  // 로컬 기록 + 삭제 표시(tombstones: {id: 삭제시각})를 한 목록으로 만든다.
+  function withTombstones(records, tombstones) {
+    return (records || []).map(function (r) { return Object.assign({}, r, { updatedAt: Number(r.updatedAt) || 0 }); })
+      .concat(Object.keys(tombstones || {}).map(function (id) { return { id: id, deleted: true, updatedAt: Number(tombstones[id]) || 0 }; }));
+  }
+  function split(merged) {
+    var records = merged.filter(function (e) { return !e.deleted; });
+    var tombstones = {};
+    merged.filter(function (e) { return e.deleted; }).forEach(function (e) { tombstones[e.id] = e.updatedAt; });
+    return { records: records, tombstones: tombstones };
+  }
+  function norm(list) { return JSON.stringify((list || []).slice().sort(function (x, y) { return x.id < y.id ? -1 : 1; })); }
+
+  // deps: { fetch, getToken(): Promise<string>, apiBase, uploadBase, now }
+  function createDrive(deps) {
+    var f = deps.fetch;
+    var apiBase = deps.apiBase || 'https://www.googleapis.com';
+    var uploadBase = deps.uploadBase || apiBase;
+    var now = deps.now || function () { return Date.now(); };
+    var ids = {};
+
+    function api(method, url, opts) {
+      opts = opts || {};
+      return deps.getToken().then(function (token) {
+        var init = { method: method, headers: Object.assign({ Authorization: 'Bearer ' + token }, opts.headers || {}) };
+        if (opts.body !== undefined) init.body = opts.body;
+        return f(url, init);
+      }).then(function (res) {
+        if (res.ok) return res;
+        return res.text().then(function (t) {
+          var e = new Error('구글 드라이브 오류(' + res.status + ') ' + String(t).slice(0, 120));
+          e.status = res.status;
+          throw e;
+        }, function () { var e = new Error('구글 드라이브 오류(' + res.status + ')'); e.status = res.status; throw e; });
+      });
+    }
+    function findFile(name) {
+      if (ids[name]) return Promise.resolve(ids[name]);
+      var q = "name='" + name + "' and trashed=false";
+      return api('GET', apiBase + '/drive/v3/files?spaces=drive&fields=files(id,name)&q=' + encodeURIComponent(q))
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          var hit = (j.files || [])[0];
+          if (hit) ids[name] = hit.id;
+          return hit ? hit.id : null;
+        });
+    }
+    function readJson(id) {
+      return api('GET', apiBase + '/drive/v3/files/' + id + '?alt=media').then(function (r) { return r.json(); }).catch(function (e) {
+        if (e && e.status) throw e;
+        return null;   // 내용이 비었거나 JSON이 아님
+      });
+    }
+    function createJson(name, obj) {
+      var boundary = 'tt' + Math.random().toString(16).slice(2) + now().toString(16);
+      var body = '--' + boundary + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify({ name: name, mimeType: 'application/json' })
+        + '\r\n--' + boundary + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(obj) + '\r\n--' + boundary + '--';
+      return api('POST', uploadBase + '/upload/drive/v3/files?uploadType=multipart&fields=id', { headers: { 'Content-Type': 'multipart/related; boundary=' + boundary }, body: body })
+        .then(function (r) { return r.json(); }).then(function (j) { ids[name] = j.id; return j.id; });
+    }
+    function updateJson(id, obj) {
+      return api('PATCH', uploadBase + '/upload/drive/v3/files/' + id + '?uploadType=media', { headers: { 'Content-Type': 'application/json; charset=UTF-8' }, body: JSON.stringify(obj) });
+    }
+    function writeJson(name, obj) {
+      return findFile(name).then(function (id) { return id ? updateJson(id, obj) : createJson(name, obj); });
+    }
+    function readByName(name) { return findFile(name).then(function (id) { return id ? readJson(id) : null; }); }
+
+    // 한 묶음(예: 출결 기록)을 드라이브와 합친다. 원격이 바뀐 경우에만 다시 쓴다.
+    // key: 파일 안에서 배열을 담는 이름, local: { records, tombstones }
+    function syncList(fileName, key, local, remoteDoc) {
+      var remoteEntries = remoteDoc && Array.isArray(remoteDoc[key]) ? remoteDoc[key] : [];
+      var cutoff = now() - TOMBSTONE_KEEP_MS;
+      var merged = mergeEntries(withTombstones(local.records, local.tombstones), remoteEntries)
+        .filter(function (e) { return !(e.deleted && (Number(e.updatedAt) || 0) < cutoff); });
+      return { merged: merged, changed: norm(merged) !== norm(remoteEntries) };
+    }
+
+    // local: { attendance:{records,tombstones}, memo:{...}, dayTasks:{...} } (없는 묶음은 건너뜀)
+    // 돌려주는 값: 같은 모양으로 합쳐진 { attendance, memo, dayTasks } (각 {records(삭제 제외), tombstones})
+    function syncAll(local) {
+      local = local || {};
+      var out = {};
+      var tasks = [];
+
+      if (local.attendance) {
+        tasks.push(readByName(FILES.attendance).then(function (doc) {
+          var r = syncList(FILES.attendance, 'records', local.attendance, doc);
+          out.attendance = split(r.merged);
+          return (doc && !r.changed) ? null : writeJson(FILES.attendance, { version: 1, records: r.merged });
+        }));
+      }
+      if (local.memo || local.dayTasks) {
+        tasks.push(readByName(FILES.notes).then(function (doc) {
+          var m = syncList(FILES.notes, 'memo', local.memo || { records: [], tombstones: {} }, doc);
+          var d = syncList(FILES.notes, 'dayTasks', local.dayTasks || { records: [], tombstones: {} }, doc);
+          if (local.memo) out.memo = split(m.merged);
+          if (local.dayTasks) out.dayTasks = split(d.merged);
+          // 이번에 안 건드린 쪽은 원격 값을 그대로 보존한다.
+          var doc2 = { version: 1, memo: local.memo ? m.merged : (doc && doc.memo) || [], dayTasks: local.dayTasks ? d.merged : (doc && doc.dayTasks) || [] };
+          return (doc && !m.changed && !d.changed) ? null : writeJson(FILES.notes, doc2);
+        }));
+      }
+      return Promise.all(tasks).then(function () { return out; });
+    }
+
+    // 시간표·명단·결보강·키 묶음(PC가 올림). hash가 같으면 다시 올리지 않는다.
+    function uploadBundle(bundle) {
+      return readByName(FILES.meta).then(function (meta) {
+        if (meta && meta.hash === bundle.hash) return false;
+        return writeJson(FILES.bundle, bundle).then(function () { return writeJson(FILES.meta, { hash: bundle.hash, updatedAt: now() }); }).then(function () { return true; });
+      });
+    }
+    // 폰이 쓴다: 캐시한 hash와 같으면 내려받지 않는다. 돌려주는 값: 새 번들 또는 null(변경 없음)
+    function downloadBundle(cachedHash) {
+      return readByName(FILES.meta).then(function (meta) {
+        if (!meta) return { missing: true };
+        if (cachedHash && meta.hash === cachedHash) return null;
+        return readByName(FILES.bundle).then(function (b) { return b || { missing: true }; });
+      });
+    }
+
+    return { findFile: findFile, readByName: readByName, writeJson: writeJson, syncAll: syncAll, uploadBundle: uploadBundle, downloadBundle: downloadBundle };
+  }
+
+  return { FILES: FILES, mergeEntries: mergeEntries, withTombstones: withTombstones, split: split, createDrive: createDrive, TOMBSTONE_KEEP_MS: TOMBSTONE_KEEP_MS };
+});

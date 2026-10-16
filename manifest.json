@@ -1,0 +1,9 @@
+{
+  "name": "TimeTable+ 출결",
+  "short_name": "출결",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f3f6fb",
+  "theme_color": "#3d7fd6",
+  "icons": [{ "src": "icon.png", "sizes": "256x256", "type": "image/png" }]
+}

@@ -1,0 +1,100 @@
+/*
+ * phone.css — PC용 화면(style.css)을 폰 화면에 맞게 다시 배치하는 덮어쓰기. 이 파일은 style.css 다음에 읽힌다.
+ * 원칙: PC 화면을 그대로 쓰되, 큰 틀만 바꾼다(탭 줄을 아래로, 카드를 화면 가득, 누르기 쉬운 크기).
+ */
+html, body { height: 100%; overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
+html[data-phone] body { overflow: hidden; }
+html[data-phone] #board { width: 100vw; height: 100vh; height: 100dvh; background: var(--card-bg); border-radius: 0; pointer-events: auto; }
+html[data-phone] .settings-corner, html[data-phone] .resize-handle { display: none !important; }
+
+/* 탭 줄: 화면 아래 고정, 아이콘 위·글자 아래 */
+html[data-phone][data-shell="tabs"] #tabBar {
+  position: fixed; top: auto; bottom: 0; left: 0; right: 0; z-index: 30;
+  justify-content: space-around; gap: 0; padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  background: var(--card-bg); border-top: 1px solid var(--card-border);
+}
+html[data-phone] .tabbtn { flex: 1; flex-direction: column; gap: 2px; padding: 6px 2px; font-size: 11px; justify-content: center; min-width: 0; }
+html[data-phone] .tabbtn svg.fl { width: 24px; height: 24px; }
+
+/* 카드 영역: 탭 줄 위를 가득 */
+html[data-phone][data-shell="tabs"] .bento {
+  top: 10px !important; left: 10px !important; right: 10px !important; bottom: calc(66px + env(safe-area-inset-bottom)) !important;
+}
+
+/* 로그인·불러오기 화면 */
+#phoneGate { position: fixed; inset: 0; z-index: 100; background: var(--card-bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; text-align: center; }
+#phoneGate[hidden] { display: none; }
+.gate-logo { width: 72px; height: 72px; border-radius: 18px; }
+.gate-title { margin: 0; font-size: 22px; color: var(--text); }
+.gate-msg { margin: 0; font-size: 15px; line-height: 1.6; color: var(--text-sub); max-width: 300px; }
+.gate-msg.err { color: #b3342a; }
+.gate-login { font-family: inherit; font-size: 17px; font-weight: 800; color: #fff; background: var(--accent); border: none; border-radius: 14px; padding: 14px 28px; cursor: pointer; }
+.gate-login[hidden] { display: none; }
+.phone-note { position: fixed; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 60; display: none; font-size: 13px; font-weight: 700; padding: 10px 14px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); }
+.phone-note.show { display: block; }
+.phone-note.err { background: #fde4e1; color: #b3342a; }
+
+/* ── 폰(폭 700px 미만) 전용 배치 ── */
+@media (max-width: 699px) {
+  /* 출결 머리줄: 폭이 좁아서 두 줄로 */
+  html[data-phone] #attendanceCard .card-head { flex-wrap: wrap; row-gap: 6px; }
+  html[data-phone] #attendanceCard .att-nav { margin-left: 0; }
+  html[data-phone] #attDateLabel { white-space: nowrap; }
+  html[data-phone] #attendanceCard .cloud-chip { margin-left: auto; }
+
+  /* 오늘 탭: 가로가 좁으니 카드를 세로로 쌓고 스크롤 */
+  html[data-phone][data-shell="tabs"][data-tab="today"] .bento {
+    grid-template-columns: minmax(0, 1fr) !important; grid-template-rows: none !important; grid-auto-rows: min-content;
+    grid-template-areas: "clk" "wth" "meal" "evt" !important; overflow-y: auto; align-content: start;
+  }
+  html[data-phone][data-shell="tabs"][data-tab="today"] .card { min-height: 150px; }
+
+  /* 캘린더: 폭이 좁아 일정 이름 대신 점으로 */
+  html[data-phone][data-shell="tabs"][data-tab="calendar"] .cal-event-label { display: none !important; }
+  html[data-phone][data-shell="tabs"][data-tab="calendar"] .cal-cell::after { display: block !important; }
+}
+
+/* ── 태블릿(폭 700px 이상) ── 내용이 한없이 늘어나지 않게 가운데로 모으고, 글자를 키운다 */
+@media (min-width: 700px) {
+  html[data-phone][data-shell="tabs"] .bento {
+    left: max(16px, calc((100vw - 1000px) / 2)) !important; right: max(16px, calc((100vw - 1000px) / 2)) !important;
+    top: 16px !important; bottom: calc(76px + env(safe-area-inset-bottom)) !important;
+  }
+  html[data-phone][data-shell="tabs"] #tabBar { padding-left: max(8px, calc((100vw - 760px) / 2)); padding-right: max(8px, calc((100vw - 760px) / 2)); }
+  html[data-phone] .tabbtn { font-size: 13px; }
+  html[data-phone] .tabbtn svg.fl { width: 28px; height: 28px; }
+  html[data-phone] .phone-note { left: 50%; right: auto; transform: translateX(-50%); width: min(520px, calc(100vw - 24px)); }
+}
+
+/* 태블릿은 화면이 큰 만큼 글자·누르는 칸도 키운다(PC 창은 620px 기준이라 그대로면 작아 보인다) */
+@media (min-width: 700px) {
+  html[data-phone] { --wt-scale: 1.4; }   /* 시간표 칸 글자(app.js의 fitTimetableFont가 읽는다) */
+  html[data-phone] .wt-day-head { font-size: 17px; }
+  html[data-phone] .wt-period-no { font-size: 16px; }
+  html[data-phone] .wt-period-time { font-size: 12px; }
+  html[data-phone] .view-type-btn, html[data-phone] .view-combo .entity-select-btn { font-size: 16px; }
+  html[data-phone] .view-combo, html[data-phone] .view-type-btn, html[data-phone] .view-combo .entity-select-btn { height: 42px; }
+  html[data-phone][data-shell="tabs"][data-tab="calendar"] .cal-event-label { font-size: 12.5px; }
+  html[data-phone] .cal-daynum, html[data-phone] .cal-cell .cal-num { font-size: 15px; }
+  html[data-phone] .att-btn { font-size: 15px; padding-top: 11px; padding-bottom: 11px; }
+  html[data-phone] .att-field-label { font-size: 13px; }
+  html[data-phone] .att-memo-input { font-size: 16px; padding: 11px 12px; }
+  html[data-phone] .att-record-name { font-size: 15px; }
+  html[data-phone] .att-record-meta { font-size: 13px; }
+  html[data-phone] .memo-text { font-size: 17px; }
+  html[data-phone] #memoInput { font-size: 16px; }
+  html[data-phone] .swap-name { font-size: 16px; }
+  html[data-phone] .swap-chip { font-size: 14px; }
+  html[data-phone] .swap-hint, html[data-phone] .swap-title { font-size: 15px; }
+}
+
+/* 세로로 긴 태블릿: 오늘 탭은 시계·날씨 / 급식·학사일정으로 나눠 보인다 */
+@media (min-width: 700px) and (orientation: portrait) {
+  html[data-phone][data-shell="tabs"][data-tab="today"] .bento {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important; grid-template-rows: auto minmax(0, 1fr) !important;
+    grid-template-areas: "clk wth" "meal evt" !important;
+  }
+}
+
+/* 메모 순서 바꾸기(손잡이 끌기)가 터치에서도 되게 */
+html[data-phone] .memo-grip { touch-action: none; }
