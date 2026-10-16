@@ -1,9 +1,9 @@
 'use strict';
 /*
- * phone-host.js — 폰에서 PC와 똑같은 TimeTable+ 화면(app.js)을 띄우는 껍데기.
+ * phone-host.js — 휴대폰에서 PC와 똑같은 TimeTable+ 화면(app.js)을 띄우는 껍데기.
  *
  * PC 앱은 Electron이 데이터 파일(시간표·명단·결보강)을 디스크에서 읽고 구글 연동을 main.js가 한다.
- * 폰에서는 그 역할을 이 파일이 대신한다:
+ * 휴대폰에서는 그 역할을 이 파일이 대신한다:
  *   1) 구글 로그인(GIS 토큰) → 선생님 본인의 드라이브에서 번들(시간표·명단·결보강·API 키)을 내려받아 기기에 보관(IndexedDB)
  *   2) app.js가 부르는 fetch('./dashboard-timetable.json' 등)를 그 번들로 대신 답해 준다
  *   3) app.js가 쓰는 window.TTCLOUD(출결·메모·할 일 동기화)를 브라우저용으로 제공한다
@@ -110,7 +110,7 @@
       bundle = cached;
       if (!tokenValid()) return;
       return drive.downloadBundle(cached && cached.hash).then(function (b) {
-        if (b && b.missing) { if (!cached) throw new Error('PC의 TimeTable+에서 먼저 "폰 연동"을 켜 주세요. (시간표 데이터가 아직 드라이브에 없습니다)'); return; }
+        if (b && b.missing) { if (!cached) throw new Error('PC의 TimeTable+에서 먼저 "휴대폰 연동"을 켜 주세요. (시간표 데이터가 아직 드라이브에 없습니다)'); return; }
         if (b) { bundle = b; return idbSet('bundle', b); }
       }, function (e) {
         // 인터넷이 안 되거나 구글이 일시적으로 안 될 때는, 기기에 저장해 둔 시간표가 있으면 그걸로 연다.
@@ -152,7 +152,7 @@
         return Promise.resolve({ ok: true });
       },
       sync: function (local) {
-        if (!tokenValid()) return Promise.resolve({ ok: false, error: '로그인이 필요합니다. 화면을 한 번 누르거나 "폰 연동"을 누르세요.' });
+        if (!tokenValid()) return Promise.resolve({ ok: false, error: '로그인이 필요합니다. 화면을 한 번 누르거나 "휴대폰 연동"을 누르세요.' });
         return drive.syncAll(local || {}).then(function (result) {
           // 하루 한 번 전체 사본을 드라이브에 남긴다(실패해도 동기화는 성공으로 본다).
           var snap = {};
@@ -169,7 +169,7 @@
         return drive.readBackup(id).then(function (data) { return { ok: true, data: data }; }).catch(function (e) { return { ok: false, error: e.message }; });
       },
       localBackups: function () { return Promise.resolve({ ok: true, list: [] }); },
-      readLocalBackup: function () { return Promise.resolve({ ok: false, error: '폰에는 PC 백업 파일이 없습니다.' }); }
+      readLocalBackup: function () { return Promise.resolve({ ok: false, error: '휴대폰에는 PC 백업 파일이 없습니다.' }); }
     };
   }
 
@@ -308,7 +308,7 @@
   function enter() {
     showGate('시간표 불러오는 중…', '', false);
     return loadBundle().then(function () {
-      if (!bundle) throw new Error('시간표 데이터가 없습니다. PC의 TimeTable+에서 "폰 연동"을 켠 뒤 다시 열어 주세요.');
+      if (!bundle) throw new Error('시간표 데이터가 없습니다. PC의 TimeTable+에서 "휴대폰 연동"을 켠 뒤 다시 열어 주세요.');
       return startApp();
     }).catch(function (e) { showGate(e.message, 'err', true); });
   }
