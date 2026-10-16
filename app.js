@@ -3014,9 +3014,8 @@
     var vt = $('viewTabs'), es = $('entitySelect');
     if (vt && es) vt.appendChild(es);    if (vt && es) initViewTypeCombo(vt, es);
 
-    var saved = 'timetable';
-    try { saved = localStorage.getItem(TAB_KEY) || 'timetable'; } catch (e) {}
-    setTab(saved, false);
+    // 열 때마다 "시간표" 탭에서 시작한다(마지막에 보던 탭을 기억하지 않는다).
+    setTab('timetable', false);
   }
 
   function init() {
