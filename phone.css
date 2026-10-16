@@ -123,3 +123,8 @@ html[data-phone] .memo-grip { touch-action: none; }
 
 /* 데스크톱 배경화면용 style.css가 body 전체를 클릭 통과(pointer-events:none)로 두므로, 폰에서는 body 바로 아래 요소(로그인 게이트·안내·모달)가 클릭을 받게 되돌린다. */
 body > *:not(#board) { pointer-events: auto; }
+
+/* 줄바꿈은 어절 단위로, 문장 단위로 끊어 읽히게 한다(\n은 문장 경계). */
+.gate-msg, .phone-inapp-box h2, .phone-inapp-box p, .gate-help-body p { word-break: keep-all; white-space: pre-line; }
+.gate-msg { max-width: 340px; }
+.gate-help-note { font-size: 11.5px !important; }

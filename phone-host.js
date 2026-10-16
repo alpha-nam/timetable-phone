@@ -228,8 +228,8 @@
     var box = document.createElement('div'); box.className = 'phone-inapp-box';
     var h = document.createElement('h2'); h.textContent = name + ' 안에서는 구글 로그인이 안 돼요';
     var p = document.createElement('p');
-    p.textContent = (isAndroid || name === '카카오톡') ? '아래 버튼으로 크롬(또는 기본 브라우저)에서 다시 열어 주세요.'
-      : '화면 위·아래의 공유 또는 ⋯ 버튼을 누르고 "Safari로 열기"(또는 "다른 브라우저로 열기")를 선택해 주세요.';
+    p.textContent = (isAndroid || name === '카카오톡') ? '아래 버튼으로\n크롬(또는 기본 브라우저)에서 다시 열어 주세요.'
+      : '화면 위·아래의 공유 또는 ⋯ 버튼을 누르고\n"Safari로 열기"(또는 "다른 브라우저로 열기")를\n선택해 주세요.';
     box.appendChild(h); box.appendChild(p);
     if (name === '카카오톡') {
       // 카카오톡은 intent:// 링크를 막고, 자체 주소로만 바깥 브라우저를 열어 준다(안드로이드·아이폰 공통).
@@ -301,7 +301,7 @@
     // 토큰이 만료됐어도 기기에 보관한 데이터가 있으면 일단 그걸로 연다(동기화만 로그인 후에).
     idbGet('bundle').then(function (cached) {
       if (cached && lsGet('tt_everLoggedIn')) { bundle = cached; startApp(); }
-      else showGate('구글 계정으로 로그인하면 PC의 TimeTable+와 이어집니다.', '', true);
+      else showGate('구글 계정으로 로그인하면\nPC의 TimeTable+와 이어집니다.', '', true);
     });
   }
 
