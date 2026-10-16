@@ -1500,3 +1500,15 @@ html[data-shell="tabs"] .swap-bar { margin-bottom: 12px; }
 .swap-combo { margin-left: auto; }
 .swap-combo-label { cursor: default; }
 .swap-combo .swap-teacher-btn { margin-left: 0; background: transparent; border-radius: 0 10px 10px 0; border-left: 1px solid var(--card-border); height: 36px; font-size: 14px; }
+/* 출결 종합: 학년도·월 드롭다운, 학기 시작일 안내 */
+.att-pick-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.att-summary-select { font-family: inherit; font-size: 14px; font-weight: 700; color: var(--text); background: var(--row-bg); border: 1px solid var(--panel-border); border-radius: 10px; padding: 7px 10px; outline: none; }
+.att-summary-select[hidden] { display: none; }
+.att-sem-note { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 600; color: var(--text-sub); margin: 0 0 8px 2px; }
+.att-sem-note[hidden] { display: none; }
+.att-sem-note button, .att-sem-editor button { font-family: inherit; font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border: none; border-radius: 8px; padding: 5px 10px; cursor: pointer; }
+.att-sem-editor { background: var(--row-bg); border-radius: 12px; padding: 10px; margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
+.att-sem-editor-title { font-size: 13px; font-weight: 800; color: var(--text); }
+.att-sem-editor input[type=date] { font-family: inherit; font-size: 14px; padding: 6px 8px; border: 1px solid var(--panel-border); border-radius: 8px; background: var(--card-bg); color: var(--text); align-self: flex-start; }
+.att-sem-cands { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: var(--text-sub); }
+.att-sem-editor > button { align-self: flex-start; }

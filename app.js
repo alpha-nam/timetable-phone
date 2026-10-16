@@ -1036,6 +1036,21 @@
   // ── 날짜별 할 일의 변경 표시 ── 저장할 때마다 "무엇이 바뀌었는지"를 비교해서 바뀐 항목에만 updatedAt을 찍고,
   // 지워진 항목은 삭제 표시(tombstone)로 남긴다. 그래야 폰과 합칠 때 최신 쪽이 이기고 지운 게 되살아나지 않는다.
   // (메모 카드·섹션·휴지통의 같은 처리는 board.js가 한다.)
+  var PREFS_KEY = 'dashboardPrefs';
+  var prefs = [];   // [{ id:'sem-2026', date:'20260810', updatedAt }] — 2학기 시작일(학년도별)
+  function loadPrefs() { try { var v = JSON.parse(localStorage.getItem(PREFS_KEY) || '[]'); prefs = Array.isArray(v) ? v : []; } catch (e) { prefs = []; } }
+  function savePrefs() { try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (e) {} scheduleCloudSync(); }
+  // 2학기 시작일(YYYYMMDD). 정해 둔 게 없으면 9월 1일. 학교마다·해마다 달라서 직접 바꿀 수 있게 한다.
+  function semesterStartOf(startYear) {
+    var p = prefs.filter(function (x) { return x.id === 'sem-' + startYear; })[0];
+    return p && p.date ? p.date : String(startYear) + '0901';
+  }
+  function setSemesterStart(startYear, dateStr) {
+    var id = 'sem-' + startYear, p = prefs.filter(function (x) { return x.id === id; })[0];
+    if (!p) { p = { id: id }; prefs.push(p); }
+    p.date = dateStr || ''; p.updatedAt = Date.now();
+    savePrefs();
+  }
   var DAYTASK_TOMB_KEY = 'dashboardDayTaskTombstones', DAYTASK_STAMP_KEY = 'dashboardDayTaskStamps';
   var dayTombs = {}, dayStamps = {};
   var daySig = null;   // 마지막으로 저장한 상태의 요약(처음엔 null = 아직 기준 없음)
@@ -1063,7 +1078,8 @@
     var dayRecords = Object.keys(dayTasks).map(function (k) { return { id: k, text: dayTasks[k], updatedAt: dayStamps[k] || 0 }; });
     var payload = {
       attendance: { records: attendanceRecords, tombstones: attendanceTombstones },
-      dayTasks: { records: dayRecords, tombstones: dayTombs }
+      dayTasks: { records: dayRecords, tombstones: dayTombs },
+      prefs: { records: prefs, tombstones: {} }
     };
     if (window.BOARD) Object.assign(payload, window.BOARD.getSyncState());   // memo(카드)·sections·trash
     return payload;
@@ -1078,6 +1094,7 @@
       if (JSON.stringify(nextAtt) !== JSON.stringify(attendanceRecords)) { attendanceRecords = nextAtt; changed = true; }
     }
     if (window.BOARD && (res.memo || res.sections || res.trash)) { if (window.BOARD.applySync(res)) changed = true; }
+    if (res.prefs) { var np = res.prefs.records || []; if (JSON.stringify(np) !== JSON.stringify(prefs)) { prefs = np; try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (e) {} changed = true; } }
     if (res.dayTasks) {
       var nextDay = {}, nextStamps = {};
       (res.dayTasks.records || []).forEach(function (r) { if (r.text) { nextDay[r.id] = r.text; nextStamps[r.id] = r.updatedAt || 0; } });
@@ -1906,38 +1923,125 @@
       return b;
     });
 
+    // 학년도(3월~다음 해 2월) 드롭다운 + 월 드롭다운, 그 아래에 월별/1학기/2학기/학년도 전체 탭.
+    var now0 = new Date();
+    var selYear = academicYearRange(now0).start.getFullYear();
+    var selMonthIdx = (now0.getMonth() + 10) % 12;   // 0 = 3월 … 11 = 2월
+    var MODES = [['month', '월별'], ['sem1', '1학기'], ['sem2', '2학기'], ['year', '학년도 전체']];
+
+    var pickRow = document.createElement('div');
+    pickRow.className = 'att-pick-row';
+    var yearSel = document.createElement('select');
+    yearSel.className = 'att-summary-select';
+    var monthSel = document.createElement('select');
+    monthSel.className = 'att-summary-select';
+    function fillYears() {
+      var years = {}; years[academicYearRange(new Date()).start.getFullYear()] = true;
+      attendanceRecords.forEach(function (r) { var d = r.date; var y = +d.slice(0, 4), mo = +d.slice(4, 6); years[mo >= 3 ? y : y - 1] = true; });
+      years[selYear] = true;
+      yearSel.innerHTML = '';
+      Object.keys(years).map(Number).sort(function (a, c) { return c - a; }).forEach(function (y) {
+        var o = document.createElement('option'); o.value = y; o.textContent = y + '학년도'; yearSel.appendChild(o);
+      });
+      yearSel.value = String(selYear);
+    }
+    function fillMonths() {
+      monthSel.innerHTML = '';
+      for (var i = 0; i < 12; i++) {
+        var mo = (2 + i) % 12, yy = i <= 9 ? selYear : selYear + 1;
+        var o = document.createElement('option'); o.value = i; o.textContent = (mo + 1) + '월'; o.title = yy + '년';
+        monthSel.appendChild(o);
+      }
+      monthSel.value = String(selMonthIdx);
+    }
+    yearSel.addEventListener('change', function () { selYear = +yearSel.value; fillMonths(); render(); });
+    monthSel.addEventListener('change', function () { selMonthIdx = +monthSel.value; render(); });
+    pickRow.appendChild(yearSel); pickRow.appendChild(monthSel);
+
     var tabRow = document.createElement('div');
     tabRow.className = 'day-task-tabs';
-    var monthTabBtn = document.createElement('button');
-    monthTabBtn.type = 'button'; monthTabBtn.className = 'day-task-tab'; monthTabBtn.textContent = '이번 달';
-    var yearTabBtn = document.createElement('button');
-    yearTabBtn.type = 'button'; yearTabBtn.className = 'day-task-tab'; yearTabBtn.textContent = '학년도 전체';
-    tabRow.appendChild(monthTabBtn);
-    tabRow.appendChild(yearTabBtn);
+    var modeBtns = MODES.map(function (p) {
+      var bt = document.createElement('button');
+      bt.type = 'button'; bt.className = 'day-task-tab'; bt.textContent = p[1];
+      bt.addEventListener('click', function (ev) { ev.stopPropagation(); mode = p[0]; render(); });
+      tabRow.appendChild(bt);
+      return bt;
+    });
+
+    // 학기 시작일 안내·바꾸기(1학기/2학기 탭에서만 보임)
+    var semNote = document.createElement('div');
+    semNote.className = 'att-sem-note';
+    function showSemEditor() {
+      var old = $('attSemEditor'); if (old) { old.remove(); return; }
+      var box2 = document.createElement('div'); box2.id = 'attSemEditor'; box2.className = 'att-sem-editor';
+      var cur = semesterStartOf(selYear);
+      var lab = document.createElement('div'); lab.className = 'att-sem-editor-title'; lab.textContent = selYear + '학년도 2학기 시작일';
+      var inp = document.createElement('input'); inp.type = 'date'; inp.value = cur.slice(0, 4) + '-' + cur.slice(4, 6) + '-' + cur.slice(6, 8);
+      inp.addEventListener('change', function () { if (inp.value) { setSemesterStart(selYear, inp.value.split('-').join('')); box2.remove(); render(); } });
+      var cand = document.createElement('div'); cand.className = 'att-sem-cands'; cand.textContent = '학교 학사일정에서 찾는 중…';
+      var reset = document.createElement('button'); reset.type = 'button'; reset.textContent = '기본(9월 1일)으로';
+      reset.addEventListener('click', function (ev) { ev.stopPropagation(); setSemesterStart(selYear, ''); box2.remove(); render(); });
+      box2.appendChild(lab); box2.appendChild(inp); box2.appendChild(cand); box2.appendChild(reset);
+      box2.addEventListener('click', function (ev) { ev.stopPropagation(); });
+      semNote.parentNode.insertBefore(box2, semNote.nextSibling);
+      // 학사일정(NEIS)의 "개학" 행사에서 후보를 보여 준다(학년별로 날짜가 다를 수 있다).
+      var from = String(selYear) + '0701', to = String(selYear) + '0930';
+      var neis = CONFIG.neis;
+      fetch('https://open.neis.go.kr/hub/SchoolSchedule?KEY=' + neis.key + '&Type=json&pIndex=1&pSize=100&ATPT_OFCDC_SC_CODE=' + neis.officeCode + '&SD_SCHUL_CODE=' + neis.schoolCode + '&AA_FROM_YMD=' + from + '&AA_TO_YMD=' + to)
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          var rows = (d.SchoolSchedule && d.SchoolSchedule[1] && d.SchoolSchedule[1].row) || [];
+          var hits = rows.filter(function (r) { return /개학/.test(r.EVENT_NM) && !/입학/.test(r.EVENT_NM); });
+          cand.textContent = hits.length ? '학사일정: ' : '학사일정에서 개학일을 찾지 못했습니다.';
+          hits.forEach(function (h) {
+            var bt = document.createElement('button'); bt.type = 'button';
+            bt.textContent = (+h.AA_YMD.slice(4, 6)) + '월 ' + (+h.AA_YMD.slice(6, 8)) + '일 ' + h.EVENT_NM;
+            bt.addEventListener('click', function (ev) { ev.stopPropagation(); setSemesterStart(selYear, h.AA_YMD); box2.remove(); render(); });
+            cand.appendChild(bt);
+          });
+        })
+        .catch(function () { cand.textContent = '학사일정을 불러오지 못했습니다.'; });
+    }
 
     var tableWrap = document.createElement('div');
     tableWrap.className = 'att-summary-table-wrap';
 
     function render() {
-      var now = new Date();
-      var y = calViewYear !== null ? calViewYear : now.getFullYear();
-      var m = calViewMonth !== null ? calViewMonth : now.getMonth();
-      var records, rangeLabel;
+      var acStart = ymd(new Date(selYear, 2, 1)), acEnd = ymd(new Date(selYear + 1, 2, 0));
+      var semStart = semesterStartOf(selYear);
+      if (semStart <= acStart || semStart > acEnd) semStart = String(selYear) + '0901';
+      var from, to, rangeLabel;
       if (mode === 'month') {
-        var from = ymd(new Date(y, m, 1));
-        var to = ymd(new Date(y, m + 1, 0));
-        records = attendanceRecords.filter(function (r) { return r.date >= from && r.date <= to; });
-        rangeLabel = y + '년 ' + (m + 1) + '월';
+        var mo = (2 + selMonthIdx) % 12, yy = selMonthIdx <= 9 ? selYear : selYear + 1;
+        from = ymd(new Date(yy, mo, 1)); to = ymd(new Date(yy, mo + 1, 0));
+        rangeLabel = selYear + '학년도 ' + (mo + 1) + '월';
+      } else if (mode === 'sem1') {
+        from = acStart; to = ymd(new Date(+semStart.slice(0, 4), +semStart.slice(4, 6) - 1, +semStart.slice(6, 8) - 1));
+        rangeLabel = selYear + '학년도 1학기';
+      } else if (mode === 'sem2') {
+        from = semStart; to = acEnd;
+        rangeLabel = selYear + '학년도 2학기';
       } else {
-        var range = academicYearRange(new Date(y, m, 1));
-        var from2 = ymd(range.start), to2 = ymd(range.end);
-        records = attendanceRecords.filter(function (r) { return r.date >= from2 && r.date <= to2; });
-        rangeLabel = range.start.getFullYear() + '학년도';
+        from = acStart; to = acEnd;
+        rangeLabel = selYear + '학년도';
       }
+      var records = attendanceRecords.filter(function (r) { return r.date >= from && r.date <= to; });
+      monthSel.hidden = mode !== 'month';
+      var showSem = mode === 'sem1' || mode === 'sem2';
+      semNote.hidden = !showSem;
+      if (showSem) {
+        semNote.innerHTML = '';
+        var fm = function (d) { return (+d.slice(4, 6)) + '월 ' + (+d.slice(6, 8)) + '일'; };
+        var txt = document.createElement('span');
+        txt.textContent = mode === 'sem1' ? '1학기: ' + fm(acStart) + ' ~ ' + fm(to) : '2학기: ' + fm(semStart) + ' ~ ' + fm(acEnd);
+        var chg = document.createElement('button'); chg.type = 'button'; chg.textContent = '2학기 시작일 바꾸기';
+        chg.addEventListener('click', function (ev) { ev.stopPropagation(); showSemEditor(); });
+        semNote.appendChild(txt); semNote.appendChild(chg);
+      } else { var oe = $('attSemEditor'); if (oe) oe.remove(); }
+      fillYears();
       records = records.filter(function (r) { return attendanceCategoryOf(r) === category; });
       title.textContent = '출결 종합 · ' + rangeLabel + ' · ' + category + '출결';
-      monthTabBtn.classList.toggle('active', mode === 'month');
-      yearTabBtn.classList.toggle('active', mode === 'year');
+      modeBtns.forEach(function (bt, i) { bt.classList.toggle('active', MODES[i][0] === mode); });
       categoryBtns.forEach(function (b, i) { b.classList.toggle('active', ATTENDANCE_CATEGORIES[i] === category); });
 
       var agg = aggregateAttendance(records);
@@ -2011,8 +2115,6 @@
       tableWrap.appendChild(table);
     }
 
-    monthTabBtn.addEventListener('click', function (ev) { ev.stopPropagation(); mode = 'month'; render(); });
-    yearTabBtn.addEventListener('click', function (ev) { ev.stopPropagation(); mode = 'year'; render(); });
 
     var closeBtn = document.createElement('button');
     closeBtn.type = 'button';
@@ -2021,8 +2123,10 @@
     closeBtn.addEventListener('click', function (ev) { ev.stopPropagation(); closeAttendanceSummary(); });
 
     box.appendChild(title);
-    box.appendChild(categoryTabRow);
+    box.appendChild(pickRow);
     box.appendChild(tabRow);
+    box.appendChild(semNote);
+    box.appendChild(categoryTabRow);
     box.appendChild(tableWrap);
     box.appendChild(closeBtn);
     overlay.appendChild(box);
@@ -2030,6 +2134,7 @@
     box.addEventListener('click', function (ev) { ev.stopPropagation(); });
 
     $('board').appendChild(overlay);
+    fillMonths();
     render();
   }
 
@@ -2781,6 +2886,7 @@
     initCardToggles(); // 첫 렌더 전에 꺼진 카드부터 숨겨둬야 숨은 카드가 불필요하게 그려/호출되지 않는다
     initLayoutResize(); // 저장된 카드 크기를 첫 렌더 전에 적용(글자 자동축소가 최종 크기 기준으로 돌게)
     loadDayTasks();
+    loadPrefs();
     loadAttendanceRecords();
     initCloud();
     if (window.BOARD) window.BOARD.init();
