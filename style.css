@@ -1485,3 +1485,9 @@ html[data-shell="tabs"] #memoCard .card-head { flex-wrap: wrap; row-gap: 6px; }
 .bd-sec.bd-none-only { background: transparent; padding: 0; flex: 1 1 auto; width: auto; max-width: 640px; }
 .board--h .bd-sec.bd-none-only { flex: 1 1 auto; width: auto; max-height: 100%; }
 .bd-plain-hint { margin-top: 10px; padding: 0 4px; color: var(--text-veryfaint); }
+/* 출결·메모 탭: 탭 이름과 같은 제목("출결", "메모")은 지우고 나머지를 왼쪽/오른쪽으로 붙인다 */
+html[data-shell="tabs"] #attendanceCard .card-title,
+html[data-shell="tabs"] #memoCard .card-title { display: none; }
+html[data-shell="tabs"] #attendanceCard .att-nav { margin-left: 0; }
+html[data-shell="tabs"] #memoCard .card-meta { margin-left: 4px; margin-right: auto; }
+html[data-shell="tabs"] #memoCard .card-head { padding-right: 0; }
