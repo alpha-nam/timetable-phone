@@ -874,6 +874,9 @@
     return { start: new Date(startYear, 2, 1), end: new Date(startYear + 1, 2, 0) };
   }
 
+  // 매주 있는 "토요휴업일"은 다 아는 내용이라 일정 목록·캘린더 어디에도 보이지 않게 한다.
+  function isHiddenEvent(r) { return /토요\s*휴업/.test(r.EVENT_NM || ''); }
+
   var eventsAllSorted = [];
 
   function fetchSchoolEvents() {
@@ -896,7 +899,7 @@
         var cutoff = new Date(today);
         cutoff.setDate(cutoff.getDate() - 1);
         var cutoffStr = ymd(cutoff);
-        eventsAllSorted = sorted.filter(function (r) { return r.AA_YMD >= cutoffStr; });
+        eventsAllSorted = sorted.filter(function (r) { return r.AA_YMD >= cutoffStr && !isHiddenEvent(r); });
         renderEventsList();
       })
       .catch(function (err) {
@@ -968,6 +971,7 @@
         var days = {};
         // 같은 날짜에 행사가 여러 건이면(방학 기간 등) 첫 번째 것만 칸 안에 표시한다.
         (rows || []).forEach(function (r) {
+          if (isHiddenEvent(r)) return;
           if (!days[r.AA_YMD]) days[r.AA_YMD] = r.EVENT_NM;
           if (r.SBTR_DD_SC_NM === '공휴일') neisHolidays[r.AA_YMD] = true;   // 개천절·한글날처럼 이름에 "공휴일"이 없는 공휴일도 빨갛게
         });

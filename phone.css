@@ -49,9 +49,14 @@ html[data-phone][data-shell="tabs"] .bento {
   }
   html[data-phone][data-shell="tabs"][data-tab="today"] .card { min-height: 150px; }
 
-  /* 캘린더: 폭이 좁아 일정 이름 대신 점으로 */
-  html[data-phone][data-shell="tabs"][data-tab="calendar"] .cal-event-label { display: none !important; }
-  html[data-phone][data-shell="tabs"][data-tab="calendar"] .cal-cell::after { display: block !important; }
+  /* 캘린더: 폭이 좁아도 점이 아니라 일정 이름을 작은 글씨로 보여 준다(세로가 길어 3줄까지) */
+  html[data-phone][data-shell="tabs"][data-tab="calendar"] .cal-cell::after { display: none !important; }
+  html[data-phone][data-shell="tabs"][data-tab="calendar"] .cal-event-label,
+  html[data-phone][data-shell="tabs"][data-tab="calendar"] .cal-task-label,
+  html[data-phone][data-shell="tabs"][data-tab="calendar"] .cal-attendance-label {
+    display: -webkit-box !important; font-size: 9.5px; line-height: 1.25; -webkit-line-clamp: 3; word-break: keep-all; overflow-wrap: anywhere;
+  }
+  html[data-phone][data-shell="tabs"][data-tab="calendar"] .cal-cell { padding-left: 2px; padding-right: 2px; }
 }
 
 /* ── 태블릿(폭 700px 이상) ── 내용이 한없이 늘어나지 않게 가운데로 모으고, 글자를 키운다 */
