@@ -799,7 +799,8 @@
       attendance: d.attendance || d.attendanceRecords || [],
       memo: d.memo || d.memoTodos || [],
       sections: d.sections || d.memoSections || [],
-      dayTasks: dayMap
+      dayTasks: dayMap,
+      subj: d.subj || d.subjectAtt || []
     };
   }
 
@@ -811,17 +812,17 @@
     var T = window.TTCLOUD;
     var jobs = [];
     if (T && T.backups) jobs.push(T.backups().then(function (r) { if (r && r.ok) r.list.forEach(function (b) { items.push({ src: 'drive', label: '구글 드라이브', date: b.date, id: b.id }); }); else if (r && r.error) items.errorDrive = r.error; }).catch(function () {}));
-    if (T && T.localBackups) jobs.push(T.localBackups().then(function (r) { if (r && r.ok) r.list.forEach(function (b) { items.push({ src: 'local', label: '이 PC', date: b.date, id: b.name }); }); }).catch(function () {}));
+    if (T && T.localBackups) jobs.push(T.localBackups().then(function (r) { if (r && r.ok) r.list.forEach(function (b) { items.push({ src: 'local', label: '이 PC', date: b.date, time: b.time || '', id: b.name }); }); }).catch(function () {}));
     Promise.all(jobs).then(function () {
       holder.innerHTML = '';
-      items.sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; });
+      items.sort(function (a, b) { var x = a.date + (a.time || ''), y = b.date + (b.time || ''); return x < y ? 1 : x > y ? -1 : 0; });
       if (items.errorDrive) holder.appendChild(el('div', 'board-hint', '드라이브 백업은 연결 후에 보입니다(' + items.errorDrive + ').'));
       if (!items.length) { holder.appendChild(el('div', 'board-none', '아직 백업이 없어요. 동기화가 켜져 있으면 하루에 한 번 만들어집니다.')); return; }
       items.forEach(function (it) {
         var row = el('div', 'board-row');
         row.appendChild(el('span', 'board-kind', it.label));
         var mid = el('div', 'board-row-main');
-        mid.appendChild(el('div', 'board-row-text', fmtKey(it.date) + ' 백업'));
+        mid.appendChild(el('div', 'board-row-text', fmtKey(it.date) + (it.time ? ' ' + it.time.slice(0, 2) + ':' + it.time.slice(2) : '') + ' 백업'));
         var b1 = el('button', 'board-primary small', '없어진 것만 되살리기'); b1.type = 'button';
         var b2 = el('button', 'board-tool danger', '이 날짜로 되돌리기'); b2.type = 'button';
         function fetchBackup() {
@@ -854,7 +855,7 @@
       c.order = sectionCards(c.sectionId).length; cards.push(c); delete tombs[c.id]; n++;
     });
     save();
-    if (app().mergeRestore) n += app().mergeRestore({ attendance: b.attendance, dayTasks: b.dayTasks });
+    if (app().mergeRestore) n += app().mergeRestore({ attendance: b.attendance, dayTasks: b.dayTasks, subj: b.subj });
     return n;
   }
   // 그 날짜의 상태로 통째로 되돌린다. 지금 있고 백업에 없는 것은 휴지통으로 보낸다.
@@ -874,7 +875,7 @@
     sigCards = sigMap(cards, sigCard); sigSecs = sigMap(sections, sigSec);
     write(KEYS.cards, cards); write(KEYS.sections, sections);
     save();
-    if (app().replaceRestore) n += app().replaceRestore({ attendance: b.attendance, dayTasks: b.dayTasks });
+    if (app().replaceRestore) n += app().replaceRestore({ attendance: b.attendance, dayTasks: b.dayTasks, subj: b.subj });
     return n;
   }
 

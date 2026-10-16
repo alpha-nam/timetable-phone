@@ -1589,3 +1589,4 @@ html[data-shell="tabs"] .tabbtn svg.fl { width: 18px; height: 18px; }
 .weather-day-sep { color: var(--text-faint); font-size: 11px; }
 html[data-shell="tabs"][data-tab="today"] .weather-day-temps .weather-day-temp-lo,
 html[data-shell="tabs"][data-tab="today"] .weather-day-temps .weather-day-temp { font-size: 13px !important; }
+.att-category-tabs[hidden] { display: none !important; }

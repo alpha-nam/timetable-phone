@@ -353,6 +353,25 @@
     return changed;
   }
 
+  // 백업에서 되살리기(app.js의 복원 화면이 부른다). 없는 것만 더하기 / 백업 상태로 통째로 되돌리기.
+  function mergeRestore(list) {
+    var n = 0, t = Date.now();
+    (list || []).forEach(function (r) {
+      if (!r || !r.id || recOf(r.id)) return;
+      records.push(Object.assign({}, r, { updatedAt: t })); delete tombs[r.id]; n++;
+    });
+    if (n) { save(); render(); }
+    return n;
+  }
+  function replaceRestore(list) {
+    var t = Date.now(), n = 0, keep = {};
+    (list || []).forEach(function (r) { if (r && r.id) keep[r.id] = true; });
+    records.forEach(function (r) { if (!keep[r.id]) { tombs[r.id] = t; n++; } });
+    records = (list || []).filter(function (r) { return r && r.id; }).map(function (r) { delete tombs[r.id]; return Object.assign({}, r, { updatedAt: t }); });
+    save(); render();
+    return n;
+  }
+
   function shiftDate(n) { var d = new Date(viewDate); d.setDate(d.getDate() + n); viewDate = d; render(); }
 
   function init() {
@@ -385,6 +404,8 @@
     init: init,
     show: function () { if (timetable() && !$('subjTeacher').options.length) fillTeachers(); render(); },
     render: render,
+    mergeRestore: mergeRestore,
+    replaceRestore: replaceRestore,
     getSyncState: getSyncState,
     applySync: applySync,
     _groupsFor: groupsFor

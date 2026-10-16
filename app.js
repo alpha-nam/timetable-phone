@@ -1167,6 +1167,7 @@
         attendanceRecords.push(Object.assign({}, r, { updatedAt: t })); delete attendanceTombstones[r.id]; n++;
       });
       Object.keys(b.dayTasks || {}).forEach(function (d) { if (!dayTasks[d] && b.dayTasks[d]) { dayTasks[d] = b.dayTasks[d]; delete dayTombs[d]; n++; } });
+      if (window.SUBJ && b.subj) n += window.SUBJ.mergeRestore(b.subj);
       saveTombstones(); saveAttendanceRecords(); saveDayTasks(); refreshAfterRestore();
       return n;
     },
@@ -1185,6 +1186,7 @@
       });
       var nd = {}; Object.keys(bd).forEach(function (d) { if (bd[d]) { nd[d] = bd[d]; delete dayTombs[d]; } });
       dayTasks = nd;
+      if (window.SUBJ && b.subj) n += window.SUBJ.replaceRestore(b.subj);
       saveTombstones(); saveAttendanceRecords(); saveDayTasks(); refreshAfterRestore();
       return n;
     }
@@ -1281,6 +1283,7 @@
     var payload = {
       exportedAt: new Date().toISOString(),
       attendanceRecords: attendanceRecords,
+      subjectAtt: window.SUBJ ? window.SUBJ.getSyncState().subj.records : [],
       dayTasks: dayTasks,
       memoTodos: window.BOARD ? window.BOARD.exportState().memoTodos : [],
       memoSections: window.BOARD ? window.BOARD.exportState().memoSections : []
@@ -1310,6 +1313,7 @@
       if (!confirm('백업 파일(' + (data.exportedAt || '날짜 미상') + ')을 불러오면 지금 있는 출결 ' + attendanceRecords.length + '건·메모 ' + Object.keys(dayTasks).length + '건이 백업 파일의 출결 ' + attCount + '건·메모 ' + taskCount + '건으로 덮어써집니다. 계속할까요?')) return;
       if (Array.isArray(data.attendanceRecords)) { attendanceRecords = data.attendanceRecords; saveAttendanceRecords(); }
       if (data.dayTasks && typeof data.dayTasks === 'object') { dayTasks = data.dayTasks; saveDayTasks(); }
+      if (Array.isArray(data.subjectAtt) && window.SUBJ) { window.SUBJ.replaceRestore(data.subjectAtt); }
       if (Array.isArray(data.memoTodos) && window.BOARD) { window.BOARD.importState(data); }
       renderCalendar();
       alert('불러오기 완료: 출결 ' + attCount + '건, 메모 ' + taskCount + '건.');
@@ -1724,7 +1728,6 @@
     cancelEditBtn.hidden = true;
     var addSpacer = document.createElement('div');
     addSpacer.style.flex = '1';
-    addRow.appendChild(categoryTabRow);
     addRow.appendChild(addSpacer);
     addRow.appendChild(addBtn);
     addRow.appendChild(cancelEditBtn);
@@ -1769,7 +1772,7 @@
         var recCat = attendanceCategoryOf(r);
         catTag.className = 'att-cat-tag att-cat-tag--' + (recCat === '교과' ? 'subject' : 'class');
         catTag.textContent = recCat;
-        name.appendChild(catTag);
+        if (recCat === '교과') name.appendChild(catTag);   // 학급 출결만 쓰므로 예전 "교과" 기록에만 표시
         var meta = document.createElement('div');
         meta.className = 'att-record-meta';
         meta.textContent = attendanceTypeLabel(r) + (r.memo ? ' · ' + r.memo : '');
@@ -1982,6 +1985,8 @@
       categoryTabRow.appendChild(b);
       return b;
     });
+    // 학급 출결만 쓰므로, 예전에 "교과"로 입력한 기록이 있을 때만 탭을 보여 준다(그 기록을 볼 수 있게).
+    categoryTabRow.hidden = !attendanceRecords.some(function (r) { return attendanceCategoryOf(r) === '교과'; });
 
     // 학년도(3월~다음 해 2월) 드롭다운 + 월 드롭다운, 그 아래에 월별/1학기/2학기/학년도 전체 탭.
     var now0 = new Date();
