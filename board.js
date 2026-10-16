@@ -30,8 +30,8 @@
   function read(key, fallback) { try { var v = JSON.parse(localStorage.getItem(key)); return v == null ? fallback : v; } catch (e) { return fallback; } }
   function write(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* 저장 불가 */ } }
 
-  function sigCard(c) { return JSON.stringify([c.text, !!c.done, c.sectionId, c.order, c.tag ? [c.tag.text, c.tag.color] : null]); }
-  function sigSec(s) { return JSON.stringify([s.name, s.order]); }
+  function sigCard(c) { return JSON.stringify([c.text, !!c.done, c.sectionId, c.order, c.tag ? [c.tag.text, c.tag.color] : null, styleSig(c.style)]); }
+  function sigSec(s) { return JSON.stringify([s.name, s.order, styleSig(s.style)]); }
   function sigMap(list, fn) { var m = {}; list.forEach(function (x) { if (x && x.id) m[x.id] = fn(x); }); return m; }
 
   function load() {
@@ -307,12 +307,19 @@
 
   function renderSection(sec) {
     var wrap = el('div', 'bd-sec'); wrap.dataset.sid = sec.id;
+    var secBg = sec.style && sec.style.bg;
+    if (secBg) wrap.style.background = secBg;
+    if (isDark(secBg)) wrap.classList.add('dark');
     var head = el('div', 'bd-sec-head');
     var sgrip = el('span', 'bd-sec-grip', '⋮⋮'); sgrip.title = '끌어서 섹션 순서 바꾸기';
     sgrip.addEventListener('pointerdown', function (ev) { startSectionDrag(ev, wrap, sec); });
     head.appendChild(sgrip);
     var title = el('span', 'bd-sec-title', sec.name);
     title.title = '눌러서 이름 바꾸기';
+    var secEff = effText(null, sec);
+    applyText(title, secEff, secBg);
+    if (secEff.size) title.style.fontSize = Math.max(12, secEff.size + 1) + 'px';
+    if (secEff.align) title.style.flex = '1 1 auto';
     title.addEventListener('click', function (ev) { ev.stopPropagation(); renameSection(sec, title); });
     var list = sectionCards(sec.id);
     var count = el('span', 'bd-sec-count', String(list.length));
@@ -321,7 +328,7 @@
       ev.stopPropagation();
       var secs = sortedSections(), i = secs.findIndex(function (s) { return s.id === sec.id; });
       var back = layout === 'h' ? '왼쪽으로' : '위로', fwd = layout === 'h' ? '오른쪽으로' : '아래로';
-      var items = [{ label: '이름 바꾸기', onClick: function () { renameSection(sec, title); } }];
+      var items = [{ label: '이름 바꾸기', onClick: function () { renameSection(sec, title); } }, { label: '꾸미기', onClick: function () { openStylePanel(more, sec, 'section'); } }];
       if (i > 0) items.push({ label: back + ' 이동', onClick: function () { moveSection(sec, -1); } });
       if (i < secs.length - 1) items.push({ label: fwd + ' 이동', onClick: function () { moveSection(sec, 1); } });
       items.push('-', { label: '섹션 삭제', danger: true, onClick: function () { deleteSection(sec); } });
@@ -375,6 +382,13 @@
 
   function renderCard(c) {
     var row = el('div', 'bd-card' + (c.done ? ' done' : '')); row.dataset.id = c.id;
+    var owner = sections.filter(function (x) { return x.id === c.sectionId; })[0];
+    var cardBg = c.style && c.style.bg;
+    if (cardBg) row.style.background = cardBg;
+    var eff = effText(c, owner);
+    // 어두운 섹션 안의 카드는 따로 색을 안 줬으면 어두운 반투명 카드로 보여서 흰 글씨가 읽히게 한다.
+    var darkOwnerBg = !cardBg && owner && owner.style && isDark(owner.style.bg) ? owner.style.bg : '';
+    if (darkOwnerBg) { row.style.background = 'rgba(255,255,255,0.14)'; row.style.borderColor = 'rgba(255,255,255,0.18)'; }
     var grip = el('span', 'bd-grip', '⋮⋮'); grip.title = '끌어서 옮기기';
     grip.addEventListener('pointerdown', function (ev) { startDrag(ev, row, c); });
     var chk = el('button', 'bd-chk', c.done ? '✓' : ''); chk.type = 'button'; chk.setAttribute('aria-label', c.done ? '완료 취소' : '완료');
@@ -390,6 +404,7 @@
       setTimeout(function () { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }, 0);
     } else {
       var txt = el('div', 'bd-text'); linkify(txt, c.text);
+      applyText(txt, eff, cardBg || darkOwnerBg);
       txt.addEventListener('click', function (ev) { ev.stopPropagation(); editingId = c.id; render(); });
       main.appendChild(txt);
       if (c.tag && c.tag.text) {
@@ -402,6 +417,7 @@
       ev.stopPropagation();
       openMenu(more, [
         { label: '편집', onClick: function () { editingId = c.id; render(); } },
+        { label: '꾸미기', onClick: function () { openStylePanel(more, c, 'card'); } },
         { label: c.tag ? '꼬리표 바꾸기' : '꼬리표 달기', onClick: function () { promptTag(c, more); } },
         c.tag ? { label: '꼬리표 지우기', onClick: function () { delete c.tag; save(); render(); } } : null,
         '-', { label: '삭제', danger: true, onClick: function () { deleteCard(c); render(); } }
@@ -432,6 +448,159 @@
     m.style.top = Math.min(r.bottom + 4, window.innerHeight - m.offsetHeight - 8) + 'px';
     m.style.left = Math.max(8, Math.min(r.right - m.offsetWidth, window.innerWidth - m.offsetWidth - 8)) + 'px';
     inp.focus();
+  }
+
+  // ───────── 꾸미기(색·글씨·크기·정렬·글꼴·굵기) ─────────
+  // 섹션과 카드 각각에 style 객체를 둔다. 카드의 글씨 모양은 "카드 자신의 설정 → 섹션 설정 → 기본" 순서로 정해진다.
+  // 글꼴은 모두 무료로 쓸 수 있는 구글 폰트(OFL)이고, 인터넷이 안 될 때는 기본 글꼴로 보인다.
+  var FONTS = [
+    { key: '', label: '기본 고딕', css: "'Gothic A1','Malgun Gothic',sans-serif" },
+    { key: 'nanumgothic', label: '나눔고딕', css: "'Nanum Gothic','Malgun Gothic',sans-serif" },
+    { key: 'gowundodum', label: '고운돋움', css: "'Gowun Dodum','Malgun Gothic',sans-serif" },
+    { key: 'notoserif', label: '명조', css: "'Noto Serif KR',serif" },
+    { key: 'nanummyeongjo', label: '나눔명조', css: "'Nanum Myeongjo',serif" },
+    { key: 'gowunbatang', label: '고운바탕', css: "'Gowun Batang',serif" },
+    { key: 'nanumpen', label: '손글씨', css: "'Nanum Pen Script',cursive" },
+    { key: 'gaegu', label: '개구', css: "'Gaegu',cursive" },
+    { key: 'gamja', label: '감자꽃', css: "'Gamja Flower',cursive" },
+    { key: 'jua', label: '주아', css: "'Jua',sans-serif" },
+    { key: 'dohyeon', label: '도현', css: "'Do Hyeon',sans-serif" },
+    { key: 'blackhan', label: '검은고딕', css: "'Black Han Sans',sans-serif" }
+  ];
+  var FONT_URL = 'https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700&family=Gowun+Dodum&family=Noto+Serif+KR:wght@400;700&family=Nanum+Myeongjo:wght@400;700&family=Gowun+Batang:wght@400;700&family=Nanum+Pen+Script&family=Gaegu:wght@400;700&family=Gamja+Flower&family=Jua&family=Do+Hyeon&family=Black+Han+Sans&display=swap';
+  var BG_COLORS = ['#eef2f8', '#fdecc8', '#dff3e3', '#e0ecff', '#fbe0ea', '#ece5fb', '#e3f3f3', '#ffffff', '#3a4660'];
+  var TEXT_COLORS = ['#2a3140', '#8a5610', '#2e6b3c', '#2f5eb0', '#b3342a', '#7b3fa0', '#ffffff'];
+  var SIZE_MIN = 10, SIZE_MAX = 34, SIZE_DEFAULT = 13;
+
+  function fontCss(key) { var f = FONTS.filter(function (x) { return x.key === key; })[0]; return f && f.key ? f.css : ''; }
+  function isDark(hex) {
+    var m = /^#([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return false;
+    var n = parseInt(m[1], 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    return (0.299 * r + 0.587 * g + 0.114 * b) < 128;
+  }
+  // 저장 모양을 고정한다(키 순서까지 같게 해서 변경 비교가 흔들리지 않게). 아무 값도 없으면 null.
+  function normStyle(s) {
+    if (!s) return null;
+    var o = {};
+    if (s.bg) o.bg = String(s.bg);
+    if (s.color) o.color = String(s.color);
+    if (s.size != null && isFinite(s.size)) o.size = Math.max(SIZE_MIN, Math.min(SIZE_MAX, Math.round(s.size)));
+    if (s.align === 'left' || s.align === 'center' || s.align === 'right') o.align = s.align;
+    if (s.font) o.font = String(s.font);
+    if (s.bold === true || s.bold === false) o.bold = s.bold;
+    return Object.keys(o).length ? o : null;
+  }
+  function styleSig(s) { return JSON.stringify(normStyle(s)); }
+  // 카드 글씨 모양: 카드 자신의 설정이 섹션 설정보다 우선한다.
+  function effText(card, sec) {
+    var out = {}, cs = card && card.style || {}, ss = sec && sec.style || {};
+    ['color', 'size', 'align', 'font', 'bold'].forEach(function (k) { var v = cs[k] != null ? cs[k] : ss[k]; if (v != null) out[k] = v; });
+    return out;
+  }
+  function applyText(node, eff, baseBg) {
+    var color = eff.color || (isDark(baseBg) ? '#ffffff' : '');
+    if (color) node.style.color = color;
+    if (eff.size) node.style.fontSize = eff.size + 'px';
+    if (eff.align) node.style.textAlign = eff.align;
+    var f = fontCss(eff.font); if (f) node.style.fontFamily = f;
+    if (eff.bold === true) node.style.fontWeight = '800'; else if (eff.bold === false) node.style.fontWeight = '400';
+  }
+
+  function closeStyle() { var p = $('boardStyle'); if (p) p.remove(); }
+  function openStylePanel(anchor, obj, kind) {
+    closeMenu(); closeStyle();
+    var p = el('div', 'board-style'); p.id = 'boardStyle';
+    var head = el('div', 'board-style-head');
+    head.appendChild(el('div', 'board-style-title', kind === 'section' ? '섹션 꾸미기' : '카드 꾸미기'));
+    var x = el('button', 'board-modal-x', '✕'); x.type = 'button'; x.addEventListener('click', closeStyle);
+    head.appendChild(x); p.appendChild(head);
+
+    function cur(k) { return obj.style ? obj.style[k] : undefined; }
+    function set(k, v) {
+      var s = Object.assign({}, obj.style || {});
+      if (v == null) delete s[k]; else s[k] = v;
+      var n = normStyle(s);
+      if (n) obj.style = n; else delete obj.style;
+      save(); render(); paint();
+    }
+    var groups = [];
+    function group(label) { var g = el('div', 'board-style-group'); g.appendChild(el('div', 'board-style-label', label)); p.appendChild(g); return g; }
+    function swatches(g, colors, key) {
+      var row = el('div', 'board-style-sw');
+      var none = el('button', 'board-style-swatch none', '기본'); none.type = 'button';
+      none.addEventListener('click', function () { set(key, null); });
+      row.appendChild(none);
+      colors.forEach(function (c) {
+        var b = el('button', 'board-style-swatch'); b.type = 'button'; b.style.background = c; b.title = c;
+        b.addEventListener('click', function () { set(key, c); });
+        row.appendChild(b);
+      });
+      g.appendChild(row);
+      groups.push(function () {
+        [].forEach.call(row.children, function (b, i) { var v = i === 0 ? undefined : colors[i - 1]; b.classList.toggle('on', cur(key) === v); });
+      });
+    }
+    function segment(g, key, options) {
+      var seg = el('div', 'board-seg');
+      options.forEach(function (o) {
+        var b = el('button', 'board-seg-btn', o[1]); b.type = 'button';
+        b.addEventListener('click', function () { set(key, o[0]); });
+        seg.appendChild(b);
+      });
+      g.appendChild(seg);
+      groups.push(function () { [].forEach.call(seg.children, function (b, i) { b.classList.toggle('active', cur(key) === options[i][0]); }); });
+    }
+
+    swatches(group(kind === 'section' ? '칸 색' : '카드 색'), BG_COLORS, 'bg');
+    swatches(group('글씨 색'), TEXT_COLORS, 'color');
+
+    var gs = group('글자 크기');
+    var srow = el('div', 'board-style-size');
+    var slider = el('input'); slider.type = 'range'; slider.min = SIZE_MIN; slider.max = SIZE_MAX; slider.step = 1;
+    var val = el('span', 'board-style-val');
+    var reset = el('button', 'board-tool', '기본'); reset.type = 'button';
+    slider.addEventListener('input', function () { val.textContent = slider.value + 'px'; });
+    slider.addEventListener('change', function () { set('size', Number(slider.value)); });
+    reset.addEventListener('click', function () { set('size', null); });
+    srow.appendChild(slider); srow.appendChild(val); srow.appendChild(reset); gs.appendChild(srow);
+    groups.push(function () { var v = cur('size'); slider.value = v != null ? v : SIZE_DEFAULT; val.textContent = v != null ? v + 'px' : '기본'; });
+
+    segment(group('정렬'), 'align', [['left', '왼쪽'], ['center', '가운데'], ['right', '오른쪽']]);
+
+    var gf = group('글꼴');
+    var grid = el('div', 'board-style-fonts');
+    FONTS.forEach(function (f) {
+      var b = el('button', 'board-style-font', f.label + ' 가나다 Aa'); b.type = 'button';
+      if (f.css) b.style.fontFamily = f.css;
+      b.addEventListener('click', function () { set('font', f.key || null); });
+      grid.appendChild(b);
+    });
+    gf.appendChild(grid);
+    groups.push(function () { [].forEach.call(grid.children, function (b, i) { b.classList.toggle('on', (cur('font') || '') === FONTS[i].key); }); });
+
+    segment(group('굵기'), 'bold', [[false, '보통'], [true, '굵게']]);
+
+    var foot = el('div', 'board-style-foot');
+    var clear = el('button', 'board-tool', '기본값으로'); clear.type = 'button';
+    clear.addEventListener('click', function () { delete obj.style; save(); render(); paint(); });
+    foot.appendChild(clear);
+    if (kind === 'section') {
+      var fit = el('button', 'board-tool', '카드 개별 설정 지우기'); fit.type = 'button';
+      fit.title = '이 칸 카드에 따로 준 모양을 모두 지우고 섹션 설정에 맞춥니다';
+      fit.addEventListener('click', function () { sectionCards(obj.id).forEach(function (c) { delete c.style; }); save(); render(); });
+      foot.appendChild(fit);
+    }
+    var done = el('button', 'board-primary small', '완료'); done.type = 'button'; done.addEventListener('click', closeStyle);
+    foot.appendChild(done);
+    p.appendChild(foot);
+
+    function paint() { groups.forEach(function (fn) { fn(); }); }
+    p.addEventListener('click', function (ev) { ev.stopPropagation(); });
+    $('board').appendChild(p);
+    paint();
+    var r = anchor.getBoundingClientRect();
+    p.style.left = Math.max(8, Math.min(r.right - p.offsetWidth, window.innerWidth - p.offsetWidth - 8)) + 'px';
+    p.style.top = Math.max(8, Math.min(r.bottom + 6, window.innerHeight - p.offsetHeight - 8)) + 'px';
   }
 
   // ───────── 끌어서 옮기기 ─────────
@@ -732,8 +901,9 @@
 
   function init() {
     load();
-    document.addEventListener('click', function () { closeMenu(); });
-    document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { closeMenu(); } });
+    if (!document.getElementById('boardFonts')) { var lk = document.createElement('link'); lk.id = 'boardFonts'; lk.rel = 'stylesheet'; lk.href = FONT_URL; document.head.appendChild(lk); }
+    document.addEventListener('click', function () { closeMenu(); closeStyle(); });
+    document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') { closeMenu(); closeStyle(); } });
     window.addEventListener('tt-open-recovery', function () { openRecovery(); });
     var root = $('memoBoard');
     if (root) root.addEventListener('click', function () { if (addingIn || editingId) { addingIn = null; editingId = null; render(); } });

@@ -1459,3 +1459,25 @@ html[data-shell="tabs"] #memoCard .card-head { flex-wrap: wrap; row-gap: 6px; }
 .bd-sec-grip { flex: 0 0 auto; width: 14px; text-align: center; color: var(--text-faint); font-size: 12px; letter-spacing: -2px; cursor: grab; user-select: none; touch-action: none; }
 .bd-sec-grip:hover { color: var(--accent); }
 .bd-sec-placeholder { border: 1.5px dashed var(--accent); background: var(--accent-soft); border-radius: 14px; flex: 0 0 auto; }
+
+/* 꾸미기 창 */
+.board-style { position: fixed; z-index: 95; width: min(310px, calc(100vw - 16px)); max-height: calc(100vh - 16px); overflow-y: auto; background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 14px; box-shadow: 0 16px 40px rgba(0,0,0,0.28); padding: 12px; pointer-events: auto !important; }
+.board-style * { pointer-events: auto !important; }
+.board-style-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.board-style-title { font-size: 14px; font-weight: 800; color: var(--text); }
+.board-style-group { margin-top: 10px; }
+.board-style-label { font-size: 11px; font-weight: 700; color: var(--text-sub); margin-bottom: 5px; }
+.board-style-sw { display: flex; flex-wrap: wrap; gap: 6px; }
+.board-style-swatch { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--panel-border); cursor: pointer; padding: 0; font-family: inherit; }
+.board-style-swatch.none { width: auto; border-radius: 12px; padding: 0 9px; font-size: 11px; font-weight: 700; color: var(--text-sub); background: var(--row-bg); }
+.board-style-swatch.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.board-style-size { display: flex; align-items: center; gap: 8px; }
+.board-style-size input[type=range] { flex: 1; min-width: 0; }
+.board-style-val { min-width: 36px; text-align: right; font-size: 12px; font-weight: 700; color: var(--text); }
+.board-style-fonts { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.board-style-font { font-size: 13px; text-align: left; color: var(--text); background: var(--row-bg); border: 1px solid transparent; border-radius: 9px; padding: 7px 9px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.board-style-font.on { border-color: var(--accent); background: var(--accent-soft); }
+.board-style-foot { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; }
+.board-style-foot .board-primary { margin-left: auto; }
+.bd-sec.dark .bd-add { color: #fff; background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.35); }
+.bd-sec.dark .bd-sec-more, .bd-sec.dark .bd-sec-grip { color: rgba(255,255,255,0.7); }
