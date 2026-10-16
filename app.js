@@ -1852,6 +1852,8 @@
         rmBtn.textContent = '삭제';
         rmBtn.addEventListener('click', function (ev) {
           ev.stopPropagation();
+          // 실수로 지워지지 않게 한 번 확인한다(교과 출결의 취소 확인과 같은 방식).
+          if (!window.confirm(attendanceStudentLabel(r) + ' ' + attendanceTypeLabel(r) + ' 기록을 삭제할까요?\n(삭제해도 휴지통에서 되살릴 수 있어요.)')) return;
           if (window.BOARD) window.BOARD.trash('attendance', r);
           attendanceRecords = attendanceRecords.filter(function (x) { return x.id !== r.id; });
           attendanceTombstones[r.id] = Date.now();
