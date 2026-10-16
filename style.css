@@ -1356,3 +1356,9 @@ html[data-shell="tabs"] #viewTabs { justify-content: flex-end; }
 .cloud-chip--err .cc-state { background: #fde4e1; color: #b3342a; border-left-color: #f2c4bf; }
 /* 휴대폰 연동 버튼을 "출결 종합" 바로 왼쪽에 붙인다 */
 html[data-shell="tabs"] #attendanceCard #attTabSummaryBtn { margin-left: 0; }
+/* 출결 탭 날짜: 눌러서 달력 열기 */
+.att-nav { position: relative; }
+.att-date-btn { cursor: pointer; padding: 3px 8px; border-radius: 8px; }
+.att-date-btn::after { content: ' ▾'; font-size: 10px; color: var(--text-veryfaint); }
+.att-date-btn:hover, .att-date-btn:focus-visible { background: var(--accent-soft); color: var(--accent); outline: none; }
+.att-date-input { position: absolute; left: 30px; top: 100%; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0; pointer-events: none; }

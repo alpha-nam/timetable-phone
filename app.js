@@ -2667,6 +2667,34 @@
     body.appendChild(buildAttendancePanel(ymd(d)));
   }
 
+  // 출결 탭의 날짜(예: "10월 16일 (금)")를 누르면 달력이 떠서 원하는 날로 바로 이동한다(‹ › 로 하루씩 넘기는 것이 불편해서).
+  // 눈에 안 보이는 날짜 입력칸(<input type="date">)을 날짜 글자 아래에 두고, 글자를 누르면 그 달력을 연다.
+  function initAttDatePicker() {
+    var label = $('attDateLabel');
+    if (!label || $('attDatePicker')) return;
+    label.classList.add('att-date-btn');
+    label.setAttribute('role', 'button');
+    label.setAttribute('tabindex', '0');
+    label.title = '눌러서 날짜 고르기';
+    var input = document.createElement('input');
+    input.type = 'date'; input.id = 'attDatePicker'; input.className = 'att-date-input'; input.tabIndex = -1;
+    label.parentNode.appendChild(input);
+    function open(ev) {
+      ev.stopPropagation();
+      var d = attViewDate;
+      input.value = d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+      try { input.showPicker(); } catch (e) { try { input.focus(); input.click(); } catch (e2) { /* 달력을 못 열면 ‹ › 로 이동 */ } }
+    }
+    label.addEventListener('click', open);
+    label.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); open(ev); } });
+    input.addEventListener('change', function () {
+      var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(input.value || '');
+      if (!m) return;
+      attViewDate = new Date(+m[1], +m[2] - 1, +m[3]);
+      renderAttendanceTab();
+    });
+  }
+
   function shiftAttDate(days) {
     var d = new Date(attViewDate);
     d.setDate(d.getDate() + days);
@@ -2755,6 +2783,7 @@
     $('attPrevBtn').addEventListener('click', function (ev) { ev.stopPropagation(); shiftAttDate(-1); });
     $('attNextBtn').addEventListener('click', function (ev) { ev.stopPropagation(); shiftAttDate(1); });
     $('attTodayBtn').addEventListener('click', function (ev) { ev.stopPropagation(); attViewDate = new Date(); renderAttendanceTab(); });
+    initAttDatePicker();
     $('attTabSummaryBtn').addEventListener('click', function (ev) { ev.stopPropagation(); openAttendanceSummary(); });
     $('memoAddBtn').addEventListener('click', function (ev) { ev.stopPropagation(); addMemoFromInput(); });
     $('memoInput').addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); addMemoFromInput(); } });
