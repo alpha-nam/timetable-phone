@@ -2,8 +2,8 @@
 /*
  * board.js — 메모 탭(패들렛 같은 보드)과 휴지통·백업 복원 화면.
  *
- *  - 섹션(칸)을 직접 만들고, 카드를 끌어서 순서를 바꾸거나 다른 섹션으로 옮긴다. 칸 배치는 가로/세로 선택.
- *  - 지운 카드·섹션·출결·날짜별 할 일은 휴지통에 90일 보관되고 되살릴 수 있다.
+ *  - 섹션(칸)을 직접 만들고, 메모를 끌어서 순서를 바꾸거나 다른 섹션으로 옮긴다. 칸 배치는 가로/세로 선택.
+ *  - 지운 메모·섹션·출결·날짜별 할 일은 휴지통에 90일 보관되고 되살릴 수 있다.
  *  - 백업(구글 드라이브 하루 1번, PC 자동 백업)에서 없어진 것만 되살리거나 그 시점으로 되돌린다.
  *  - 폰·PC 동기화는 app.js의 구글 연동이 이 파일의 getSyncState()/applySync()를 부른다.
  * app.js가 먼저 읽히고, 시작은 app.js의 init()이 BOARD.init()을 부른다.
@@ -15,13 +15,13 @@
   };
   var TRASH_KEEP_MS = 90 * 24 * 3600 * 1000;
   var TAG_COLORS = ['#f6bd56', '#6aa9f0', '#6cc58b', '#f08bb0', '#a98be8'];
-  var KIND_LABEL = { memo: '카드', section: '섹션', attendance: '출결', daytask: '날짜 할 일' };
+  var KIND_LABEL = { memo: '메모', section: '섹션', attendance: '출결', daytask: '날짜 할 일' };
 
   var cards = [], sections = [], tombs = {}, secTombs = {}, trash = [], trashTombs = {};
   var sigCards = null, sigSecs = null;
   var layout = 'h';
-  var addingIn = null;           // 카드 추가 입력창이 열려 있는 섹션 id
-  var editingId = null;          // 제자리 편집 중인 카드 id
+  var addingIn = null;           // 메모 추가 입력창이 열려 있는 섹션 id
+  var editingId = null;          // 제자리 편집 중인 메모 id
   var $ = function (id) { return document.getElementById(id); };
   function uid(p) { return (p || 'x') + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
   function app() { return window.TTAPP || {}; }
@@ -42,9 +42,9 @@
     trash = read(KEYS.trash, []); if (!Array.isArray(trash)) trash = [];
     trashTombs = read(KEYS.trashTombs, {}) || {};
     cards.forEach(function (c) { if (!c.id) c.id = uid('m'); });
-    // 섹션 없이 쓰는 카드는 sectionId가 ''(빈 값)이다. 섹션이 지워졌거나 없는 카드도 같은 칸(미분류)에 보인다.
+    // 섹션 없이 쓰는 메모는 sectionId가 ''(빈 값)이다. 섹션이 지워졌거나 없는 메모도 같은 칸(미분류)에 보인다.
     cards.forEach(function (c) { if (c.sectionId == null) c.sectionId = ''; });
-    // order가 없던 예전 카드는 저장된 순서대로 번호를 붙인다(새 카드가 맨 위로 끼어들지 않게).
+    // order가 없던 예전 메모는 저장된 순서대로 번호를 붙인다(새 메모가 맨 위로 끼어들지 않게).
     var seq = {};
     cards.forEach(function (c) { if (c.order == null) { seq[c.sectionId] = (seq[c.sectionId] || 0); c.order = seq[c.sectionId]; } seq[c.sectionId] = Math.max(seq[c.sectionId] || 0, (c.order || 0)) + 1; });
     var cut = Date.now() - TRASH_KEEP_MS;   // 90일이 지난 휴지통 항목은 비운다
@@ -123,8 +123,8 @@
     trashTombs[id] = Date.now();
   }
 
-  // ───────── 카드·섹션 조작 ─────────
-  // sid가 ''이면 "섹션 없음" 카드(섹션을 안 만든 사람의 메모, 또는 섹션이 지워져 갈 곳 없는 카드).
+  // ───────── 메모·섹션 조작 ─────────
+  // sid가 ''이면 "섹션 없음" 메모(섹션을 안 만든 사람의 메모, 또는 섹션이 지워져 갈 곳 없는 메모).
   function inNone(c) { return !c.sectionId || !sections.some(function (s) { return s.id === c.sectionId; }); }
   function sectionCards(sid) {
     return cards.filter(function (c) { return sid === '' ? inNone(c) : c.sectionId === sid; }).sort(function (a, b) {
@@ -145,7 +145,7 @@
     cards.push({ id: uid('m'), text: text, done: false, sectionId: sid, order: list.length });
     save();
   }
-  // 카드를 (섹션, 위치)로 옮긴다. index는 그 섹션의 카드 목록(옮기는 카드 제외)에서 들어갈 자리.
+  // 메모를 (섹션, 위치)로 옮긴다. index는 그 섹션의 메모 목록(옮기는 메모 제외)에서 들어갈 자리.
   function placeCard(card, sid, index) {
     var from = card.sectionId;
     var list = sectionCards(sid).filter(function (c) { return c.id !== card.id; });
@@ -161,7 +161,7 @@
     cards = cards.filter(function (c) { return c.id !== card.id; });
     renumber(card.sectionId);
     save();
-    toast('카드를 휴지통으로 옮겼습니다.', function () { restoreTrash('tr-memo-' + card.id); });
+    toast('메모를 휴지통으로 옮겼습니다.', function () { restoreTrash('tr-memo-' + card.id); });
   }
   function toggleDone(card) {
     card.done = !card.done;
@@ -181,7 +181,7 @@
   }
   function deleteSection(sec) {
     var inside = sectionCards(sec.id);
-    if (inside.length && !window.confirm('"' + sec.name + '" 섹션과 안의 카드 ' + inside.length + '개를 휴지통으로 옮길까요?\n(휴지통에서 되살릴 수 있습니다.)')) return;
+    if (inside.length && !window.confirm('"' + sec.name + '" 섹션과 안의 메모 ' + inside.length + '개를 휴지통으로 옮길까요?\n(휴지통에서 되살릴 수 있습니다.)')) return;
     inside.forEach(function (c) { addToTrash('memo', c); });
     cards = cards.filter(function (c) { return c.sectionId !== sec.id; });
     addToTrash('section', sec);
@@ -255,21 +255,21 @@
     if ($('memoCount')) $('memoCount').textContent = open ? '남은 일 ' + open : '';
 
     var secs = sortedSections();
-    // 섹션 없음 칸: 섹션을 안 만들었으면 그냥 목록으로, 섹션이 있는데 갈 곳 없는 카드가 있으면 "미분류"로 맨 앞에 보인다.
+    // 섹션 없음 칸: 섹션을 안 만들었으면 그냥 목록으로, 섹션이 있는데 갈 곳 없는 메모가 있으면 "미분류"로 맨 앞에 보인다.
     if (!secs.length || cards.some(inNone)) root.appendChild(renderSection({ id: '', name: secs.length ? '미분류' : '메모', pseudo: true, plain: !secs.length }));
     secs.forEach(function (s) { root.appendChild(renderSection(s)); });
   }
 
   function paintTools() {
     var t = $('boardTools');
-    var locked = cards.length > 0;   // 할일이 있으면 가로/세로 배치는 바꿀 수 없다(모두 지우면 다시 바꿀 수 있다)
+    var locked = cards.length > 0;   // 메모가 있으면 가로/세로 배치는 바꿀 수 없다(모두 지우면 다시 바꿀 수 있다)
     if (!t || t.dataset.ready === layout + (locked ? 'L' : '')) return;
     t.dataset.ready = layout + (locked ? 'L' : '');
     t.innerHTML = '';
     var seg = el('div', 'board-seg');
     [['h', '가로'], ['v', '세로']].forEach(function (p) {
       var b = el('button', 'board-seg-btn' + (layout === p[0] ? ' active' : ''), p[1]); b.type = 'button';
-      b.title = locked ? '할일이 있으면 배치를 바꿀 수 없어요' : (p[0] === 'h' ? '섹션을 가로로 나란히' : '섹션을 세로로 쌓기');
+      b.title = locked ? '메모가 있으면 배치를 바꿀 수 없어요' : (p[0] === 'h' ? '섹션을 가로로 나란히' : '섹션을 세로로 쌓기');
       if (locked) b.disabled = true;
       b.addEventListener('click', function (ev) { ev.stopPropagation(); if (locked) return; layout = p[0]; write(KEYS.layout, layout); t.dataset.ready = ''; render(); });
       seg.appendChild(b);
@@ -335,7 +335,7 @@
     var body = el('div', 'bd-sec-body');
     if (addingIn === sec.id) body.appendChild(renderAddForm(sec));
     else {
-      var add = el('button', 'bd-add', '+ 할일 추가'); add.type = 'button';
+      var add = el('button', 'bd-add', '+ 메모 추가'); add.type = 'button';
       add.addEventListener('click', function (ev) { ev.stopPropagation(); addingIn = sec.id; render(); var t = document.querySelector('.bd-addform textarea'); if (t) t.focus(); });
       body.appendChild(add);
     }
@@ -382,7 +382,7 @@
     var cardBg = c.style && c.style.bg;
     if (cardBg) row.style.background = cardBg;
     var eff = effText(c, owner);
-    // 어두운 섹션 안의 카드는 따로 색을 안 줬으면 어두운 반투명 카드로 보여서 흰 글씨가 읽히게 한다.
+    // 어두운 섹션 안의 메모는 따로 색을 안 줬으면 어두운 반투명 메모로 보여서 흰 글씨가 읽히게 한다.
     var darkOwnerBg = !cardBg && owner && owner.style && isDark(owner.style.bg) ? owner.style.bg : '';
     if (darkOwnerBg) { row.style.background = 'rgba(255,255,255,0.14)'; row.style.borderColor = 'rgba(255,255,255,0.18)'; }
     var grip = el('span', 'bd-grip', '⋮⋮'); grip.title = '끌어서 옮기기';
@@ -408,7 +408,7 @@
         main.appendChild(tag);
       }
     }
-    var more = el('button', 'bd-more', '⋮'); more.type = 'button'; more.title = '카드 메뉴';
+    var more = el('button', 'bd-more', '⋮'); more.type = 'button'; more.title = '메모 메뉴';
     more.addEventListener('click', function (ev) {
       ev.stopPropagation();
       openMenu(more, [
@@ -447,7 +447,7 @@
   }
 
   // ───────── 꾸미기(색·글씨·크기·정렬·글꼴·굵기) ─────────
-  // 섹션과 카드 각각에 style 객체를 둔다. 카드의 글씨 모양은 "카드 자신의 설정 → 섹션 설정 → 기본" 순서로 정해진다.
+  // 섹션과 메모 각각에 style 객체를 둔다. 메모의 글씨 모양은 "메모 자신의 설정 → 섹션 설정 → 기본" 순서로 정해진다.
   // 글꼴은 모두 무료로 쓸 수 있는 구글 폰트(OFL)이고, 인터넷이 안 될 때는 기본 글꼴로 보인다.
   var FONTS = [
     { key: '', label: '기본 고딕', css: "'Gothic A1','Malgun Gothic',sans-serif" },
@@ -487,7 +487,7 @@
     return Object.keys(o).length ? o : null;
   }
   function styleSig(s) { return JSON.stringify(normStyle(s)); }
-  // 카드 글씨 모양: 카드 자신의 설정이 섹션 설정보다 우선한다.
+  // 메모 글씨 모양: 메모 자신의 설정이 섹션 설정보다 우선한다.
   function effText(card, sec) {
     var out = {}, cs = card && card.style || {}, ss = sec && sec.style || {};
     ['color', 'size', 'align', 'font', 'bold'].forEach(function (k) { var v = cs[k] != null ? cs[k] : ss[k]; if (v != null) out[k] = v; });
@@ -507,7 +507,7 @@
     closeMenu(); closeStyle();
     var p = el('div', 'board-style'); p.id = 'boardStyle';
     var head = el('div', 'board-style-head');
-    head.appendChild(el('div', 'board-style-title', kind === 'section' ? '섹션 꾸미기' : '카드 꾸미기'));
+    head.appendChild(el('div', 'board-style-title', kind === 'section' ? '섹션 꾸미기' : '메모 꾸미기'));
     var x = el('button', 'board-modal-x', '✕'); x.type = 'button'; x.addEventListener('click', closeStyle);
     head.appendChild(x); p.appendChild(head);
 
@@ -547,7 +547,7 @@
       groups.push(function () { [].forEach.call(seg.children, function (b, i) { b.classList.toggle('active', cur(key) === options[i][0]); }); });
     }
 
-    swatches(group(kind === 'section' ? '칸 색' : '카드 색'), BG_COLORS, 'bg');
+    swatches(group(kind === 'section' ? '칸 색' : '메모 색'), BG_COLORS, 'bg');
     swatches(group('글씨 색'), TEXT_COLORS, 'color');
 
     var gs = group('글자 크기');
@@ -581,8 +581,8 @@
     clear.addEventListener('click', function () { delete obj.style; save(); render(); paint(); });
     foot.appendChild(clear);
     if (kind === 'section') {
-      var fit = el('button', 'board-tool', '카드 개별 설정 지우기'); fit.type = 'button';
-      fit.title = '이 칸 카드에 따로 준 모양을 모두 지우고 섹션 설정에 맞춥니다';
+      var fit = el('button', 'board-tool', '메모 개별 설정 지우기'); fit.type = 'button';
+      fit.title = '이 칸 메모에 따로 준 모양을 모두 지우고 섹션 설정에 맞춥니다';
       fit.addEventListener('click', function () { sectionCards(obj.id).forEach(function (c) { delete c.style; }); save(); render(); });
       foot.appendChild(fit);
     }
