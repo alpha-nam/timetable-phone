@@ -2698,7 +2698,7 @@
     }
   };
 
-  // 교사/학급/학생 버튼 3개는 화면에서 숨기고(로직은 그대로 재사용), "교사 ▾ | 남재현 ▾" 한 덩어리로 합친다.
+  // 교사/학급/학생 버튼 3개는 화면에서 숨기고(로직은 그대로 재사용), "교사 ▾ | 이름 ▾" 한 덩어리로 합친다.
   function initViewTypeCombo(vt, es) {
     var NAMES = { teachers: '교사', classes: '학급', students: '학생' };
     var combo = document.createElement('div');
