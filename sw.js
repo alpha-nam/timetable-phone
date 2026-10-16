@@ -5,7 +5,7 @@
  * (구글 드라이브와 IndexedDB가 맡는다).
  * 원칙: 인터넷이 되면 항상 최신 파일을 받아 오고(그래서 업데이트가 바로 반영된다), 안 될 때만 저장해 둔 것을 쓴다.
  */
-var CACHE = 'ttplus-shell-v2';
+var CACHE = 'ttplus-shell-v3';
 var SHELL = [
   './', './index.html', './style.css', './phone.css', './app.js', './board.js', './swap.js',
   './drive-sync-core.js', './phone-host.js', './config.js', './manifest.json',
@@ -15,7 +15,7 @@ var SHELL = [
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) {
     // 하나가 없어도 설치가 깨지지 않게 하나씩 담는다.
-    return Promise.all(SHELL.map(function (u) { return c.add(u).catch(function () { /* 없는 파일은 건너뜀 */ }); }));
+    return Promise.all(SHELL.map(function (u) { return c.add(new Request(u, { cache: 'reload' })).catch(function () { /* 없는 파일은 건너뜀 */ }); }));
   }).then(function () { return self.skipWaiting(); }));
 });
 
@@ -31,7 +31,7 @@ self.addEventListener('fetch', function (e) {
   var url = new URL(req.url);
   if (url.origin !== self.location.origin) return;        // 구글 API·글꼴 등 바깥 요청은 그대로 둔다
   e.respondWith(
-    fetch(req).then(function (res) {
+    fetch(req, { cache: 'no-cache' }).then(function (res) {
       if (res && res.ok) { var copy = res.clone(); caches.open(CACHE).then(function (c) { c.put(req, copy); }); }
       return res;
     }).catch(function () {
