@@ -1515,6 +1515,13 @@
   // 출석 패널: 학년/반/번호 드롭다운(3단, timetableData.students 기반) + 종류/구분 버튼 +
   // 사유 입력 + 추가/수정 + 이 날짜 기록 목록(수정·삭제). "이름 검색이 아니라 학년-반-번호를
   // 드롭다운으로 고르게 해달라"는 피드백으로 검색창 방식에서 이렇게 바꿨다.
+  // 마지막으로 고른 학년·반은 기억해 둔다 — 출결을 하나 추가한 뒤에도, 날짜를 넘기거나 다시 열어도 같은 반이 그대로 선택돼 있어야
+  // 같은 반 학생을 연달아 입력하기 편하다. (번호만 초기화)
+  var ATT_PICK_KEY = 'dashboardAttPick';
+  var lastPick = {};
+  try { lastPick = JSON.parse(localStorage.getItem(ATT_PICK_KEY) || '{}') || {}; } catch (e) { lastPick = {}; }
+  function saveLastPick() { try { localStorage.setItem(ATT_PICK_KEY, JSON.stringify(lastPick)); } catch (e) {} }
+
   function buildAttendancePanel(dateKey) {
     var panel = document.createElement('div');
     panel.className = 'day-editor-panel att-panel';
@@ -1584,17 +1591,38 @@
       pickedGrade = v; pickedBan = null; pickedNo = null; selectedStudent = null;
       banDD.reset(); noDD.reset();
       refreshBanOptions();
+      lastPick = { grade: v, ban: null }; saveLastPick();
     });
     banDD.onSelect(function (v) {
       pickedBan = v; pickedNo = null; selectedStudent = null;
       noDD.reset();
       refreshNoOptions();
+      lastPick = { grade: pickedGrade, ban: v }; saveLastPick();
     });
     noDD.onSelect(function (v) {
       pickedNo = v;
       selectedStudent = availableStudentsOf(pickedGrade, pickedBan).filter(function (s) { return String(s.no) === String(v); })[0] || null;
     });
     refreshGradeOptions();
+    // 고른 학년·반을 화면에 되살린다(번호는 비움).
+    function applyPick() {
+      pickedNo = null; selectedStudent = null; noDD.reset();
+      if (pickedGrade != null) gradeDD.setLabel(pickedGrade + '학년'); else gradeDD.reset();
+      refreshBanOptions();
+      if (pickedBan != null) banDD.setLabel(pickedBan + '반'); else banDD.reset();
+      refreshNoOptions();
+    }
+    (function restorePick() {
+      if (lastPick.grade == null) return;
+      var g = availableGrades().filter(function (x) { return String(x) === String(lastPick.grade); })[0];
+      if (g == null) return;
+      pickedGrade = g;
+      if (lastPick.ban != null) {
+        var b = availableBans(g).filter(function (x) { return String(x) === String(lastPick.ban); })[0];
+        if (b != null) pickedBan = b;
+      }
+      applyPick();
+    })();
 
     var pickerRow = document.createElement('div');
     pickerRow.className = 'att-picker-row';
@@ -1702,11 +1730,9 @@
 
     function resetForm() {
       editingId = null;
-      pickedGrade = null; pickedBan = null; pickedNo = null; selectedStudent = null;
       selectedReason = ATTENDANCE_REASONS[0];
       memoInput.value = '';
-      gradeDD.reset(); banDD.reset(); noDD.reset();
-      refreshBanOptions(); refreshNoOptions();
+      applyPick();   // 학년·반은 그대로 두고 번호만 비운다
       selectedType = ATTENDANCE_TYPES[0];
       setCategory('학급');
       Array.prototype.forEach.call(reasonGroup.children, function (c, i) { c.classList.toggle('active', i === 0); });
@@ -2845,6 +2871,8 @@
     currentPeriod: function () { return currentPeriodIndex((timetableData && timetableData.periodTimes) || []); },
     fitTimetable: function () { fitTimetableFont(); },
     timetable: function () { return timetableData; },
+    semesterStartOf: function (startYear) { return semesterStartOf(startYear); },
+    ensureSemAuto: function (startYear) { return ensureSemAuto(startYear); },
     roster: function () { return classRoster; },
     selectedTeacherName: function () {
       var list = entityListOf('teachers');

@@ -1580,3 +1580,4 @@ html[data-shell="tabs"] .tabbtn svg.fl { width: 18px; height: 18px; }
 .subj-drow td { text-align: left; padding: 6px 10px 8px 22px; background: var(--row-bg); }
 .subj-dline { display: flex; gap: 8px; flex-wrap: wrap; font-size: 12.5px; padding: 2px 0; }
 .subj-dline b { color: var(--text); } .subj-dline span { color: var(--accent); font-weight: 700; } .subj-dline i { color: var(--text-faint); font-style: normal; }
+.subj-id { font-size: 12px; font-weight: 800; color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 8px; height: 26px; line-height: 24px; padding: 0 8px; flex-shrink: 0; width: 64px; text-align: center; box-sizing: border-box; font-variant-numeric: tabular-nums; }

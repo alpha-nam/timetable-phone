@@ -193,10 +193,8 @@
   function studentRow(dateStr, lesson, s, r) {
     var wrap = el('div', 'subj-row' + (r ? ' has' : ''));
     var line = el('div', 'subj-line');
-    line.appendChild(el('span', 'subj-no', String(s.no)));
-    var nm = el('span', 'subj-name', s.studentName);
-    line.appendChild(nm);
-    line.appendChild(el('span', 'subj-cls', s.grade + '-' + s.ban));
+    line.appendChild(el('span', 'subj-id', s.grade + '-' + s.ban + '-' + s.no));
+    line.appendChild(el('span', 'subj-name', s.studentName));
     TYPES.forEach(function (t) {
       var b = el('button', 'subj-btn' + (r && r.type === t ? ' on ' + TYPE_CLASS[t] : ''), t);
       b.type = 'button';
@@ -229,7 +227,9 @@
     var box = el('div', 'subj-sbox');
     box.appendChild(el('h3', '', '교과 출결 종합'));
     var bar = el('div', 'subj-sbar');
-    var range = el('select'); [['month', '이번 달'], ['all', '전체']].forEach(function (o) { var op = el('option', '', o[1]); op.value = o[0]; range.appendChild(op); });
+    var range = el('select');
+    [['week', '이번 주'], ['month', '이번 달'], ['term', '이번 학기'], ['year', '이번 학년도'], ['all', '전체']].forEach(function (o) { var op = el('option', '', o[1]); op.value = o[0]; range.appendChild(op); });
+    range.value = 'month';
     var cls = el('select');
     bar.appendChild(range); bar.appendChild(cls);
     box.appendChild(bar);
@@ -244,24 +244,61 @@
     ($('board') || document.body).appendChild(overlay);
 
     function groupName(r) { return (r.label ? r.label + ' ' : '') + r.subject; }
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function key(d) { return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()); }
+    // 기간의 [시작, 끝] (YYYYMMDD 문자열, 끝 포함). 전체는 null.
+    function rangeBounds() {
+      var n = new Date(), v = range.value;
+      if (v === 'week') {
+        var mon = new Date(n.getFullYear(), n.getMonth(), n.getDate() - ((n.getDay() + 6) % 7));
+        var sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);
+        return [key(mon), key(sun)];
+      }
+      if (v === 'month') return [String(n.getFullYear()) + pad(n.getMonth() + 1) + '01', String(n.getFullYear()) + pad(n.getMonth() + 1) + '31'];
+      if (v === 'term' || v === 'year') {
+        var sy = n.getMonth() >= 2 ? n.getFullYear() : n.getFullYear() - 1;          // 학년도: 3월 ~ 다음 해 2월
+        var y1 = sy + '0301', y2 = (sy + 1) + '0229';
+        if (v === 'year') return [y1, y2];
+        var s2 = (hooks().semesterStartOf && hooks().semesterStartOf(sy)) || (sy + '0901');
+        return key(n) < s2 ? [y1, String(+s2 - 1)] : [s2, y2];
+      }
+      return null;
+    }
     function inRange(r) {
-      if (range.value === 'all') return true;
-      var n = new Date(), p = String(n.getFullYear()) + String(n.getMonth() + 1).padStart(2, '0');
-      return String(r.date).slice(0, 6) === p;
+      var b = rangeBounds();
+      return !b || (String(r.date) >= b[0] && String(r.date) <= b[1]);
+    }
+    // 수업 선택: 전체 / 맡은 과목별(반 구분 없이 그 과목 전부) / 수업별(반까지)
+    function mySubjects() {
+      var tt = timetable(), names = [];
+      var t = tt && (tt.teachers || []).filter(function (x) { return x.teacherName === teacherName; })[0];
+      if (t) Object.keys(t.days || {}).forEach(function (d) { (t.days[d] || []).forEach(function (c) { if (c && c.subject && names.indexOf(c.subject) < 0) names.push(c.subject); }); });
+      records.forEach(function (r) { if (r.subject && names.indexOf(r.subject) < 0) names.push(r.subject); });
+      return names.sort(function (a, b) { return a.localeCompare(b, 'ko'); });
     }
     function fillClasses() {
-      var names = [];
-      records.filter(inRange).forEach(function (r) { var g = groupName(r); if (names.indexOf(g) < 0) names.push(g); });
-      names.sort(function (a, b) { return a.localeCompare(b, 'ko'); });
       var keep = cls.value;
       cls.innerHTML = '';
       var all = el('option', '', '전체 수업'); all.value = ''; cls.appendChild(all);
-      names.forEach(function (n) { var o = el('option', '', n); o.value = n; cls.appendChild(o); });
-      cls.value = names.indexOf(keep) >= 0 ? keep : '';
+      var gs = el('optgroup'); gs.label = '과목별';
+      mySubjects().forEach(function (n) { var o = el('option', '', n); o.value = 's:' + n; gs.appendChild(o); });
+      cls.appendChild(gs);
+      var names = [];
+      records.forEach(function (r) { var g = groupName(r); if (names.indexOf(g) < 0) names.push(g); });
+      names.sort(function (a, b) { return a.localeCompare(b, 'ko'); });
+      var gc = el('optgroup'); gc.label = '수업별(반)';
+      names.forEach(function (n) { var o = el('option', '', n); o.value = 'c:' + n; gc.appendChild(o); });
+      cls.appendChild(gc);
+      cls.value = [].some.call(cls.options, function (o) { return o.value === keep; }) ? keep : '';
+    }
+    function matchesClass(r) {
+      var v = cls.value;
+      if (!v) return true;
+      return v.charAt(0) === 's' ? r.subject === v.slice(2) : groupName(r) === v.slice(2);
     }
     function draw() {
       out.innerHTML = '';
-      var rows = records.filter(inRange).filter(function (r) { return !cls.value || groupName(r) === cls.value; });
+      var rows = records.filter(inRange).filter(matchesClass);
       if (!rows.length) { out.appendChild(el('div', 'subj-empty', '기록이 없어요.')); return; }
       var groups = {};
       rows.forEach(function (r) {
@@ -299,7 +336,7 @@
         out.appendChild(t);
       });
     }
-    range.addEventListener('change', function () { fillClasses(); draw(); });
+    range.addEventListener('change', draw);
     cls.addEventListener('change', draw);
     fillClasses(); draw();
   }
