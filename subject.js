@@ -159,7 +159,7 @@
     });
     body.appendChild(chips);
 
-    var info = el('div', 'subj-info', lesson.students.length + '명 · 이름 옆 버튼을 눌러 체크하고, 다시 누르면 취소돼요');
+    var info = el('div', 'subj-info', lesson.students.length + '명 · 이름 옆 버튼을 눌러 체크해요(체크한 버튼을 다시 누르면 취소 확인)');
     body.appendChild(info);
 
     var list = el('div', 'subj-list');
@@ -198,7 +198,12 @@
     TYPES.forEach(function (t) {
       var b = el('button', 'subj-btn' + (r && r.type === t ? ' on ' + TYPE_CLASS[t] : ''), t);
       b.type = 'button';
-      b.addEventListener('click', function (ev) { ev.stopPropagation(); setType(dateStr, lesson, s, t); render(); });
+      b.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        // 이미 체크된 같은 버튼을 다시 누르면 취소하는 것이라, 실수로 풀리지 않게 한 번 확인한다.
+        if (r && r.type === t && !window.confirm(s.studentName + ' 학생의 "' + t + '" 체크를 취소할까요?')) return;
+        setType(dateStr, lesson, s, t); render();
+      });
       line.appendChild(b);
     });
     wrap.appendChild(line);
@@ -345,10 +350,12 @@
   function getSyncState() { return { subj: { records: records, tombstones: tombs } }; }
   function applySync(res) {
     if (!res || !res.subj) return false;
-    var next = res.subj.records || [];
-    var changed = JSON.stringify(next) !== JSON.stringify(records);
-    records = next;
-    tombs = res.subj.tombstones || {};
+    // 동기화 중에 사용자가 바꾼 체크가 서버 결과에 덮이지 않도록 항목별로 최신인 쪽을 남긴다.
+    var m = window.TTMERGE ? window.TTMERGE(records, tombs, res.subj.records, res.subj.tombstones)
+      : { records: res.subj.records || [], tombstones: res.subj.tombstones || {} };
+    var changed = JSON.stringify(m.records) !== JSON.stringify(records);
+    records = m.records;
+    tombs = m.tombstones;
     persist();
     return changed;
   }

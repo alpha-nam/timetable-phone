@@ -141,3 +141,7 @@ body > *:not(#board) { pointer-events: auto; }
   html[data-phone] .subj-teacher { margin-left: 0; max-width: 120px; }
   html[data-phone] #subjSummaryBtn { margin-left: auto; }
 }
+
+/* 폰: 머리줄이 두 줄로 나뉘어도 "출결 종합" 버튼은 항상 오른쪽 끝에 */
+html[data-phone] #attendanceCard #attTabSummaryBtn { margin-left: auto !important; }
+html[data-phone] #subjSummaryBtn { margin-left: auto !important; }

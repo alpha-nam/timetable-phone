@@ -1104,6 +1104,21 @@
     }
     daySig = Object.assign({}, dayTasks);
   }
+  // 동기화가 진행되는 몇 초 사이에 사용자가 바꾼 것이 서버 결과로 덮여 사라지지 않게, 결과와 "지금 화면의 기록"을
+  // 항목별로 updatedAt이 더 최근인 쪽으로 합친다(삭제 표시도 같은 규칙).
+  function mergeKeepNewest(localRecs, localTombs, resRecs, resTombs) {
+    var best = {};
+    function put(id, rec, t, isRes) { var c = best[id]; if (!c || t > c.t || (t === c.t && isRes)) best[id] = { rec: rec, t: t }; }
+    (localRecs || []).forEach(function (r) { put(r.id, r, Number(r.updatedAt) || 0, false); });
+    Object.keys(localTombs || {}).forEach(function (id) { put(id, null, Number(localTombs[id]) || 0, false); });
+    (resRecs || []).forEach(function (r) { put(r.id, r, Number(r.updatedAt) || 0, true); });
+    Object.keys(resTombs || {}).forEach(function (id) { put(id, null, Number(resTombs[id]) || 0, true); });
+    var records = [], tombs = {};
+    Object.keys(best).forEach(function (id) { if (best[id].rec) records.push(best[id].rec); else tombs[id] = best[id].t; });
+    return { records: records, tombstones: tombs };
+  }
+  window.TTMERGE = mergeKeepNewest;
+
   function buildCloudPayload() {
     stampDayTasks(); saveNoteMeta();
     var dayRecords = Object.keys(dayTasks).map(function (k) { return { id: k, text: dayTasks[k], updatedAt: dayStamps[k] || 0 }; });
@@ -1120,8 +1135,9 @@
   function applyCloudResult(res) {
     var changed = false;
     if (res.attendance) {
-      var nextAtt = res.attendance.records || [];
-      attendanceTombstones = res.attendance.tombstones || {};
+      var mergedAtt = mergeKeepNewest(attendanceRecords, attendanceTombstones, res.attendance.records, res.attendance.tombstones);
+      var nextAtt = mergedAtt.records;
+      attendanceTombstones = mergedAtt.tombstones;
       saveTombstones();
       if (JSON.stringify(nextAtt) !== JSON.stringify(attendanceRecords)) { attendanceRecords = nextAtt; changed = true; }
     }
@@ -1270,7 +1286,7 @@
     window.addEventListener('focus', function () { scheduleCloudSync(500); });
     // 설정 패널에서 연결을 해제했을 때 상태 표시를 다시 읽는다.
     window.addEventListener('ttcloud-changed', function () {
-      window.TTCLOUD.status().then(function (st) { cloudState.connected = !!st.connected; cloudState.error = ''; paintCloudChip(); });
+      window.TTCLOUD.status().then(function (st) { cloudState.connected = !!st.connected; cloudState.error = ''; paintCloudChip(); if (cloudState.connected) cloudSyncNow(); });
     });
   }
 
