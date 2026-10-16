@@ -2705,6 +2705,9 @@
 
   // 결보강 탭(swap.js)이 "시간표 탭에서 고른 교사"를 기본값으로 쓸 수 있게 알려 준다.
   window.TTHOOKS = {
+    periodTimes: function () { return (timetableData && timetableData.periodTimes) || []; },
+    currentPeriod: function () { return currentPeriodIndex((timetableData && timetableData.periodTimes) || []); },
+    fitTimetable: function () { fitTimetableFont(); },
     selectedTeacherName: function () {
       var list = entityListOf('teachers');
       var x = list.filter(function (i) { return entityIdOf('teachers', i) === selectedEntityId.teachers; })[0];

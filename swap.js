@@ -13,7 +13,6 @@
   var DAYS = ['월', '화', '수', '목', '금'];
   var PERIODS = 7;
   var CREATIVE = '창의적체험활동';
-  var HAND_SVG = '<svg class="fl" viewBox="0 0 32 32" aria-hidden="true"><path d="M21.697 7.66747C23.4231 11.8832 27.4002 13.5062 28.2752 14.4125C29.1502 15.3187 29.2484 17.0066 28.2752 18.0425C27.0174 19.3812 25.7061 19.0372 24.1814 18.1362C23.6658 17.8315 21.9626 16.6987 21.9626 16.6987V26.9487C21.9626 29.0581 20.7008 29.99 19.5408 29.99C18.3808 29.99 16.9783 28.8237 16.9783 26.9487V22.98C16.9783 22.98 16.367 24.2925 14.5702 24.2925C12.7733 24.2925 12.2595 22.6675 12.2595 22.6675C12.2595 22.6675 11.8767 23.519 10.2048 23.519C8.6267 23.519 7.99218 21.8671 7.99218 21.8671C7.99218 21.8671 7.39232 22.4722 5.98607 22.4722C4.90795 22.4722 3.00952 20.9487 3.00952 19.3081C3.00952 12.2176 3.71122 1.98998 13.1045 1.98998C15.5945 1.97998 19.9709 3.45174 21.697 7.66747Z" fill="#FFC83D"/><path d="M17 27.3473C17.161 28.8029 18.1902 29.7562 19.1714 29.9524C18.3531 29.5493 17.9844 29.0379 17.9844 27.6464L17.9844 18.6094C17.9844 17.75 17.0156 17.8125 17.0156 18.6094C17.0156 19.0067 17.0103 19.4947 17 20.0336V27.3473Z" fill="#D67D00"/><path d="M8.98438 23.1304C8.28982 22.642 7.99219 21.8672 7.99219 21.8672L7.98438 21.8747V18.5C7.98438 18.2239 8.20823 18 8.48438 18C8.76052 18 8.98438 18.2239 8.98438 18.5L8.98438 23.1304Z" fill="#D67D00"/><path d="M13.25 23.9234C12.505 23.4439 12.2595 22.6675 12.2595 22.6675C12.2595 22.6675 12.2565 22.6741 12.25 22.6861V20.5078C12.25 20.2317 12.4739 20.0078 12.75 20.0078C13.0261 20.0078 13.25 20.2317 13.25 20.5078L13.25 23.9234Z" fill="#D67D00"/></svg>';
   var CREATIVE_DAY = 3;
   var CREATIVE_PERIODS = [6, 7];
   var TEACHER_KEY = 'dashboardSwapTeacher';
@@ -208,23 +207,30 @@
   function weekGrid(teacherId, opts) {
     opts = opts || {};
     var g = el('div', 'weekly-grid swap-grid');
+    var hooks = window.TTHOOKS || {};
+    var times = hooks.periodTimes ? hooks.periodTimes() : [];
+    var jsDay = new Date().getDay();
+    var todayCol = jsDay >= 1 && jsDay <= 5 ? jsDay : 0;
+    var curIdx = hooks.currentPeriod ? hooks.currentPeriod() : -1;
     g.appendChild(el('div', 'wt-corner'));
-    DAYS.forEach(function (d) { g.appendChild(el('div', 'wt-day-head', d)); });
+    DAYS.forEach(function (d, i) { g.appendChild(el('div', 'wt-day-head' + (i + 1 === todayCol ? ' wt-day-head--today' : ''), d)); });
     for (var p = 1; p <= PERIODS; p++) {
       var pl = el('div', 'wt-period-label');
       pl.appendChild(el('div', 'wt-period-no', p + '교시'));
+      if (times[p - 1] && times[p - 1][0]) pl.appendChild(el('div', 'wt-period-time', times[p - 1][0]));
       g.appendChild(pl);
       for (var d = 1; d <= 5; d++) {
         (function (d, p) {
           var e = entryAt(teacherId, d, p);
-          var cell = el('div', 'wt-cell' + (e ? '' : ' wt-cell--free'));
+          var isNow = d === todayCol && curIdx === p - 1;
+          var cell = el('div', 'wt-cell' + (e ? '' : ' wt-cell--free') + (isNow ? ' wt-cell--current' : ''));
           if (e) {
             var c = colorOf(e.subject === CREATIVE ? '창의적 체험활동' : e.subject);
-            if (c) cell.style.background = c[0];
+            if (c && !isNow) cell.style.background = c[0];
             var s = el('div', 'wt-subject', e.subject === CREATIVE ? '창체' : e.subject);
-            if (c) s.style.color = c[1];
+            if (c && !isNow) s.style.color = c[1];
             cell.appendChild(s);
-            var sc = shortClass(e);
+            var sc = e.subject === CREATIVE ? '' : shortClass(e);   // 창체 칸은 시간표 탭처럼 반 표시 없이 "창체"만
             if (sc) cell.appendChild(el('div', 'wt-class', sc));
             if (e.roomNote) cell.title = '격주로 내용이 바뀌는 시간: ' + e.roomNote;
           } else {
@@ -243,16 +249,13 @@
         })(d, p);
       }
     }
+    setTimeout(function () { if (hooks.fitTimetable) hooks.fitTimetable(); }, 0);
     return g;
   }
 
   function renderGrid() {
     var t = resolveTeacher();
     var bar = rootBar(); bar.innerHTML = '';
-    // 안내 문구: 가운데에, 손가락 아이콘 + 밑줄 + "수업 칸"에 형광펜 표시(눌러야 하는 곳이 한눈에 보이게)
-    var hint = el('span', 'swap-hint');
-    hint.innerHTML = '<span class="swap-hint-pill">' + HAND_SVG + (t ? '<span>교체할 <b>수업 칸</b>을 누르세요</span>' : '<span>결강하는 <b>선생님</b>을 먼저 골라 주세요</span>') + '</span>';
-    bar.appendChild(hint);
     bar.appendChild(teacherButton());
     var body = rootBody(); body.innerHTML = '';
     if (!t) { body.appendChild(el('div', 'wt-pick-prompt', '오른쪽 위에서 선생님 이름을 골라 주세요.')); return; }

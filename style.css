@@ -1491,8 +1491,5 @@ html[data-shell="tabs"] #memoCard .card-title { display: none; }
 html[data-shell="tabs"] #attendanceCard .att-nav { margin-left: 0; }
 html[data-shell="tabs"] #memoCard .card-meta { margin-left: 4px; margin-right: auto; }
 html[data-shell="tabs"] #memoCard .card-head { padding-right: 0; }
-/* 결보강 안내 문구: 가운데 정렬, 파란 밑줄, 손가락 아이콘, "수업 칸"에 형광펜 */
-.swap-bar .swap-hint { flex: 1; display: flex; justify-content: center; min-width: 0; font-size: 15px; font-weight: 800; color: var(--text); }
-.swap-hint-pill { display: inline-flex; align-items: center; gap: 8px; padding: 2px 4px 4px; border-bottom: 3px solid var(--accent); }
-.swap-hint-pill svg.fl { width: 22px; height: 22px; flex-shrink: 0; }
-.swap-hint-pill b { font-weight: 800; background: linear-gradient(transparent 52%, #bcd5fb 52%); padding: 0 2px; }
+/* 결보강 탭 위 줄 간격을 시간표 탭과 똑같이 */
+html[data-shell="tabs"] .swap-bar { margin-bottom: 12px; }
