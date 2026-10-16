@@ -303,7 +303,7 @@
     });
     var add = el('button', 'board-tool', '+ 섹션'); add.type = 'button';
     add.addEventListener('click', function (ev) { ev.stopPropagation(); promptAddSection(); });
-    var rec = el('button', 'board-tool', '휴지통·백업'); rec.type = 'button';
+    var rec = el('button', 'board-tool', '휴지통 · 백업'); rec.type = 'button';
     rec.addEventListener('click', function (ev) { ev.stopPropagation(); openRecovery(); });
     t.appendChild(seg); t.appendChild(add); t.appendChild(rec);
   }
@@ -758,7 +758,7 @@
     }
     function show() { paintTabs(); body.innerHTML = ''; if (cur === 'trash') showTrash(body, show); else showBackups(body); }
     var head = el('div', 'board-modal-head');
-    head.appendChild(el('div', 'board-modal-title', '휴지통·백업'));
+    head.appendChild(el('div', 'board-modal-title', '휴지통 · 백업'));
     var x = el('button', 'board-modal-x', '✕'); x.type = 'button'; x.addEventListener('click', closeRecovery);
     head.appendChild(x);
     box.appendChild(head); box.appendChild(tabs); box.appendChild(body);
