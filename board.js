@@ -179,16 +179,43 @@
     save();
     return s;
   }
+  // 메모가 들어 있는 섹션을 지울 때는 "메모도 같이 지울지 / 섹션만 지울지"를 물어본다.
+  function askDeleteSection(sec, count, done) {
+    var ov = el('div', 'board-overlay'); ov.id = 'boardAsk';
+    var box = el('div', 'board-modal board-ask');
+    box.appendChild(el('div', 'board-modal-title', '"' + sec.name + '" 섹션 삭제'));
+    box.appendChild(el('div', 'board-hint', '이 섹션에 메모가 ' + count + '개 있어요. 어떻게 할까요?'));
+    function close() { ov.remove(); }
+    function choice(label, cls, mode, sub) {
+      var b = el('button', cls, label); b.type = 'button';
+      b.addEventListener('click', function (ev) { ev.stopPropagation(); close(); if (mode) done(mode); });
+      box.appendChild(b);
+      if (sub) box.appendChild(el('div', 'board-ask-sub', sub));
+    }
+    choice('섹션만 삭제', 'board-primary', 'section', '메모 ' + count + '개는 "섹션 없음"으로 옮겨 그대로 남깁니다.');
+    choice('메모도 함께 삭제', 'board-tool danger', 'all', '섹션과 메모를 모두 휴지통으로 옮깁니다(휴지통에서 되살릴 수 있어요).');
+    choice('취소', 'board-tool', null);
+    ov.appendChild(box);
+    ov.addEventListener('click', function (ev) { if (ev.target === ov) close(); });
+    ($('board') || document.body).appendChild(ov);
+  }
   function deleteSection(sec) {
     var inside = sectionCards(sec.id);
-    if (inside.length && !window.confirm('"' + sec.name + '" 섹션과 안의 메모 ' + inside.length + '개를 휴지통으로 옮길까요?\n(휴지통에서 되살릴 수 있습니다.)')) return;
-    inside.forEach(function (c) { addToTrash('memo', c); });
-    cards = cards.filter(function (c) { return c.sectionId !== sec.id; });
-    addToTrash('section', sec);
-    sections = sections.filter(function (s) { return s.id !== sec.id; });
-    renumberSections();
-    save();
-    render();
+    function run(mode) {
+      if (mode === 'all') {
+        inside.forEach(function (c) { addToTrash('memo', c); });
+        cards = cards.filter(function (c) { return c.sectionId !== sec.id; });
+      } else if (inside.length) {
+        var base = sectionCards('').length;   // "섹션 없음" 맨 아래에 이어 붙인다
+        inside.forEach(function (c, i) { c.sectionId = ''; c.order = base + i; });
+      }
+      addToTrash('section', sec);
+      sections = sections.filter(function (s) { return s.id !== sec.id; });
+      renumberSections();
+      save();
+      render();
+    }
+    if (inside.length) askDeleteSection(sec, inside.length, run); else run('section');
   }
   function moveSection(sec, delta) {
     var list = sortedSections();

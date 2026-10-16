@@ -1590,3 +1590,6 @@ html[data-shell="tabs"] .tabbtn svg.fl { width: 18px; height: 18px; }
 html[data-shell="tabs"][data-tab="today"] .weather-day-temps .weather-day-temp-lo,
 html[data-shell="tabs"][data-tab="today"] .weather-day-temps .weather-day-temp { font-size: 13px !important; }
 .att-category-tabs[hidden] { display: none !important; }
+.board-ask { width: min(380px, 100%); gap: 8px; }
+.board-ask > button { width: 100%; padding: 10px 12px; }
+.board-ask-sub { font-size: 12px; color: var(--text-faint); margin: -4px 2px 4px; line-height: 1.5; }
