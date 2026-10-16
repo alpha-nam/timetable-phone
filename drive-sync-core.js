@@ -103,6 +103,17 @@
       return findFile(name).then(function (id) { return id ? updateJson(id, obj) : createJson(name, obj); });
     }
     function readByName(name) { return findFile(name).then(function (id) { return id ? readJson(id) : null; }); }
+    // 출결·메모 파일 전용: 파일이 아직 없으면 null(새로 만들면 됨), 있는데 읽지 못하면 오류로 멈춘다.
+    // (읽지 못한 걸 "비어 있음"으로 착각해 덮어쓰면 드라이브에 있던 기록이 사라질 수 있어서)
+    function readListDoc(name) {
+      return findFile(name).then(function (id) {
+        if (!id) return null;
+        return readJson(id).then(function (doc) {
+          if (!doc || typeof doc !== 'object') throw new Error('드라이브의 ' + name + ' 파일을 읽지 못해 동기화를 멈췄습니다(데이터 보호). 잠시 뒤 다시 시도해 보세요.');
+          return doc;
+        });
+      });
+    }
 
     // 한 묶음(예: 출결 기록)을 드라이브와 합친다. 원격이 바뀐 경우에만 다시 쓴다.
     // key: 파일 안에서 배열을 담는 이름, local: { records, tombstones }
@@ -122,14 +133,14 @@
       var tasks = [];
 
       if (local.attendance) {
-        tasks.push(readByName(FILES.attendance).then(function (doc) {
+        tasks.push(readListDoc(FILES.attendance).then(function (doc) {
           var r = syncList(FILES.attendance, 'records', local.attendance, doc);
           out.attendance = split(r.merged);
           return (doc && !r.changed) ? null : writeJson(FILES.attendance, { version: 1, records: r.merged });
         }));
       }
       if (local.memo || local.dayTasks) {
-        tasks.push(readByName(FILES.notes).then(function (doc) {
+        tasks.push(readListDoc(FILES.notes).then(function (doc) {
           var m = syncList(FILES.notes, 'memo', local.memo || { records: [], tombstones: {} }, doc);
           var d = syncList(FILES.notes, 'dayTasks', local.dayTasks || { records: [], tombstones: {} }, doc);
           if (local.memo) out.memo = split(m.merged);
