@@ -343,7 +343,7 @@
     list.forEach(function (c) { cl.appendChild(renderCard(c)); });
     body.appendChild(cl);
     wrap.appendChild(body);
-    if (sec.plain) wrap.appendChild(el('div', 'board-hint bd-plain-hint', '섹션으로 나누고 싶으면 위의 "+ 섹션"을 눌러 칸을 만들 수 있어요. (안 만들어도 됩니다)'));
+    if (sec.plain) wrap.appendChild(el('div', 'board-hint bd-plain-hint', '섹션으로 나누고 싶으면 위의 "+ 섹션"을 눌러 칸을 만들 수 있어요.'));
     return wrap;
   }
 
