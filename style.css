@@ -1410,11 +1410,11 @@ html[data-shell="tabs"] #memoCard .card-head { flex-wrap: wrap; row-gap: 6px; }
 .bd-addrow button, .board-newsec button { font-family: inherit; font-size: 12px; font-weight: 700; border: none; border-radius: 8px; padding: 6px 12px; cursor: pointer; background: var(--accent); color: #fff; }
 .bd-addrow button.ghost, .board-newsec button.ghost { background: var(--card-bg); color: var(--text-sub); }
 .bd-cards { display: flex; flex-direction: column; gap: 6px; }
-.bd-card { display: flex; align-items: flex-start; gap: 6px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 8px 6px 8px 4px; box-shadow: 0 1px 3px rgba(30,60,110,0.08); }
+.bd-card { display: flex; align-items: center; gap: 6px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 8px 6px 8px 4px; box-shadow: 0 1px 3px rgba(30,60,110,0.08); }
 .bd-card.done .bd-text { color: var(--text-veryfaint); text-decoration: line-through; }
-.bd-grip { flex: 0 0 auto; width: 14px; text-align: center; color: var(--text-faint); font-size: 12px; letter-spacing: -2px; cursor: grab; user-select: none; touch-action: none; padding-top: 2px; }
+.bd-grip { flex: 0 0 auto; width: 14px; text-align: center; color: var(--text-faint); font-size: 12px; letter-spacing: -2px; cursor: grab; user-select: none; touch-action: none; }
 .bd-grip:hover { color: var(--accent); }
-.bd-chk { flex: 0 0 auto; width: 20px; height: 20px; margin-top: 1px; border-radius: 6px; border: 1.5px solid var(--text-faint); background: transparent; color: #fff; font-size: 12px; line-height: 1; cursor: pointer; padding: 0; }
+.bd-chk { flex: 0 0 auto; width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid var(--text-faint); background: transparent; color: #fff; font-size: 12px; line-height: 1; cursor: pointer; padding: 0; }
 .bd-card.done .bd-chk { background: var(--accent); border-color: var(--accent); }
 .bd-main { flex: 1; min-width: 0; }
 .bd-text { font-size: 13px; font-weight: 600; line-height: 1.45; color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; cursor: text; }
