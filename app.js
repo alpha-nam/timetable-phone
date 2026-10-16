@@ -1143,21 +1143,28 @@
       cloudState.busy = false; cloudState.error = String(e && e.message || e); paintCloudChip();
     });
   }
+  // 버튼 모양: [● 휴대폰 연동 | 상태] — 왼쪽은 이름과 상태 점, 오른쪽 작은 칸이 상태(꺼짐/연결됨/동기화/오류)를 글자와 색으로 알려 준다.
+  function setCloudChip(kind, stateText, title) {
+    var chip = $('cloudChip');
+    if (!chip) return;
+    chip.className = 'cloud-chip cloud-chip--' + kind;
+    chip.innerHTML = '<span class="cc-name"><i class="cc-dot"></i>휴대폰 연동</span><span class="cc-state"></span>';
+    chip.lastChild.textContent = stateText;
+    chip.title = title || '';
+  }
   function paintCloudChip() {
     var chip = $('cloudChip');
     if (!chip) return;
     chip.hidden = !cloudState.configured;
-    chip.classList.toggle('cloud-chip--on', cloudState.connected && !cloudState.error);
-    chip.classList.toggle('cloud-chip--err', !!cloudState.error);
-    if (!cloudState.connected) { chip.textContent = '폰 연동'; chip.title = '구글 드라이브로 폰에서 입력한 출결을 가져옵니다. 눌러서 연결하세요.'; }
-    else if (cloudState.busy) { chip.textContent = '동기화 중…'; chip.title = ''; }
-    else if (cloudState.error) { chip.textContent = '연동 오류'; chip.title = cloudState.error + ' (눌러서 다시 시도)'; }
-    else { chip.textContent = '폰 연동 ✓'; chip.title = '눌러서 지금 동기화'; }
+    if (!cloudState.connected) setCloudChip('off', '꺼짐', '구글 드라이브로 휴대폰에서 입력한 출결·메모를 가져옵니다. 눌러서 연결하세요.');
+    else if (cloudState.busy) setCloudChip('busy', '동기화', '');
+    else if (cloudState.error) setCloudChip('err', '오류', cloudState.error + ' (눌러서 다시 시도)');
+    else setCloudChip('on', '연결됨', '눌러서 지금 동기화');
   }
   function onCloudChipClick() {
     if (!window.TTCLOUD) return;
     if (!cloudState.connected) {
-      var chip = $('cloudChip'); chip.textContent = '브라우저에서 로그인…';
+      setCloudChip('busy', '로그인 중', '브라우저에서 구글 로그인을 마치세요.');
       window.TTCLOUD.connect().then(function (r) {
         if (!r || !r.ok) { cloudState.error = (r && r.error) || '연결 실패'; alert('구글 연결에 실패했습니다.\n' + cloudState.error); cloudState.error = ''; paintCloudChip(); return; }
         cloudState.connected = true; cloudState.error = ''; paintCloudChip(); cloudSyncNow();
