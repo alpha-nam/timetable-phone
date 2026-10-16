@@ -1033,38 +1033,22 @@
     clearTimeout(cloudTimer);
     cloudTimer = setTimeout(cloudSyncNow, delay == null ? 2000 : delay);
   }
-  // ── 메모·날짜별 할 일의 변경 표시 ── 저장할 때마다 "무엇이 바뀌었는지"를 비교해서 바뀐 항목에만 updatedAt을 찍고,
+  // ── 날짜별 할 일의 변경 표시 ── 저장할 때마다 "무엇이 바뀌었는지"를 비교해서 바뀐 항목에만 updatedAt을 찍고,
   // 지워진 항목은 삭제 표시(tombstone)로 남긴다. 그래야 폰과 합칠 때 최신 쪽이 이기고 지운 게 되살아나지 않는다.
-  var MEMO_TOMB_KEY = 'dashboardMemoTombstones', DAYTASK_TOMB_KEY = 'dashboardDayTaskTombstones', DAYTASK_STAMP_KEY = 'dashboardDayTaskStamps';
-  var memoTombs = {}, dayTombs = {}, dayStamps = {};
-  var memoSig = null, daySig = null;   // 마지막으로 저장한 상태의 요약(처음엔 null = 아직 기준 없음)
+  // (메모 카드·섹션·휴지통의 같은 처리는 board.js가 한다.)
+  var DAYTASK_TOMB_KEY = 'dashboardDayTaskTombstones', DAYTASK_STAMP_KEY = 'dashboardDayTaskStamps';
+  var dayTombs = {}, dayStamps = {};
+  var daySig = null;   // 마지막으로 저장한 상태의 요약(처음엔 null = 아직 기준 없음)
 
   function loadNoteMeta() {
-    try { memoTombs = JSON.parse(localStorage.getItem(MEMO_TOMB_KEY) || '{}') || {}; } catch (e) { memoTombs = {}; }
     try { dayTombs = JSON.parse(localStorage.getItem(DAYTASK_TOMB_KEY) || '{}') || {}; } catch (e) { dayTombs = {}; }
     try { dayStamps = JSON.parse(localStorage.getItem(DAYTASK_STAMP_KEY) || '{}') || {}; } catch (e) { dayStamps = {}; }
   }
   function saveNoteMeta() {
     try {
-      localStorage.setItem(MEMO_TOMB_KEY, JSON.stringify(memoTombs));
       localStorage.setItem(DAYTASK_TOMB_KEY, JSON.stringify(dayTombs));
       localStorage.setItem(DAYTASK_STAMP_KEY, JSON.stringify(dayStamps));
     } catch (e) {}
-  }
-  function memoSigOf(list) {
-    var m = {};
-    list.forEach(function (t, i) { if (t && t.id) m[t.id] = JSON.stringify([t.text, !!t.done, i]); });
-    return m;
-  }
-  function stampMemo() {
-    var now = Date.now();
-    memoTodos.forEach(function (t) { if (!t.id) t.id = now.toString(36) + Math.random().toString(36).slice(2, 6); });
-    var cur = memoSigOf(memoTodos);
-    if (memoSig) {   // 기준이 있을 때만 비교한다(앱을 켠 직후의 첫 상태는 "변경 아님")
-      memoTodos.forEach(function (t, i) { if (memoSig[t.id] !== cur[t.id]) { t.updatedAt = now; t.order = i; } });
-      Object.keys(memoSig).forEach(function (id) { if (!(id in cur)) { memoTombs[id] = now; } });
-    }
-    memoSig = cur;
   }
   function stampDayTasks() {
     var now = Date.now();
@@ -1075,13 +1059,14 @@
     daySig = Object.assign({}, dayTasks);
   }
   function buildCloudPayload() {
-    stampMemo(); stampDayTasks(); saveNoteMeta();
+    stampDayTasks(); saveNoteMeta();
     var dayRecords = Object.keys(dayTasks).map(function (k) { return { id: k, text: dayTasks[k], updatedAt: dayStamps[k] || 0 }; });
-    return {
+    var payload = {
       attendance: { records: attendanceRecords, tombstones: attendanceTombstones },
-      memo: { records: memoTodos.map(function (t, i) { return Object.assign({}, t, { order: t.order == null ? i : t.order }); }), tombstones: memoTombs },
       dayTasks: { records: dayRecords, tombstones: dayTombs }
     };
+    if (window.BOARD) Object.assign(payload, window.BOARD.getSyncState());   // memo(카드)·sections·trash
+    return payload;
   }
   // 합친 결과를 화면 상태로 되돌린다. 바뀐 게 있으면 true.
   function applyCloudResult(res) {
@@ -1092,15 +1077,7 @@
       saveTombstones();
       if (JSON.stringify(nextAtt) !== JSON.stringify(attendanceRecords)) { attendanceRecords = nextAtt; changed = true; }
     }
-    if (res.memo) {
-      var nextMemo = (res.memo.records || []).slice().sort(function (a, b) {
-        var ao = a.order == null ? 1e9 : a.order, bo = b.order == null ? 1e9 : b.order;
-        return ao - bo || (b.updatedAt || 0) - (a.updatedAt || 0);
-      });
-      memoTombs = res.memo.tombstones || {};
-      if (JSON.stringify(nextMemo) !== JSON.stringify(memoTodos)) { memoTodos = nextMemo; changed = true; }
-      memoSig = memoSigOf(memoTodos);
-    }
+    if (window.BOARD && (res.memo || res.sections || res.trash)) { if (window.BOARD.applySync(res)) changed = true; }
     if (res.dayTasks) {
       var nextDay = {}, nextStamps = {};
       (res.dayTasks.records || []).forEach(function (r) { if (r.text) { nextDay[r.id] = r.text; nextStamps[r.id] = r.updatedAt || 0; } });
@@ -1112,6 +1089,56 @@
     saveNoteMeta();
     return changed;
   }
+
+  // ── board.js(메모 보드·휴지통·백업 복원)가 쓰는 출결·할 일 통로 ──
+  function refreshAfterRestore() {
+    var tab = document.documentElement.getAttribute('data-tab');
+    if (tab === 'attendance') renderAttendanceTab();
+    renderCalendar();
+  }
+  window.TTAPP = {
+    scheduleSync: function () { scheduleCloudSync(); },
+    restoreAttendance: function (rec) {
+      var r = Object.assign({}, rec, { updatedAt: Date.now() });
+      attendanceRecords = attendanceRecords.filter(function (x) { return x.id !== r.id; });
+      attendanceRecords.push(r);
+      delete attendanceTombstones[r.id]; saveTombstones();
+      saveAttendanceRecords(); refreshAfterRestore();
+    },
+    restoreDayTask: function (date, text) {
+      dayTasks[date] = text; delete dayTombs[date];
+      saveDayTasks(); refreshAfterRestore();
+    },
+    // 백업에는 있는데 지금은 없는 것만 되살린다. 되살린 개수를 돌려준다.
+    mergeRestore: function (b) {
+      var n = 0, t = Date.now();
+      (b.attendance || []).forEach(function (r) {
+        if (!r || !r.id || attendanceRecords.some(function (x) { return x.id === r.id; })) return;
+        attendanceRecords.push(Object.assign({}, r, { updatedAt: t })); delete attendanceTombstones[r.id]; n++;
+      });
+      Object.keys(b.dayTasks || {}).forEach(function (d) { if (!dayTasks[d] && b.dayTasks[d]) { dayTasks[d] = b.dayTasks[d]; delete dayTombs[d]; n++; } });
+      saveTombstones(); saveAttendanceRecords(); saveDayTasks(); refreshAfterRestore();
+      return n;
+    },
+    // 그 날짜 상태로 통째로 되돌린다. 지금 있고 백업에 없는 것은 휴지통으로 보낸다. 바뀐 개수를 돌려준다.
+    replaceRestore: function (b) {
+      var n = 0, t = Date.now();
+      var keep = {}; (b.attendance || []).forEach(function (r) { if (r && r.id) keep[r.id] = true; });
+      attendanceRecords.filter(function (r) { return !keep[r.id]; }).forEach(function (r) {
+        if (window.BOARD) window.BOARD.trash('attendance', r);
+        attendanceTombstones[r.id] = t; n++;
+      });
+      attendanceRecords = (b.attendance || []).filter(function (r) { return r && r.id; }).map(function (r) { delete attendanceTombstones[r.id]; return Object.assign({}, r, { updatedAt: t }); });
+      var bd = b.dayTasks || {};
+      Object.keys(dayTasks).filter(function (d) { return !bd[d]; }).forEach(function (d) {
+        if (window.BOARD) window.BOARD.trash('daytask', { id: d, text: dayTasks[d] }); n++;
+      });
+      var nd = {}; Object.keys(bd).forEach(function (d) { if (bd[d]) { nd[d] = bd[d]; delete dayTombs[d]; } });
+      dayTasks = nd;
+      saveTombstones(); saveAttendanceRecords(); saveDayTasks(); refreshAfterRestore();
+      return n;
+    }
+  };
   function cloudSyncNow() {
     if (!window.TTCLOUD || !cloudState.connected || cloudState.busy) return Promise.resolve();
     cloudState.busy = true; paintCloudChip();
@@ -1127,7 +1154,7 @@
       if (applyCloudResult(res.result || {})) {
         cloudApplying = true;
         saveAttendanceRecords();
-        try { localStorage.setItem(MEMO_KEY, JSON.stringify(memoTodos)); localStorage.setItem(DAY_TASK_KEY, JSON.stringify(dayTasks)); } catch (e) {}
+        try { localStorage.setItem(DAY_TASK_KEY, JSON.stringify(dayTasks)); } catch (e) {}
         cloudApplying = false;
         // 입력 중인 칸이 있으면 화면을 다시 그리지 않는다(입력이 날아가지 않게) — 다음에 탭을 열 때 새 내용이 보인다.
         var active = document.activeElement;
@@ -1204,7 +1231,8 @@
       exportedAt: new Date().toISOString(),
       attendanceRecords: attendanceRecords,
       dayTasks: dayTasks,
-      memoTodos: memoTodos
+      memoTodos: window.BOARD ? window.BOARD.exportState().memoTodos : [],
+      memoSections: window.BOARD ? window.BOARD.exportState().memoSections : []
     };
     var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
@@ -1231,7 +1259,7 @@
       if (!confirm('백업 파일(' + (data.exportedAt || '날짜 미상') + ')을 불러오면 지금 있는 출결 ' + attendanceRecords.length + '건·메모 ' + Object.keys(dayTasks).length + '건이 백업 파일의 출결 ' + attCount + '건·메모 ' + taskCount + '건으로 덮어써집니다. 계속할까요?')) return;
       if (Array.isArray(data.attendanceRecords)) { attendanceRecords = data.attendanceRecords; saveAttendanceRecords(); }
       if (data.dayTasks && typeof data.dayTasks === 'object') { dayTasks = data.dayTasks; saveDayTasks(); }
-      if (Array.isArray(data.memoTodos)) { memoTodos = data.memoTodos; saveMemoTodos(); }
+      if (Array.isArray(data.memoTodos) && window.BOARD) { window.BOARD.importState(data); }
       renderCalendar();
       alert('불러오기 완료: 출결 ' + attCount + '건, 메모 ' + taskCount + '건.');
     };
@@ -1315,6 +1343,7 @@
     saveBtn.addEventListener('click', function (ev) {
       ev.stopPropagation();
       var v = input.value.trim();
+      if (!v && dayTasks[key] && window.BOARD) window.BOARD.trash('daytask', { id: key, text: dayTasks[key] });
       if (v) dayTasks[key] = v; else delete dayTasks[key];
       saveDayTasks();
       closeDayTaskEditor();
@@ -1326,6 +1355,7 @@
     delBtn.textContent = '삭제';
     delBtn.addEventListener('click', function (ev) {
       ev.stopPropagation();
+      if (dayTasks[key] && window.BOARD) window.BOARD.trash('daytask', { id: key, text: dayTasks[key] });
       delete dayTasks[key];
       saveDayTasks();
       closeDayTaskEditor();
@@ -1696,6 +1726,7 @@
         rmBtn.textContent = '삭제';
         rmBtn.addEventListener('click', function (ev) {
           ev.stopPropagation();
+          if (window.BOARD) window.BOARD.trash('attendance', r);
           attendanceRecords = attendanceRecords.filter(function (x) { return x.id !== r.id; });
           attendanceTombstones[r.id] = Date.now();
           saveTombstones();
@@ -2522,143 +2553,12 @@
   // 어느 카드를 보일지는 CSS(html[data-tab=...])가 정하고, 여기서는 속성만 바꾸고 보이게 된 카드를 다시 그린다.
   var TAB_KEY = 'dashboardActiveTab';
   var TABS = ['timetable', 'swap', 'calendar', 'today', 'attendance', 'memo'];
-  var MEMO_KEY = 'dashboardMemoTodos';
-  var memoTodos = []; // [{ id, text, done }]
   var attViewDate = new Date();
 
   function isTabShell() { return document.documentElement.getAttribute('data-shell') === 'tabs'; }
 
-  function loadMemoTodos() {
-    try {
-      var v = JSON.parse(localStorage.getItem(MEMO_KEY) || '[]');
-      memoTodos = Array.isArray(v) ? v.filter(function (t) { return t && typeof t.text === 'string'; }) : [];
-    } catch (e) { memoTodos = []; }
-    memoTodos.forEach(function (t) { if (!t.id) t.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6); });
-    loadNoteMeta();
-    memoSig = memoSigOf(memoTodos);   // 변경 비교의 기준
-  }
-  function saveMemoTodos() {
-    stampMemo();
-    try { localStorage.setItem(MEMO_KEY, JSON.stringify(memoTodos)); } catch (e) {}
-    saveNoteMeta();
-    scheduleCloudSync();
-  }
-
-  function renderMemo() {
-    var list = $('memoList');
-    list.innerHTML = '';
-    var openCount = memoTodos.filter(function (t) { return !t.done; }).length;
-    $('memoCount').textContent = openCount ? '남은 일 ' + openCount : '';
-    if (!memoTodos.length) {
-      var empty = document.createElement('div');
-      empty.className = 'memo-empty';
-      empty.textContent = '아직 메모가 없어요. 위에 입력해서 추가하세요.';
-      list.appendChild(empty);
-      return;
-    }
-    // 배열 순서 그대로 보여 준다(왼쪽 손잡이를 끌어서 순서를 바꾸면 그 순서가 저장된다).
-    memoTodos.forEach(function (t) {
-      var row = document.createElement('div');
-      row.className = 'memo-row' + (t.done ? ' done' : '');
-      var grip = document.createElement('span');
-      grip.className = 'memo-grip';
-      grip.title = '끌어서 순서 바꾸기';
-      grip.textContent = '⋮⋮';
-      grip.addEventListener('pointerdown', function (ev) { startMemoDrag(ev, grip, row, t); });
-      var chk = document.createElement('button');
-      chk.type = 'button';
-      chk.className = 'memo-chk';
-      chk.setAttribute('aria-label', t.done ? '완료 취소' : '완료');
-      chk.textContent = t.done ? '✓' : '';
-      chk.addEventListener('click', function (ev) {
-        ev.stopPropagation();
-        t.done = !t.done;
-        // 완료하면 맨 아래로, 완료를 취소하면 완료된 항목들 바로 위로 보낸다
-        memoTodos = memoTodos.filter(function (x) { return x !== t; });
-        if (t.done) memoTodos.push(t);
-        else {
-          var firstDone = memoTodos.findIndex(function (x) { return x.done; });
-          if (firstDone < 0) memoTodos.push(t); else memoTodos.splice(firstDone, 0, t);
-        }
-        saveMemoTodos();
-        renderMemo();
-      });
-      var txt = document.createElement('span');
-      txt.className = 'memo-text';
-      txt.textContent = t.text;
-      var del = document.createElement('button');
-      del.type = 'button';
-      del.className = 'memo-del';
-      del.setAttribute('aria-label', '삭제');
-      del.textContent = '×';
-      del.addEventListener('click', function (ev) {
-        ev.stopPropagation();
-        memoTodos = memoTodos.filter(function (x) { return x !== t; });
-        saveMemoTodos();
-        renderMemo();
-      });
-      row.appendChild(grip);
-      row.appendChild(chk);
-      row.appendChild(txt);
-      row.appendChild(del);
-      list.appendChild(row);
-    });
-  }
-
-  // 손잡이(⋮⋮)를 끌어서 메모 순서를 바꾼다. 끄는 동안 다른 줄은 자리를 비켜 주고, 놓으면 그 순서로 저장한다.
-  function startMemoDrag(ev, grip, row, item) {
-    if (ev.button !== undefined && ev.button !== 0) return;
-    ev.preventDefault();
-    var rows = Array.prototype.slice.call($('memoList').querySelectorAll('.memo-row'));
-    var from = rows.indexOf(row);
-    if (from < 0) return;
-    var rects = rows.map(function (r) { return r.getBoundingClientRect(); });
-    var step = rects.length > 1 ? Math.abs(rects[1].top - rects[0].top) : rects[0].height + 6;
-    var startY = ev.clientY, to = from;
-    row.classList.add('dragging');
-    try { grip.setPointerCapture(ev.pointerId); } catch (e) {}
-
-    function onMove(e) {
-      var dy = e.clientY - startY;
-      row.style.transform = 'translateY(' + dy + 'px)';
-      var center = rects[from].top + rects[from].height / 2 + dy;
-      to = 0;
-      rects.forEach(function (r, j) { if (j !== from && r.top + r.height / 2 < center) to++; });
-      rows.forEach(function (r, j) {
-        if (j === from) return;
-        var shift = 0;
-        if (from < to && j > from && j <= to) shift = -step;
-        else if (from > to && j < from && j >= to) shift = step;
-        r.style.transform = shift ? 'translateY(' + shift + 'px)' : '';
-      });
-    }
-    function onUp() {
-      grip.removeEventListener('pointermove', onMove);
-      grip.removeEventListener('pointerup', onUp);
-      grip.removeEventListener('pointercancel', onUp);
-      try { grip.releasePointerCapture(ev.pointerId); } catch (e) {}
-      if (to !== from) {
-        memoTodos.splice(from, 1);
-        memoTodos.splice(to, 0, item);
-        saveMemoTodos();
-      }
-      renderMemo();
-    }
-    grip.addEventListener('pointermove', onMove);
-    grip.addEventListener('pointerup', onUp);
-    grip.addEventListener('pointercancel', onUp);
-  }
-
-  function addMemoFromInput() {
-    var input = $('memoInput');
-    var text = input.value.trim();
-    if (!text) { input.focus(); return; }
-    memoTodos.unshift({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), text: text, done: false });
-    saveMemoTodos();
-    input.value = '';
-    renderMemo();
-    input.focus();
-  }
+  // 메모 탭 화면은 board.js가 그린다.
+  function renderMemo() { if (window.BOARD) window.BOARD.render(); }
 
   function renderAttendanceTab() {
     var d = attViewDate;
@@ -2864,8 +2764,6 @@
     $('attTodayBtn').addEventListener('click', function (ev) { ev.stopPropagation(); attViewDate = new Date(); renderAttendanceTab(); });
     initAttDatePicker();
     $('attTabSummaryBtn').addEventListener('click', function (ev) { ev.stopPropagation(); openAttendanceSummary(); });
-    $('memoAddBtn').addEventListener('click', function (ev) { ev.stopPropagation(); addMemoFromInput(); });
-    $('memoInput').addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); addMemoFromInput(); } });
     // 시간표 카드: 제목 줄(아이콘·"주간 시간표"·이름 선택)을 없애고, 이름 선택 버튼을 교사/학급/학생 버튼 줄의 오른쪽 끝으로 옮긴다.
     var vt = $('viewTabs'), es = $('entitySelect');
     if (vt && es) vt.appendChild(es);    if (vt && es) initViewTypeCombo(vt, es);
@@ -2882,7 +2780,7 @@
     loadDayTasks();
     loadAttendanceRecords();
     initCloud();
-    loadMemoTodos();
+    if (window.BOARD) window.BOARD.init();
     initAttendanceSummary();
     initTabs();
 

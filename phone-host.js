@@ -149,9 +149,23 @@
       },
       sync: function (local) {
         if (!tokenValid()) return Promise.resolve({ ok: false, error: '로그인이 필요합니다. 화면을 한 번 누르거나 "폰 연동"을 누르세요.' });
-        return drive.syncAll(local || {}).then(function (result) { return { ok: true, result: result }; })
-          .catch(function (e) { return { ok: false, error: e.message }; });
-      }
+        return drive.syncAll(local || {}).then(function (result) {
+          // 하루 한 번 전체 사본을 드라이브에 남긴다(실패해도 동기화는 성공으로 본다).
+          var snap = {};
+          Object.keys(result).forEach(function (k) { snap[k] = result[k].records; });
+          return drive.backupDaily(snap).catch(function () { /* 다음 동기화 때 다시 */ }).then(function () { return { ok: true, result: result }; });
+        }).catch(function (e) { return { ok: false, error: e.message }; });
+      },
+      backups: function () {
+        if (!tokenValid()) return Promise.resolve({ ok: false, error: '로그인이 필요합니다.' });
+        return drive.listBackups().then(function (list) { return { ok: true, list: list }; }).catch(function (e) { return { ok: false, error: e.message }; });
+      },
+      readBackup: function (id) {
+        if (!tokenValid()) return Promise.resolve({ ok: false, error: '로그인이 필요합니다.' });
+        return drive.readBackup(id).then(function (data) { return { ok: true, data: data }; }).catch(function (e) { return { ok: false, error: e.message }; });
+      },
+      localBackups: function () { return Promise.resolve({ ok: true, list: [] }); },
+      readLocalBackup: function () { return Promise.resolve({ ok: false, error: '폰에는 PC 백업 파일이 없습니다.' }); }
     };
   }
 
@@ -168,7 +182,7 @@
     installFetchOverride(); installConfig(); installTTCloud();
     // 로그인 직후이거나 토큰이 아직 유효할 때는 곧바로 연동 상태로 시작한다.
     $('phoneGate').hidden = true;
-    return loadScript('./app.js').then(function () { return loadScript('./swap.js'); }).then(function () {
+    return loadScript('./app.js').then(function () { return loadScript('./board.js'); }).then(function () { return loadScript('./swap.js'); }).then(function () {
       document.dispatchEvent(new Event('DOMContentLoaded'));   // app.js는 DOMContentLoaded에서 시작한다(이미 지나갔으니 한 번 더 알려 준다)
       document.dispatchEvent(new Event('tt-phone-ready'));
     });
