@@ -1609,3 +1609,12 @@ html[data-shell="tabs"][data-tab="today"] .weather-day-temps .weather-day-temp {
 .cal-badge { padding: 1px 4px 1px 2px; gap: 1px; }
 .cal-badge svg, .cal-badge svg.fl { width: 11px !important; height: 11px !important; }
 .cal-badge b { font-size: 10px; }
+
+/* 학급 출결 입력: 종류는 색으로 채우고(결석 빨강·조퇴 파랑·지각 노랑·결과 보라), 구분(사유)은 흰 슬라이더 모양 */
+.att-btn.att-btn--abs.active { background: #d6483f; color: #fff; }
+.att-btn.att-btn--early.active { background: #3d7fd6; color: #fff; }
+.att-btn.att-btn--late.active { background: #e0a020; color: #fff; }
+.att-btn.att-btn--out.active { background: #8b7cf6; color: #fff; }
+.att-btn-group--reason { flex-wrap: nowrap; gap: 2px; padding: 3px; background: var(--row-bg); border-radius: 12px; }
+.att-btn-group--reason .att-btn { flex: 1; background: transparent; box-shadow: none; }
+.att-btn-group--reason .att-btn.active { background: var(--card-bg); color: var(--text); box-shadow: 0 0 0 1px var(--card-border), 0 1px 3px rgba(0,0,0,0.08); }

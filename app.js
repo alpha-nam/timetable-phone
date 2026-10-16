@@ -1729,7 +1729,7 @@
       ATTENDANCE_TYPES.forEach(function (opt) {
         var btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'att-btn' + (selectedType === opt ? ' active' : '');
+        btn.className = 'att-btn att-btn--' + ({ '결석': 'abs', '조퇴': 'early', '지각': 'late', '결과': 'out' }[opt] || 'abs') + (selectedType === opt ? ' active' : '');
         btn.textContent = opt;
         btn.addEventListener('click', function (ev) {
           ev.stopPropagation();
