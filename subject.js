@@ -3,7 +3,7 @@
  * 담임 학급 출결(app.js의 "학급 출결")과 기록·저장·종합이 완전히 따로다.
  *
  * 수업의 학생 명단은 시간표 자료(dashboard-timetable.json)에서 만든다.
- *   ① 그 요일·교시에 같은 과목을 같은 선생님께 듣는 학생(학생 개별 시간표가 있는 2·3학년, 선택과목 포함)
+ *   ① 그 요일·교시에 학생 시간표 칸에 내 이름이 적힌 학생(학생 개별 시간표가 있는 2·3학년, 선택과목 포함)
  *   ② ①이 없으면 시간표의 반(예: "1-3")의 학생 — 2·3학년은 학생 시간표, 1학년은 학급 명렬표(class-roster.json)
  * 출석이 아닌 것만 기록한다(기록이 없으면 출석). 한 번 누르면 켜지고, 같은 버튼을 다시 누르면 꺼진다.
  * 구글 드라이브 동기화는 notes 파일의 "subj" 묶음으로 PC·폰이 같이 쓴다(app.js가 getSyncState/applySync를 부른다).
@@ -55,10 +55,17 @@
     var cell = ((teacher.days || {})[dow] || [])[pi];
     if (!cell) return [];
     var students = tt.students || [];
-    var mine = students.filter(function (s) {
-      var c = ((s.days || {})[dow] || [])[pi];
-      return c && c.subject === cell.subject && c.classLabel === teacher.teacherName;
-    });
+    // 선생님은 한 교시에 한 곳에만 있으므로, 그 칸에서 "내 이름"이 적힌 학생이 곧 내 수업의 학생이다.
+    // (학생 시간표의 과목명은 정식 과목명이고 선생님 시간표는 반코드라 과목명으로는 맞출 수 없다.)
+    // 먼저 선생님 한 분만 적힌 칸을 찾고, 없으면 공동 수업("갑·을")까지 넓힌다. 격주 칸("2-7 / 2-6")은 반별로 나눈다.
+    var mine = [];
+    if (String(cell.classLabel || '').indexOf('/') < 0) {
+      var at = function (s) { return String((((s.days || {})[dow] || [])[pi] || {}).classLabel || ''); };
+      mine = students.filter(function (s) { return at(s).trim() === teacher.teacherName; });
+      if (!mine.length) {
+        mine = students.filter(function (s) { return at(s).split(/[·,\/]/).map(function (x) { return x.trim(); }).indexOf(teacher.teacherName) >= 0; });
+      }
+    }
     if (mine.length) return [{ label: cell.classLabel || '', subject: cell.subject, students: mine.slice().sort(byNo) }];
     var labels = [];
     (String(cell.classLabel || '').match(/\d-\d+/g) || []).forEach(function (l) { if (labels.indexOf(l) < 0) labels.push(l); });
