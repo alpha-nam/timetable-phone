@@ -189,9 +189,7 @@
     line.appendChild(el('span', 'subj-no', String(s.no)));
     var nm = el('span', 'subj-name', s.studentName);
     line.appendChild(nm);
-    if (lesson.students.some(function (x) { return x.ban !== s.ban || x.grade !== s.grade; })) {
-      line.appendChild(el('span', 'subj-cls', s.grade + '-' + s.ban));
-    }
+    line.appendChild(el('span', 'subj-cls', s.grade + '-' + s.ban));
     TYPES.forEach(function (t) {
       var b = el('button', 'subj-btn' + (r && r.type === t ? ' on ' + TYPE_CLASS[t] : ''), t);
       b.type = 'button';
@@ -262,17 +260,34 @@
       rows.forEach(function (r) {
         var g = groups[groupName(r)] = groups[groupName(r)] || {};
         var k = r.grade + '-' + r.ban + '-' + r.no + '|' + r.studentName;
-        var s = g[k] = g[k] || { r: r, c: { '결석': 0, '지각': 0, '조퇴': 0, '결과': 0 } };
+        var s = g[k] = g[k] || { r: r, c: { '결석': 0, '지각': 0, '조퇴': 0, '결과': 0 }, items: [] };
         s.c[r.type] = (s.c[r.type] || 0) + 1;
+        s.items.push(r);
       });
       Object.keys(groups).sort(function (a, b) { return a.localeCompare(b, 'ko'); }).forEach(function (gn) {
         out.appendChild(el('h4', '', gn));
         var t = el('table', 'subj-table');
         var head = el('tr'); ['학생'].concat(TYPES).concat(['합계']).forEach(function (h) { head.appendChild(el('th', '', h)); }); t.appendChild(head);
         Object.keys(groups[gn]).map(function (k) { return groups[gn][k]; }).sort(function (a, b) { return byNo(a.r, b.r); }).forEach(function (s) {
-          var tr = el('tr'); tr.appendChild(el('td', 'l', s.r.grade + '-' + s.r.ban + ' ' + s.r.no + ' ' + s.r.studentName));
+          var tr = el('tr', 'subj-srow'); tr.appendChild(el('td', 'l', '▸ ' + s.r.grade + '-' + s.r.ban + ' ' + s.r.no + ' ' + s.r.studentName));
           var total = 0; TYPES.forEach(function (ty) { total += s.c[ty]; tr.appendChild(el('td', '', s.c[ty] ? String(s.c[ty]) : '')); });
           tr.appendChild(el('td', 'tot', String(total))); t.appendChild(tr);
+          // 줄을 누르면 이 학생이 언제 어떤 수업에서 체크됐는지 날짜순으로 펼쳐진다.
+          var dr = el('tr', 'subj-drow'); dr.hidden = true;
+          var dc = el('td'); dc.colSpan = 6;
+          s.items.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : (a.period - b.period); }).forEach(function (it) {
+            var line = el('div', 'subj-dline');
+            var dd = new Date(+it.date.slice(0, 4), +it.date.slice(4, 6) - 1, +it.date.slice(6, 8));
+            line.appendChild(el('b', '', (+it.date.slice(4, 6)) + '월 ' + (+it.date.slice(6, 8)) + '일 (' + DAY_NAMES[dd.getDay()] + ') ' + it.period + '교시'));
+            line.appendChild(el('span', '', it.type + (it.reason ? ' · ' + it.reason : '')));
+            if (it.memo) line.appendChild(el('i', '', it.memo));
+            dc.appendChild(line);
+          });
+          dr.appendChild(dc); t.appendChild(dr);
+          tr.addEventListener('click', function (ev) {
+            ev.stopPropagation(); dr.hidden = !dr.hidden;
+            tr.firstChild.textContent = (dr.hidden ? '▸ ' : '▾ ') + tr.firstChild.textContent.slice(2);
+          });
         });
         out.appendChild(t);
       });
