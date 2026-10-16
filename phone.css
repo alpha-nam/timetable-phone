@@ -98,3 +98,25 @@ html[data-phone][data-shell="tabs"] .bento {
 
 /* 메모 순서 바꾸기(손잡이 끌기)가 터치에서도 되게 */
 html[data-phone] .memo-grip { touch-action: none; }
+
+/* ── 설치·접근성 안내 ── */
+.phone-btn { display: inline-block; font-family: inherit; font-size: 15px; font-weight: 800; color: #fff; background: var(--accent); border: none; border-radius: 12px; padding: 12px 22px; text-decoration: none; cursor: pointer; }
+.phone-btn.ghost { color: var(--accent); background: var(--accent-soft); font-size: 14px; padding: 10px 16px; }
+.phone-btn[hidden] { display: none; }
+.gate-help { max-width: 320px; width: 100%; margin-top: 6px; text-align: left; }
+.gate-help[hidden] { display: none; }
+.gate-help summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--accent); text-align: center; list-style: none; }
+.gate-help summary::-webkit-details-marker { display: none; }
+.gate-help-body { margin-top: 8px; background: var(--row-bg); border-radius: 12px; padding: 4px 14px; }
+.gate-help-body p { font-size: 13px; line-height: 1.55; color: var(--text); margin: 10px 0; }
+.gate-help-note { color: var(--text-sub) !important; font-size: 12px !important; }
+.phone-inapp { position: fixed; inset: 0; z-index: 200; background: var(--card-bg); display: flex; align-items: center; justify-content: center; padding: 24px; }
+.phone-inapp-box { max-width: 340px; text-align: center; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.phone-inapp-box h2 { margin: 0; font-size: 18px; color: var(--text); }
+.phone-inapp-box p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--text-sub); }
+.phone-inapp-url { font-size: 12px; color: var(--text-veryfaint); word-break: break-all; }
+.phone-install-banner { position: fixed; left: 10px; right: 10px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 55; display: flex; align-items: center; gap: 8px; background: rgba(35,45,62,0.95); color: #fff; font-size: 13px; font-weight: 700; border-radius: 12px; padding: 10px 12px; }
+.phone-install-banner span { flex: 1; }
+.phone-install-banner button { font-family: inherit; font-size: 13px; font-weight: 800; color: #fff; background: var(--accent); border: none; border-radius: 9px; padding: 7px 12px; cursor: pointer; }
+.phone-install-banner button.ghost { background: transparent; color: #9cc4ff; }
+@media (min-width: 700px) { .phone-install-banner { left: 50%; right: auto; transform: translateX(-50%); width: min(460px, calc(100vw - 20px)); } }

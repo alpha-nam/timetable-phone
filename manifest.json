@@ -1,9 +1,19 @@
 {
-  "name": "TimeTable+ 출결",
-  "short_name": "출결",
+  "id": "./",
+  "name": "TimeTable+",
+  "short_name": "TimeTable+",
+  "description": "시간표·결보강·캘린더·출결·메모를 PC와 함께 쓰는 교사용 앱",
+  "lang": "ko",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#f3f6fb",
+  "orientation": "any",
+  "background_color": "#ffffff",
   "theme_color": "#3d7fd6",
-  "icons": [{ "src": "icon.png", "sizes": "256x256", "type": "image/png" }]
+  "categories": ["education", "productivity"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
 }

@@ -112,6 +112,10 @@
       return drive.downloadBundle(cached && cached.hash).then(function (b) {
         if (b && b.missing) { if (!cached) throw new Error('PC의 TimeTable+에서 먼저 "폰 연동"을 켜 주세요. (시간표 데이터가 아직 드라이브에 없습니다)'); return; }
         if (b) { bundle = b; return idbSet('bundle', b); }
+      }, function (e) {
+        // 인터넷이 안 되거나 구글이 일시적으로 안 될 때는, 기기에 저장해 둔 시간표가 있으면 그걸로 연다.
+        if (cached) { note('인터넷에 연결되지 않아 저장해 둔 시간표를 보여 줍니다.', 'err'); return; }
+        throw e;
       });
     });
   }
@@ -185,6 +189,7 @@
     return loadScript('./app.js').then(function () { return loadScript('./board.js'); }).then(function () { return loadScript('./swap.js'); }).then(function () {
       document.dispatchEvent(new Event('DOMContentLoaded'));   // app.js는 DOMContentLoaded에서 시작한다(이미 지나갔으니 한 번 더 알려 준다)
       document.dispatchEvent(new Event('tt-phone-ready'));
+      showInstallBanner();
     });
   }
 
@@ -196,7 +201,87 @@
     $('gateLogin').hidden = !canLogin;
   }
 
+  // ───────── 접근성: 앱 안 브라우저 막기, 홈 화면 설치 안내, 오프라인 준비 ─────────
+  var APP_URL = location.origin + location.pathname.replace(/[^/]*$/, '');
+
+  // 카카오톡·네이버·다음 앱 안에서 열린 링크는 "앱 안 브라우저(웹뷰)"라서 구글이 로그인을 막는다. 그럴 때는 크롬·사파리 등으로 다시 열도록 안내한다.
+  function inAppBrowserName() {
+    var ua = navigator.userAgent || '';
+    if (/KAKAOTALK/i.test(ua)) return '카카오톡';
+    if (/NAVER\(inapp/i.test(ua)) return '네이버 앱';
+    if (/DaumApps/i.test(ua)) return '다음 앱';
+    if (/FBAN|FBAV/i.test(ua)) return '페이스북';
+    if (/Instagram/i.test(ua)) return '인스타그램';
+    if (/\bLine\//i.test(ua)) return '라인';
+    if (/Android/i.test(ua) && /; wv\)/.test(ua)) return '앱 안 브라우저';
+    return '';
+  }
+  function copyText(t) {
+    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t).then(function () { return true; }, function () { return false; });
+    var ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select();
+    var ok = false; try { ok = document.execCommand('copy'); } catch (e) { /* 복사 불가 */ }
+    ta.remove(); return Promise.resolve(ok);
+  }
+  function showInAppNotice(name) {
+    var isAndroid = /Android/i.test(navigator.userAgent);
+    var o = document.createElement('div'); o.id = 'phoneInApp'; o.className = 'phone-inapp';
+    var box = document.createElement('div'); box.className = 'phone-inapp-box';
+    var h = document.createElement('h2'); h.textContent = name + ' 안에서는 구글 로그인이 안 돼요';
+    var p = document.createElement('p');
+    p.textContent = isAndroid ? '아래 버튼으로 크롬(또는 기본 브라우저)에서 다시 열어 주세요.'
+      : '화면 위·아래의 공유 또는 ⋯ 버튼을 누르고 "Safari로 열기"(또는 "다른 브라우저로 열기")를 선택해 주세요.';
+    box.appendChild(h); box.appendChild(p);
+    if (isAndroid) {
+      var chrome = document.createElement('a'); chrome.className = 'phone-btn'; chrome.textContent = '크롬으로 열기';
+      chrome.href = 'intent://' + APP_URL.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end';
+      box.appendChild(chrome);
+    }
+    var cp = document.createElement('button'); cp.type = 'button'; cp.className = 'phone-btn ghost'; cp.textContent = '주소 복사';
+    cp.addEventListener('click', function () { copyText(APP_URL).then(function (ok) { cp.textContent = ok ? '복사했어요. 브라우저에 붙여넣으세요' : APP_URL; }); });
+    box.appendChild(cp);
+    var url = document.createElement('div'); url.className = 'phone-inapp-url'; url.textContent = APP_URL;
+    box.appendChild(url);
+    o.appendChild(box);
+    document.body.appendChild(o);
+  }
+
+  // 홈 화면 설치: 안드로이드 크롬 등은 설치 버튼이 뜨고, 아이폰은 방법 안내만 가능하다.
+  var installEvent = null;
+  function isStandalone() { return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true; }
+  function initInstall() {
+    if (isStandalone()) return;
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault(); installEvent = e;
+      var b = $('gateInstall'); if (b) b.hidden = false;
+      if (appStarted) showInstallBanner();
+    });
+    window.addEventListener('appinstalled', function () { installEvent = null; var b = $('gateInstall'); if (b) b.hidden = true; var bn = $('phoneInstallBanner'); if (bn) bn.remove(); });
+    var gi = $('gateInstall');
+    if (gi) gi.addEventListener('click', function () { doInstall(); });
+    var help = $('gateInstallHelp'); if (help) help.hidden = false;
+  }
+  function doInstall() { if (!installEvent) return; installEvent.prompt(); installEvent.userChoice.then(function () { installEvent = null; var bn = $('phoneInstallBanner'); if (bn) bn.remove(); }); }
+  function showInstallBanner() {
+    if (!installEvent || lsGet('tt_installDismissed') || $('phoneInstallBanner')) return;
+    var bn = document.createElement('div'); bn.id = 'phoneInstallBanner'; bn.className = 'phone-install-banner';
+    var t = document.createElement('span'); t.textContent = '홈 화면에 설치하면 앱처럼 열려요';
+    var go = document.createElement('button'); go.type = 'button'; go.textContent = '설치'; go.addEventListener('click', doInstall);
+    var x = document.createElement('button'); x.type = 'button'; x.className = 'ghost'; x.textContent = '닫기';
+    x.addEventListener('click', function () { lsSet('tt_installDismissed', true); bn.remove(); });
+    bn.appendChild(t); bn.appendChild(go); bn.appendChild(x);
+    document.body.appendChild(bn);
+  }
+  function registerWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost') return;
+    navigator.serviceWorker.register('./sw.js').catch(function () { /* 오프라인 준비는 없어도 앱은 동작한다 */ });
+  }
+
   function boot() {
+    var inApp = inAppBrowserName();
+    if (inApp) { showInAppNotice(inApp); $('phoneGate').hidden = true; return; }
+    registerWorker();
+    initInstall();
     document.addEventListener('pointerdown', refreshOnGesture, true);
     $('gateLogin').addEventListener('click', function () {
       showGate('로그인 중…', '', false);
