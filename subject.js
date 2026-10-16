@@ -43,6 +43,7 @@
   }
   function save() {
     persist();
+    if (window.TTAPP && window.TTAPP.refreshCalendar) window.TTAPP.refreshCalendar();   // 캘린더 배지 갱신
     if (window.TTAPP && window.TTAPP.scheduleSync) window.TTAPP.scheduleSync();
   }
 
@@ -379,6 +380,13 @@
     return n;
   }
 
+  // 캘린더 배지·날짜 팝업이 쓴다.
+  function listOn(dateStr) {
+    return records.filter(function (r) { return r.date === dateStr; })
+      .sort(function (a, b) { return (a.period - b.period) || byNo(a, b); });
+  }
+  function openDate(d) { viewDate = new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+
   function shiftDate(n) { var d = new Date(viewDate); d.setDate(d.getDate() + n); viewDate = d; render(); }
 
   function init() {
@@ -411,6 +419,8 @@
     init: init,
     show: function () { if (timetable() && !$('subjTeacher').options.length) fillTeachers(); render(); },
     render: render,
+    listOn: listOn,
+    openDate: openDate,
     mergeRestore: mergeRestore,
     replaceRestore: replaceRestore,
     getSyncState: getSyncState,

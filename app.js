@@ -1164,6 +1164,7 @@
   }
   window.TTAPP = {
     scheduleSync: function () { scheduleCloudSync(); },
+    refreshCalendar: function () { renderCalendar(); },
     restoreAttendance: function (rec) {
       var r = Object.assign({}, rec, { updatedAt: Date.now() });
       attendanceRecords = attendanceRecords.filter(function (x) { return x.id !== r.id; });
@@ -1394,9 +1395,14 @@
     var attTabBtn = document.createElement('button');
     attTabBtn.type = 'button';
     attTabBtn.className = 'day-task-tab';
-    attTabBtn.textContent = '출석';
+    attTabBtn.textContent = '학급';
+    var subjTabBtn = document.createElement('button');
+    subjTabBtn.type = 'button';
+    subjTabBtn.className = 'day-task-tab';
+    subjTabBtn.textContent = '교과';
     tabRow.appendChild(taskTabBtn);
     tabRow.appendChild(attTabBtn);
+    tabRow.appendChild(subjTabBtn);
 
     // ── 할일 패널 ──
     var taskPanel = document.createElement('div');
@@ -1445,6 +1451,26 @@
     // ── 출석 패널 ──
     var attPanel = buildAttendancePanel(key);
 
+    // ── 교과 출결 패널(그날 체크된 것을 보여 준다. 입력은 "교과출결" 탭에서) ──
+    var subjPanel = document.createElement('div');
+    subjPanel.className = 'day-editor-panel';
+    var subjRows = window.SUBJ ? window.SUBJ.listOn(key) : [];
+    if (!subjRows.length) {
+      var se = document.createElement('div'); se.className = 'att-list-empty'; se.textContent = '이 날짜에 체크된 교과 출결이 없습니다.'; subjPanel.appendChild(se);
+    } else {
+      subjRows.forEach(function (r) {
+        var row = document.createElement('div'); row.className = 'att-record-row';
+        var info = document.createElement('div'); info.className = 'att-record-info';
+        var nm = document.createElement('div'); nm.className = 'att-record-name'; nm.textContent = r.period + '교시 ' + (r.label ? r.label + ' ' : '') + r.subject;
+        var meta = document.createElement('div'); meta.className = 'att-record-meta';
+        meta.textContent = r.grade + '-' + r.ban + '-' + r.no + ' ' + r.studentName + ' · ' + r.type + (r.reason ? ' · ' + r.reason : '') + (r.memo ? ' · ' + r.memo : '');
+        info.appendChild(nm); info.appendChild(meta); row.appendChild(info); subjPanel.appendChild(row);
+      });
+    }
+    var subjGo = document.createElement('button'); subjGo.type = 'button'; subjGo.className = 'day-task-save'; subjGo.textContent = '이 날짜의 교과 출결 열기';
+    subjGo.addEventListener('click', function (ev) { ev.stopPropagation(); closeDayTaskEditor(); if (window.SUBJ) window.SUBJ.openDate(cellDate); setTab('subject', true); });
+    var subjBtnRow = document.createElement('div'); subjBtnRow.className = 'day-task-btns'; subjBtnRow.appendChild(subjGo); subjPanel.appendChild(subjBtnRow);
+
     var closeBtn = document.createElement('button');
     closeBtn.type = 'button';
     closeBtn.className = 'day-task-close day-task-close--bottom';
@@ -1455,17 +1481,21 @@
       dayEditorTab = tab;
       taskPanel.hidden = tab !== 'task';
       attPanel.hidden = tab !== 'attendance';
+      subjPanel.hidden = tab !== 'subject';
       taskTabBtn.classList.toggle('active', tab === 'task');
       attTabBtn.classList.toggle('active', tab === 'attendance');
+      subjTabBtn.classList.toggle('active', tab === 'subject');
       if (tab === 'task') input.focus();
     }
     taskTabBtn.addEventListener('click', function (ev) { ev.stopPropagation(); switchTab('task'); });
     attTabBtn.addEventListener('click', function (ev) { ev.stopPropagation(); switchTab('attendance'); });
+    subjTabBtn.addEventListener('click', function (ev) { ev.stopPropagation(); switchTab('subject'); });
 
     box.appendChild(title);
     box.appendChild(tabRow);
     box.appendChild(taskPanel);
     box.appendChild(attPanel);
+    box.appendChild(subjPanel);
     box.appendChild(closeBtn);
     overlay.appendChild(box);
     overlay.addEventListener('click', function (ev) { if (ev.target === overlay) closeDayTaskEditor(); });
@@ -2298,16 +2328,27 @@
           cell.appendChild(taskLabel);
         }
 
+        // 학급 출결 / 교과 출결은 칸이 좁아서 이름 대신 작은 배지(건수)로 보여 준다. 자세한 건 날짜를 눌러 팝업에서 본다.
         var attRecords = attendanceRecordsForDate(ymd(cellDate));
-        if (attRecords.length) {
-          var attLabel = document.createElement('div');
-          attLabel.className = 'cal-attendance-label';
-          var attSummary = attRecords.length === 1
-            ? attRecords[0].studentName + ' ' + attendanceTypeLabel(attRecords[0])
-            : attRecords[0].studentName + ' 외 ' + (attRecords.length - 1) + '명';
-          attLabel.textContent = '🧑‍🎓 ' + attSummary;
-          attLabel.title = attRecords.map(function (r) { return attendanceStudentLabel(r) + ' - ' + attendanceTypeLabel(r); }).join('\n');
-          cell.appendChild(attLabel);
+        var subjRecords = window.SUBJ ? window.SUBJ.listOn(ymd(cellDate)) : [];
+        if (attRecords.length || subjRecords.length) {
+          var badges = document.createElement('div');
+          badges.className = 'cal-badges';
+          if (attRecords.length) {
+            var b1 = document.createElement('span');
+            b1.className = 'cal-badge cal-badge--cls';
+            b1.textContent = '학 ' + attRecords.length;
+            b1.title = '학급 출결\n' + attRecords.map(function (r) { return attendanceStudentLabel(r) + ' - ' + attendanceTypeLabel(r); }).join('\n');
+            badges.appendChild(b1);
+          }
+          if (subjRecords.length) {
+            var b2 = document.createElement('span');
+            b2.className = 'cal-badge cal-badge--subj';
+            b2.textContent = '교 ' + subjRecords.length;
+            b2.title = '교과 출결\n' + subjRecords.map(function (r) { return r.period + '교시 ' + r.studentName + ' - ' + r.type; }).join('\n');
+            badges.appendChild(b2);
+          }
+          cell.appendChild(badges);
         }
 
         // 토요일=파랑, 일요일=빨강, 공휴일(대체공휴일 포함 — NEIS 학사일정 이름에 "공휴일"이
