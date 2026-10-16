@@ -120,3 +120,6 @@ html[data-phone] .memo-grip { touch-action: none; }
 .phone-install-banner button { font-family: inherit; font-size: 13px; font-weight: 800; color: #fff; background: var(--accent); border: none; border-radius: 9px; padding: 7px 12px; cursor: pointer; }
 .phone-install-banner button.ghost { background: transparent; color: #9cc4ff; }
 @media (min-width: 700px) { .phone-install-banner { left: 50%; right: auto; transform: translateX(-50%); width: min(460px, calc(100vw - 20px)); } }
+
+/* 데스크톱 배경화면용 style.css가 body 전체를 클릭 통과(pointer-events:none)로 두므로, 폰에서는 body 바로 아래 요소(로그인 게이트·안내·모달)가 클릭을 받게 되돌린다. */
+body > *:not(#board) { pointer-events: auto; }
