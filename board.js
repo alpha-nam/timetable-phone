@@ -308,6 +308,9 @@
   function renderSection(sec) {
     var wrap = el('div', 'bd-sec'); wrap.dataset.sid = sec.id;
     var head = el('div', 'bd-sec-head');
+    var sgrip = el('span', 'bd-sec-grip', '⋮⋮'); sgrip.title = '끌어서 섹션 순서 바꾸기';
+    sgrip.addEventListener('pointerdown', function (ev) { startSectionDrag(ev, wrap, sec); });
+    head.appendChild(sgrip);
     var title = el('span', 'bd-sec-title', sec.name);
     title.title = '눌러서 이름 바꾸기';
     title.addEventListener('click', function (ev) { ev.stopPropagation(); renameSection(sec, title); });
@@ -477,6 +480,58 @@
       grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', up); grip.removeEventListener('pointercancel', cancel);
       ghost.remove(); ph.remove(); row.style.display = ''; render();
     }
+    grip.addEventListener('pointermove', move); grip.addEventListener('pointerup', up); grip.addEventListener('pointercancel', cancel);
+    move(ev);
+  }
+
+  // 섹션 통째로 끌어서 순서를 바꾼다(가로 배치는 좌우, 세로 배치는 위아래로 자리를 찾는다).
+  function startSectionDrag(ev, secEl, sec) {
+    if (ev.button != null && ev.button !== 0) return;
+    ev.preventDefault();
+    var grip = ev.currentTarget;
+    try { grip.setPointerCapture(ev.pointerId); } catch (e) { /* 일부 기기는 지원 안 함 */ }
+    var root = $('memoBoard');
+    var rect = secEl.getBoundingClientRect();
+    var ghost = secEl.cloneNode(true); ghost.classList.add('bd-ghost');
+    ghost.style.width = rect.width + 'px'; ghost.style.maxHeight = '220px'; ghost.style.overflow = 'hidden';
+    ghost.style.left = rect.left + 'px'; ghost.style.top = rect.top + 'px';
+    document.body.appendChild(ghost);
+    var ph = el('div', 'bd-sec-placeholder');
+    if (layout === 'h') ph.style.cssText = 'flex:0 0 ' + rect.width + 'px;width:' + rect.width + 'px;height:' + Math.min(rect.height, 160) + 'px;';
+    else ph.style.height = Math.min(rect.height, 80) + 'px';
+    root.insertBefore(ph, secEl); secEl.style.display = 'none';
+    var offX = ev.clientX - rect.left, offY = ev.clientY - rect.top;
+
+    function move(e) {
+      ghost.style.left = (e.clientX - offX) + 'px'; ghost.style.top = (e.clientY - offY) + 'px';
+      var br = root.getBoundingClientRect();
+      if (layout === 'h') { if (e.clientX > br.right - 40) root.scrollLeft += 14; else if (e.clientX < br.left + 40) root.scrollLeft -= 14; }
+      else { if (e.clientY > br.bottom - 40) root.scrollTop += 14; else if (e.clientY < br.top + 40) root.scrollTop -= 14; }
+      var others = [].filter.call(root.children, function (x) { return x !== ph && x.classList.contains('bd-sec') && x.style.display !== 'none'; });
+      var before = null;
+      for (var k = 0; k < others.length; k++) {
+        var r = others[k].getBoundingClientRect();
+        var mid = layout === 'h' ? r.left + r.width / 2 : r.top + Math.min(r.height, 120) / 2;
+        if ((layout === 'h' ? e.clientX : e.clientY) < mid) { before = others[k]; break; }
+      }
+      root.insertBefore(ph, before);
+    }
+    function finish(commit) {
+      grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', up); grip.removeEventListener('pointercancel', cancel);
+      var ids = [];
+      [].forEach.call(root.children, function (x) {
+        if (x === ph) ids.push(sec.id);
+        else if (x.classList.contains('bd-sec') && x.style.display !== 'none') ids.push(x.dataset.sid);
+      });
+      ghost.remove(); ph.remove(); secEl.style.display = '';
+      if (commit) {
+        ids.forEach(function (id, i) { var s = sections.filter(function (x) { return x.id === id; })[0]; if (s) s.order = i; });
+        save();
+      }
+      render();
+    }
+    function up() { finish(true); }
+    function cancel() { finish(false); }
     grip.addEventListener('pointermove', move); grip.addEventListener('pointerup', up); grip.addEventListener('pointercancel', cancel);
     move(ev);
   }
