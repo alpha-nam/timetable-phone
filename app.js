@@ -1106,6 +1106,7 @@
       prefs: { records: prefs, tombstones: {} }
     };
     if (window.BOARD) Object.assign(payload, window.BOARD.getSyncState());   // memo(카드)·sections·trash
+    if (window.SUBJ) Object.assign(payload, window.SUBJ.getSyncState());     // 교과 출결(subj)
     return payload;
   }
   // 합친 결과를 화면 상태로 되돌린다. 바뀐 게 있으면 true.
@@ -1118,6 +1119,7 @@
       if (JSON.stringify(nextAtt) !== JSON.stringify(attendanceRecords)) { attendanceRecords = nextAtt; changed = true; }
     }
     if (window.BOARD && (res.memo || res.sections || res.trash)) { if (window.BOARD.applySync(res)) changed = true; }
+    if (window.SUBJ && res.subj) { if (window.SUBJ.applySync(res)) changed = true; }
     if (res.prefs) { var np = res.prefs.records || []; if (JSON.stringify(np) !== JSON.stringify(prefs)) { prefs = np; try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (e) {} changed = true; } }
     if (res.dayTasks) {
       var nextDay = {}, nextStamps = {};
@@ -1204,6 +1206,7 @@
         if (!typing) {
           if (tab === 'attendance') renderAttendanceTab();
           else if (tab === 'memo') renderMemo();
+          else if (tab === 'subject' && window.SUBJ) window.SUBJ.render();
         }
         renderCalendar();
       }
@@ -2684,7 +2687,7 @@
   // 시간표 / 캘린더 / 출결(기존 출결 패널을 그대로 가져옴) / 메모(할 일 목록).
   // 어느 카드를 보일지는 CSS(html[data-tab=...])가 정하고, 여기서는 속성만 바꾸고 보이게 된 카드를 다시 그린다.
   var TAB_KEY = 'dashboardActiveTab';
-  var TABS = ['timetable', 'swap', 'calendar', 'today', 'attendance', 'memo'];
+  var TABS = ['timetable', 'swap', 'calendar', 'today', 'attendance', 'subject', 'memo'];
   var attViewDate = new Date();
 
   function isTabShell() { return document.documentElement.getAttribute('data-shell') === 'tabs'; }
@@ -2820,6 +2823,7 @@
     else if (tab === 'calendar') renderCalendar();
     else if (tab === 'attendance') renderAttendanceTab();
     else if (tab === 'memo') renderMemo();
+    else if (tab === 'subject' && window.SUBJ) window.SUBJ.show();
     else if (tab === 'swap' && window.SWAP) window.SWAP.show();
   }
 
@@ -2840,6 +2844,8 @@
     periodTimes: function () { return (timetableData && timetableData.periodTimes) || []; },
     currentPeriod: function () { return currentPeriodIndex((timetableData && timetableData.periodTimes) || []); },
     fitTimetable: function () { fitTimetableFont(); },
+    timetable: function () { return timetableData; },
+    roster: function () { return classRoster; },
     selectedTeacherName: function () {
       var list = entityListOf('teachers');
       var x = list.filter(function (i) { return entityIdOf('teachers', i) === selectedEntityId.teachers; })[0];

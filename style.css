@@ -1073,7 +1073,7 @@ html[data-mode="laptop"] #calendarTitle { flex: 1 1 auto; min-width: 0; overflow
 /* ══ 탭 화면(Electron 위젯): html[data-shell="tabs"] ══
    한 번에 한 화면만 보인다. 탭(data-tab)에 따라 어떤 카드를 보일지 여기서 정한다.
    창 크기가 정해져 있어서(620×470) 카드를 여러 개 한꺼번에 놓던 때의 배치 깨짐이 없다. */
-#tabBar, #attendanceCard, #memoCard, #swapCard { display: none; }
+#tabBar, #attendanceCard, #memoCard, #swapCard, #subjCard { display: none; }
 html[data-shell="tabs"] #tabBar {
   display: flex; position: absolute; top: 0; left: 0; right: 0; z-index: 3;
   align-items: center; gap: 4px; padding: 11px 56px 0 14px;
@@ -1108,13 +1108,15 @@ html[data-shell="tabs"] #timetableCard,
 html[data-shell="tabs"] #calendarCard,
 html[data-shell="tabs"] #attendanceCard,
 html[data-shell="tabs"] #memoCard,
-html[data-shell="tabs"] #swapCard { background: transparent; box-shadow: none; border: none; padding: 0; }
+html[data-shell="tabs"] #swapCard,
+html[data-shell="tabs"] #subjCard { background: transparent; box-shadow: none; border: none; padding: 0; }
 
 html[data-shell="tabs"][data-tab="timetable"] #timetableCard,
 html[data-shell="tabs"][data-tab="calendar"] #calendarCard,
 html[data-shell="tabs"][data-tab="attendance"] #attendanceCard,
 html[data-shell="tabs"][data-tab="memo"] #memoCard,
-html[data-shell="tabs"][data-tab="swap"] #swapCard { display: flex !important; grid-area: main; }
+html[data-shell="tabs"][data-tab="swap"] #swapCard,
+html[data-shell="tabs"][data-tab="subject"] #subjCard { display: flex !important; grid-area: main; }
 
 /* 오늘 탭: 시계|날씨 / 급식 / 학사일정 */
 html[data-shell="tabs"][data-tab="today"] .bento {
@@ -1520,3 +1522,54 @@ html[data-shell="tabs"] .swap-bar { margin-bottom: 12px; }
 #attSummaryOverlay .att-summary-table-wrap { flex: 1 1 auto; min-height: 0; max-height: none; overflow-y: auto; margin-bottom: 8px; }
 #attSummaryOverlay .att-summary-row--head { position: sticky; top: 0; z-index: 1; background: var(--card-bg); padding-top: 2px; padding-bottom: 4px; }
 #attSummaryOverlay .day-task-close--bottom { flex-shrink: 0; align-self: center; margin: 0; }
+
+/* ── 교과 출결 탭 ── */
+html[data-shell="tabs"] #subjCard { border-radius: 0; overflow: visible; flex-direction: column; }
+html[data-shell="tabs"] #subjCard .card-title { display: none; }
+html[data-shell="tabs"] #subjCard .card-head { padding: 0 0 0 2px; gap: 6px; flex-wrap: wrap; row-gap: 6px; }
+html[data-shell="tabs"] #subjCard .att-nav { margin-left: 0; }
+.subj-datepick { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.subj-teacher { margin-left: auto; font-family: inherit; font-size: 13px; font-weight: 700; color: var(--text); background: var(--row-bg); border: none; border-radius: 8px; height: 28px; padding: 0 6px; max-width: 110px; }
+html[data-shell="tabs"] #subjSummaryBtn { background: var(--accent); color: #fff; font-weight: 700; font-size: 13px; height: 30px; padding: 0 12px; border-radius: 10px; flex-shrink: 0; margin-right: 4px; }
+.subj-body { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 4px 0 0; display: flex; flex-direction: column; gap: 6px; pointer-events: auto; }
+.subj-empty { font-size: 13px; color: var(--text-veryfaint); padding: 14px 4px; line-height: 1.6; }
+.subj-chips { display: flex; gap: 6px; flex-wrap: wrap; flex-shrink: 0; }
+.subj-chip { font-family: inherit; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 99px; border: 1px solid var(--panel-border); background: var(--row-bg); color: var(--text-sub); cursor: pointer; white-space: nowrap; }
+.subj-chip.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+.subj-info { font-size: 12px; color: var(--text-faint); flex-shrink: 0; }
+.subj-list { display: flex; flex-direction: column; }
+.subj-row { border-bottom: 1px solid var(--card-border); padding: 4px 2px; }
+.subj-row.has { background: var(--accent-soft); border-radius: 8px; }
+.subj-line { display: flex; align-items: center; gap: 6px; }
+.subj-no { width: 22px; flex-shrink: 0; font-size: 12px; color: var(--text-faint); text-align: right; }
+.subj-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.subj-cls { font-size: 11px; color: var(--text-faint); flex-shrink: 0; }
+.subj-btn { font-family: inherit; font-size: 12px; font-weight: 700; min-width: 40px; height: 28px; padding: 0 6px; border-radius: 8px; border: 1px solid var(--panel-border); background: transparent; color: var(--text-faint); cursor: pointer; flex-shrink: 0; }
+.subj-btn.on.abs { background: rgba(214,72,63,0.14); color: #c9302c; border-color: #d6483f; }
+.subj-btn.on.late { background: rgba(240,170,40,0.2); color: #a86a00; border-color: #e0a020; }
+.subj-btn.on.early { background: rgba(61,127,214,0.16); color: #2a64b0; border-color: #3d7fd6; }
+.subj-btn.on.out { background: rgba(139,124,246,0.18); color: #5b4fd0; border-color: #8b7cf6; }
+.subj-more { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; padding: 4px 0 2px 28px; }
+.subj-reason { font-family: inherit; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 99px; border: 1px solid var(--panel-border); background: transparent; color: var(--text-faint); cursor: pointer; }
+.subj-reason.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+.subj-memo { flex: 1; min-width: 90px; font-family: inherit; font-size: 12px; padding: 4px 8px; border: 1px solid var(--panel-border); border-radius: 8px; background: var(--row-bg); color: var(--text); outline: none; }
+.subj-sum { display: flex; gap: 6px; flex-wrap: wrap; font-size: 12px; font-weight: 700; padding: 6px 0 2px; flex-shrink: 0; color: var(--text-sub); }
+.subj-sum span { background: var(--row-bg); border-radius: 8px; padding: 4px 8px; }
+.subj-sum .subj-sum-abs { color: #c9302c; } .subj-sum .subj-sum-late { color: #a86a00; } .subj-sum .subj-sum-early { color: #2a64b0; } .subj-sum .subj-sum-out { color: #5b4fd0; }
+.subj-overlay { position: fixed; inset: 0; z-index: 2400; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; pointer-events: auto; }
+.subj-sbox { background: var(--card-bg); color: var(--text); border-radius: 14px; padding: 14px 16px; width: min(92vw, 560px); max-height: 88vh; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+.subj-sbox h3 { margin: 0; font-size: 16px; }
+.subj-sbox h4 { margin: 10px 0 4px; font-size: 13px; color: var(--accent); }
+.subj-sbar { display: flex; gap: 6px; }
+.subj-sbar select { font-family: inherit; font-size: 13px; font-weight: 700; background: var(--row-bg); color: var(--text); border: none; border-radius: 8px; height: 30px; padding: 0 8px; }
+.subj-sout { flex: 1; min-height: 0; overflow-y: auto; }
+.subj-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.subj-table th, .subj-table td { padding: 4px 6px; text-align: center; border-bottom: 1px solid var(--card-border); }
+.subj-table th { color: var(--text-faint); font-weight: 700; font-size: 12px; }
+.subj-table td.l { text-align: left; font-weight: 700; }
+.subj-table td.tot { font-weight: 800; color: var(--accent); }
+.subj-sclose { align-self: flex-end; font-family: inherit; font-size: 13px; font-weight: 700; padding: 6px 16px; border: none; border-radius: 10px; background: var(--row-bg); color: var(--text-sub); cursor: pointer; }
+/* 탭이 7개가 되어 폭이 좁아져서 간격을 줄인다 */
+html[data-shell="tabs"] .tabbtn { padding-left: 7px; padding-right: 7px; font-size: 13px; white-space: nowrap; gap: 4px; }
+html[data-shell="tabs"] #tabBar { gap: 2px; }
+html[data-shell="tabs"] .tabbtn svg.fl { width: 18px; height: 18px; }

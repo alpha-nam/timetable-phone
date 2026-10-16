@@ -5,9 +5,9 @@
  * (구글 드라이브와 IndexedDB가 맡는다).
  * 원칙: 인터넷이 되면 항상 최신 파일을 받아 오고(그래서 업데이트가 바로 반영된다), 안 될 때만 저장해 둔 것을 쓴다.
  */
-var CACHE = 'ttplus-shell-v3';
+var CACHE = 'ttplus-shell-v4';
 var SHELL = [
-  './', './index.html', './style.css', './phone.css', './app.js', './board.js', './swap.js',
+  './', './index.html', './style.css', './phone.css', './app.js', './board.js', './swap.js', './subject.js',
   './drive-sync-core.js', './phone-host.js', './config.js', './manifest.json',
   './icon-192.png', './icon-512.png', './apple-touch-icon.png', './favicon-32.png'
 ];

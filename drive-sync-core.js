@@ -5,7 +5,7 @@
  *
  * 드라이브에 만드는 파일(모두 이 앱이 만든 파일, 권한 drive.file):
  *  - TimeTablePlus-attendance.json : { records:[출결 기록] }                 폰·PC가 같이 읽고 씀
- *  - TimeTablePlus-notes.json      : { memo:[메모 카드], sections:[섹션], dayTasks:[날짜별 할 일], trash:[휴지통], prefs:[설정(학기 시작일 등)] } 폰·PC가 같이 읽고 씀
+ *  - TimeTablePlus-notes.json      : { memo:[메모 카드], sections:[섹션], dayTasks:[날짜별 할 일], trash:[휴지통], prefs:[설정(학기 시작일 등)], subj:[교과 출결] } 폰·PC가 같이 읽고 씀
  *  - TimeTablePlus-backup-YYYYMMDD.json : 하루 한 번 남기는 전체 사본(최근 14개만 보관)
  *  - TimeTablePlus-bundle.json     : { hash, files:{...} } 시간표·명단·결보강·API 키 — PC가 올리고 폰이 읽음
  *  - TimeTablePlus-meta.json       : { hash, updatedAt } 번들이 바뀌었는지 가볍게 확인하는 용도
@@ -22,7 +22,7 @@
     meta: 'TimeTablePlus-meta.json'
   };
   var TOMBSTONE_KEEP_MS = 90 * 24 * 3600 * 1000;
-  var NOTE_LISTS = ['memo', 'sections', 'dayTasks', 'trash', 'prefs'];
+  var NOTE_LISTS = ['memo', 'sections', 'dayTasks', 'trash', 'prefs', 'subj'];
   var BACKUP_PREFIX = 'TimeTablePlus-backup-';
 
   function mergeEntries(a, b) {

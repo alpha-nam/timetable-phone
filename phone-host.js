@@ -186,7 +186,7 @@
     installFetchOverride(); installConfig(); installTTCloud();
     // 로그인 직후이거나 토큰이 아직 유효할 때는 곧바로 연동 상태로 시작한다.
     $('phoneGate').hidden = true;
-    return loadScript('./app.js').then(function () { return loadScript('./board.js'); }).then(function () { return loadScript('./swap.js'); }).then(function () {
+    return loadScript('./app.js').then(function () { return loadScript('./board.js'); }).then(function () { return loadScript('./swap.js'); }).then(function () { return loadScript('./subject.js'); }).then(function () {
       document.dispatchEvent(new Event('DOMContentLoaded'));   // app.js는 DOMContentLoaded에서 시작한다(이미 지나갔으니 한 번 더 알려 준다)
       document.dispatchEvent(new Event('tt-phone-ready'));
       showInstallBanner();
