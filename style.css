@@ -1600,3 +1600,12 @@ html[data-shell="tabs"][data-tab="today"] .weather-day-temps .weather-day-temp {
 .cal-badge--cls { background: rgba(214,72,63,0.15); color: #c9302c; }
 .cal-badge--subj { background: rgba(139,124,246,0.18); color: #5b4fd0; }
 .cal-cell--today .cal-badge { background: rgba(255,255,255,0.88); }
+.cal-badge { display: inline-flex; align-items: center; gap: 2px; padding: 1px 6px 1px 3px; }
+.cal-badge svg { width: 13px; height: 13px; flex-shrink: 0; }
+.cal-badge b { font-weight: 800; font-size: 11px; }
+.cal-badge--cls, .cal-badge--subj { background: var(--row-bg); color: var(--text); }
+.cal-cell--today .cal-badge { background: rgba(255,255,255,0.92); color: #26323f; }
+.cal-badges { flex-wrap: nowrap; gap: 2px; }
+.cal-badge { padding: 1px 4px 1px 2px; gap: 1px; }
+.cal-badge svg, .cal-badge svg.fl { width: 11px !important; height: 11px !important; }
+.cal-badge b { font-size: 10px; }

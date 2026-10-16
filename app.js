@@ -2252,6 +2252,12 @@
     render();
   }
 
+  // 캘린더 배지 아이콘은 위쪽 탭 버튼(학급출결·교과출결)의 아이콘을 그대로 가져와 같은 모양으로 보여 준다.
+  function tabIconHtml(tab) {
+    var svg = document.querySelector('.tabbtn[data-tab="' + tab + '"] svg');
+    return svg ? svg.outerHTML : '';
+  }
+
   function renderCalendar() {
     var now = new Date();
     if (calViewYear === null) { calViewYear = now.getFullYear(); calViewMonth = now.getMonth(); }
@@ -2337,14 +2343,16 @@
           if (attRecords.length) {
             var b1 = document.createElement('span');
             b1.className = 'cal-badge cal-badge--cls';
-            b1.textContent = '학 ' + attRecords.length;
+            b1.innerHTML = tabIconHtml('attendance') + '<b></b>';
+            b1.lastChild.textContent = attRecords.length;
             b1.title = '학급 출결\n' + attRecords.map(function (r) { return attendanceStudentLabel(r) + ' - ' + attendanceTypeLabel(r); }).join('\n');
             badges.appendChild(b1);
           }
           if (subjRecords.length) {
             var b2 = document.createElement('span');
             b2.className = 'cal-badge cal-badge--subj';
-            b2.textContent = '교 ' + subjRecords.length;
+            b2.innerHTML = tabIconHtml('subject') + '<b></b>';
+            b2.lastChild.textContent = subjRecords.length;
             b2.title = '교과 출결\n' + subjRecords.map(function (r) { return r.period + '교시 ' + r.studentName + ' - ' + r.type; }).join('\n');
             badges.appendChild(b2);
           }
