@@ -228,10 +228,15 @@
     var box = document.createElement('div'); box.className = 'phone-inapp-box';
     var h = document.createElement('h2'); h.textContent = name + ' 안에서는 구글 로그인이 안 돼요';
     var p = document.createElement('p');
-    p.textContent = isAndroid ? '아래 버튼으로 크롬(또는 기본 브라우저)에서 다시 열어 주세요.'
+    p.textContent = (isAndroid || name === '카카오톡') ? '아래 버튼으로 크롬(또는 기본 브라우저)에서 다시 열어 주세요.'
       : '화면 위·아래의 공유 또는 ⋯ 버튼을 누르고 "Safari로 열기"(또는 "다른 브라우저로 열기")를 선택해 주세요.';
     box.appendChild(h); box.appendChild(p);
-    if (isAndroid) {
+    if (name === '카카오톡') {
+      // 카카오톡은 intent:// 링크를 막고, 자체 주소로만 바깥 브라우저를 열어 준다(안드로이드·아이폰 공통).
+      var kk = document.createElement('a'); kk.className = 'phone-btn'; kk.textContent = isAndroid ? '크롬(기본 브라우저)으로 열기' : '사파리로 열기';
+      kk.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(APP_URL);
+      box.appendChild(kk);
+    } else if (isAndroid) {
       var chrome = document.createElement('a'); chrome.className = 'phone-btn'; chrome.textContent = '크롬으로 열기';
       chrome.href = 'intent://' + APP_URL.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end';
       box.appendChild(chrome);
