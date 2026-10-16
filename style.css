@@ -1493,3 +1493,10 @@ html[data-shell="tabs"] #memoCard .card-meta { margin-left: 4px; margin-right: a
 html[data-shell="tabs"] #memoCard .card-head { padding-right: 0; }
 /* 결보강 탭 위 줄 간격을 시간표 탭과 똑같이 */
 html[data-shell="tabs"] .swap-bar { margin-bottom: 12px; }
+/* 가로/세로 배치가 잠겼을 때 */
+.board-seg-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.board-seg-btn.active:disabled { opacity: 1; cursor: default; }
+/* 결보강 탭: [아이콘 교체대상 | 이름 ▾] — 시간표 탭의 "교사 | 이름" 모양 */
+.swap-combo { margin-left: auto; }
+.swap-combo-label { cursor: default; }
+.swap-combo .swap-teacher-btn { margin-left: 0; background: transparent; border-radius: 0 10px 10px 0; border-left: 1px solid var(--card-border); height: 36px; font-size: 14px; }

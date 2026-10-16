@@ -159,12 +159,22 @@
 
   function teacherButton() {
     var t = resolveTeacher();
+    var wrap = el('div', 'view-combo swap-combo');
+    // 시간표 탭의 "교사"와 같은 아이콘·모양: [아이콘 교체대상 | 이름 ▾]
+    var label = el('span', 'view-type-btn swap-combo-label');
+    var icon = document.querySelector('#viewTabs .vtab[data-view="teachers"] svg');
+    var lab = el('span', '', '');
+    lab.style.cssText = 'display:inline-flex;align-items:center;gap:7px';
+    if (icon) lab.appendChild(icon.cloneNode(true));
+    lab.appendChild(el('b', '', '교체대상'));
+    label.appendChild(lab);
     var btn = el('button', 'swap-teacher-btn');
     btn.type = 'button';
     btn.appendChild(el('span', '', t ? t.name : '선생님 선택'));
     btn.insertAdjacentHTML('beforeend', '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>');
     btn.addEventListener('click', function (ev) { ev.stopPropagation(); openTeacherPicker(btn); });
-    return btn;
+    wrap.appendChild(label); wrap.appendChild(btn);
+    return wrap;
   }
 
   function closePicker() { var p = $('swapPicker'); if (p) p.remove(); }

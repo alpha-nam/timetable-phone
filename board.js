@@ -262,14 +262,16 @@
 
   function paintTools() {
     var t = $('boardTools');
-    if (!t || t.dataset.ready === layout) return;
-    t.dataset.ready = layout;
+    var locked = cards.length > 0;   // 할일이 있으면 가로/세로 배치는 바꿀 수 없다(모두 지우면 다시 바꿀 수 있다)
+    if (!t || t.dataset.ready === layout + (locked ? 'L' : '')) return;
+    t.dataset.ready = layout + (locked ? 'L' : '');
     t.innerHTML = '';
     var seg = el('div', 'board-seg');
     [['h', '가로'], ['v', '세로']].forEach(function (p) {
       var b = el('button', 'board-seg-btn' + (layout === p[0] ? ' active' : ''), p[1]); b.type = 'button';
-      b.title = p[0] === 'h' ? '섹션을 가로로 나란히' : '섹션을 세로로 쌓기';
-      b.addEventListener('click', function (ev) { ev.stopPropagation(); layout = p[0]; write(KEYS.layout, layout); t.dataset.ready = ''; render(); });
+      b.title = locked ? '할일이 있으면 배치를 바꿀 수 없어요' : (p[0] === 'h' ? '섹션을 가로로 나란히' : '섹션을 세로로 쌓기');
+      if (locked) b.disabled = true;
+      b.addEventListener('click', function (ev) { ev.stopPropagation(); if (locked) return; layout = p[0]; write(KEYS.layout, layout); t.dataset.ready = ''; render(); });
       seg.appendChild(b);
     });
     var add = el('button', 'board-tool', '+ 섹션'); add.type = 'button';
@@ -334,7 +336,7 @@
     var body = el('div', 'bd-sec-body');
     if (addingIn === sec.id) body.appendChild(renderAddForm(sec));
     else {
-      var add = el('button', 'bd-add', '+ 카드 추가'); add.type = 'button';
+      var add = el('button', 'bd-add', '+ 할일 추가'); add.type = 'button';
       add.addEventListener('click', function (ev) { ev.stopPropagation(); addingIn = sec.id; render(); var t = document.querySelector('.bd-addform textarea'); if (t) t.focus(); });
       body.appendChild(add);
     }
