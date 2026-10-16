@@ -7,18 +7,18 @@ html[data-phone] body { overflow: hidden; }
 html[data-phone] #board { width: 100vw; height: 100vh; height: 100dvh; background: var(--card-bg); border-radius: 0; pointer-events: auto; }
 html[data-phone] .settings-corner, html[data-phone] .resize-handle { display: none !important; }
 
-/* 탭 줄: 화면 아래 고정, 아이콘 위·글자 아래 */
+/* 탭 줄: 화면 위 고정, 아이콘 위·글자 아래 */
 html[data-phone][data-shell="tabs"] #tabBar {
-  position: fixed; top: auto; bottom: 0; left: 0; right: 0; z-index: 30;
-  justify-content: space-around; gap: 0; padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
-  background: var(--card-bg); border-top: 1px solid var(--card-border);
+  position: fixed; top: 0; bottom: auto; left: 0; right: 0; z-index: 30;
+  justify-content: space-around; gap: 0; padding: calc(6px + env(safe-area-inset-top)) 4px 6px;
+  background: var(--card-bg); border-bottom: 1px solid var(--card-border);
 }
 html[data-phone] .tabbtn { flex: 1; flex-direction: column; gap: 2px; padding: 6px 2px; font-size: 11px; justify-content: center; min-width: 0; }
 html[data-phone] .tabbtn svg.fl { width: 24px; height: 24px; }
 
-/* 카드 영역: 탭 줄 위를 가득 */
+/* 카드 영역: 탭 줄 아래를 가득 */
 html[data-phone][data-shell="tabs"] .bento {
-  top: 10px !important; left: 10px !important; right: 10px !important; bottom: calc(66px + env(safe-area-inset-bottom)) !important;
+  top: calc(66px + env(safe-area-inset-top)) !important; left: 10px !important; right: 10px !important; bottom: calc(10px + env(safe-area-inset-bottom)) !important;
 }
 
 /* 로그인·불러오기 화면 */
@@ -30,7 +30,7 @@ html[data-phone][data-shell="tabs"] .bento {
 .gate-msg.err { color: #b3342a; }
 .gate-login { font-family: inherit; font-size: 17px; font-weight: 800; color: #fff; background: var(--accent); border: none; border-radius: 14px; padding: 14px 28px; cursor: pointer; }
 .gate-login[hidden] { display: none; }
-.phone-note { position: fixed; left: 12px; right: 12px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 60; display: none; font-size: 13px; font-weight: 700; padding: 10px 14px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); }
+.phone-note { position: fixed; left: 12px; right: 12px; bottom: calc(14px + env(safe-area-inset-bottom)); z-index: 60; display: none; font-size: 13px; font-weight: 700; padding: 10px 14px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); }
 .phone-note.show { display: block; }
 .phone-note.err { background: #fde4e1; color: #b3342a; }
 
@@ -58,7 +58,7 @@ html[data-phone][data-shell="tabs"] .bento {
 @media (min-width: 700px) {
   html[data-phone][data-shell="tabs"] .bento {
     left: max(16px, calc((100vw - 1000px) / 2)) !important; right: max(16px, calc((100vw - 1000px) / 2)) !important;
-    top: 16px !important; bottom: calc(76px + env(safe-area-inset-bottom)) !important;
+    top: calc(76px + env(safe-area-inset-top)) !important; bottom: calc(16px + env(safe-area-inset-bottom)) !important;
   }
   html[data-phone][data-shell="tabs"] #tabBar { padding-left: max(8px, calc((100vw - 760px) / 2)); padding-right: max(8px, calc((100vw - 760px) / 2)); }
   html[data-phone] .tabbtn { font-size: 13px; }
@@ -115,7 +115,7 @@ html[data-phone] .memo-grip { touch-action: none; }
 .phone-inapp-box h2 { margin: 0; font-size: 18px; color: var(--text); }
 .phone-inapp-box p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--text-sub); }
 .phone-inapp-url { font-size: 12px; color: var(--text-veryfaint); word-break: break-all; }
-.phone-install-banner { position: fixed; left: 10px; right: 10px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 55; display: flex; align-items: center; gap: 8px; background: rgba(35,45,62,0.95); color: #fff; font-size: 13px; font-weight: 700; border-radius: 12px; padding: 10px 12px; }
+.phone-install-banner { position: fixed; left: 10px; right: 10px; bottom: calc(14px + env(safe-area-inset-bottom)); z-index: 55; display: flex; align-items: center; gap: 8px; background: rgba(35,45,62,0.95); color: #fff; font-size: 13px; font-weight: 700; border-radius: 12px; padding: 10px 12px; }
 .phone-install-banner span { flex: 1; }
 .phone-install-banner button { font-family: inherit; font-size: 13px; font-weight: 800; color: #fff; background: var(--accent); border: none; border-radius: 9px; padding: 7px 12px; cursor: pointer; }
 .phone-install-banner button.ghost { background: transparent; color: #9cc4ff; }
