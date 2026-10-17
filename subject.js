@@ -326,7 +326,9 @@
           var dr = el('tr', 'subj-drow'); dr.hidden = true;
           var dc = el('td'); dc.colSpan = 6;
           s.items.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : (a.period - b.period); }).forEach(function (it) {
-            var line = el('div', 'subj-dline');
+            var line = el('div', 'subj-dline subj-dline--go');
+            line.title = '누르면 캘린더의 그 날짜로 이동해요';
+            line.addEventListener('click', function (ev2) { ev2.stopPropagation(); if (window.TTAPP && window.TTAPP.jumpToDate) window.TTAPP.jumpToDate(it.date, 'subject'); });
             var dd = new Date(+it.date.slice(0, 4), +it.date.slice(4, 6) - 1, +it.date.slice(6, 8));
             line.appendChild(el('b', '', (+it.date.slice(4, 6)) + '월 ' + (+it.date.slice(6, 8)) + '일 (' + DAY_NAMES[dd.getDay()] + ') ' + it.period + '교시'));
             line.appendChild(el('span', '', it.type + (it.reason ? ' · ' + it.reason : '')));

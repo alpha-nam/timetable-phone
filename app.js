@@ -1165,6 +1165,7 @@
   window.TTAPP = {
     scheduleSync: function () { scheduleCloudSync(); },
     refreshCalendar: function () { renderCalendar(); },
+    jumpToDate: function (dateStr, which) { jumpToDate(dateStr, which); },
     syncNow: function () { cloudState.error = ''; return cloudSyncNow(); },
     restoreAttendance: function (rec) {
       var r = Object.assign({}, rec, { updatedAt: Date.now() });
@@ -1990,6 +1991,19 @@
     });
   }
 
+  // 출결 종합의 날짜 줄을 누르면 그 날짜의 캘린더 팝업(학급 또는 교과 탭)으로 바로 넘어간다.
+  function jumpToDate(dateStr, which) {
+    var d = String(dateStr || '');
+    if (d.length !== 8) return;
+    var date = new Date(+d.slice(0, 4), +d.slice(4, 6) - 1, +d.slice(6, 8));
+    var ov = $('attSummaryOverlay'); if (ov) ov.remove();
+    var sv = $('subjSummaryOverlay'); if (sv) sv.remove();
+    calViewYear = date.getFullYear(); calViewMonth = date.getMonth();
+    dayEditorTab = which === 'subject' ? 'subject' : 'attendance';
+    setTab('calendar', true);
+    setTimeout(function () { renderCalendar(); openDayTaskEditor(date); }, 60);
+  }
+
   function closeAttendanceSummary() {
     var existing = document.getElementById('attSummaryOverlay');
     if (existing) existing.remove();
@@ -2212,7 +2226,9 @@
         detail.hidden = true;
         row.items.slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; }).forEach(function (it) {
           var line = document.createElement('div');
-          line.className = 'att-sum-detail-line';
+          line.className = 'att-sum-detail-line att-sum-detail-line--go';
+          line.title = '누르면 캘린더의 그 날짜로 이동해요';
+          line.addEventListener('click', function (ev2) { ev2.stopPropagation(); jumpToDate(it.date, 'attendance'); });
           var d = document.createElement('b'); d.textContent = formatShortDate(it.date);
           var lab = document.createElement('span'); lab.textContent = it.reason + row.type;
           line.appendChild(d); line.appendChild(lab);
