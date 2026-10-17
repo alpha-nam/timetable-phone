@@ -190,6 +190,7 @@
       document.dispatchEvent(new Event('DOMContentLoaded'));   // app.js는 DOMContentLoaded에서 시작한다(이미 지나갔으니 한 번 더 알려 준다)
       document.dispatchEvent(new Event('tt-phone-ready'));
       showInstallBanner();
+      initSyncStatus();
     });
   }
 
@@ -280,6 +281,58 @@
     if (!('serviceWorker' in navigator)) return;
     if (location.protocol !== 'https:' && location.hostname !== 'localhost') return;
     navigator.serviceWorker.register('./sw.js').catch(function () { /* 오프라인 준비는 없어도 앱은 동작한다 */ });
+  }
+
+  // ───────── 동기화 상태 표시 ─────────
+  // 휴대폰에는 설정 창이 없어서, 오른쪽 아래 작은 알약으로 상태를 보여 주고 누르면 자세히(지금 동기화·다시 로그인·로그아웃)를 연다.
+  function initSyncStatus() {
+    if ($('phoneSync')) return;
+    var pill = document.createElement('button'); pill.type = 'button'; pill.id = 'phoneSync'; pill.className = 'phone-sync';
+    var sheet = document.createElement('div'); sheet.id = 'phoneSyncSheet'; sheet.className = 'phone-sync-sheet'; sheet.hidden = true;
+    document.body.appendChild(pill); document.body.appendChild(sheet);
+    function st() { return document.documentElement.getAttribute('data-cloud-state') || (tokenValid() ? 'ok' : 'off'); }
+    function ago() {
+      var t = Number(document.documentElement.getAttribute('data-cloud-last')) || 0;
+      if (!t) return '';
+      var m = Math.round((Date.now() - t) / 60000);
+      return m < 1 ? '방금 동기화됨' : m < 60 ? m + '분 전 동기화됨' : '오래 전 동기화됨';
+    }
+    function paint() {
+      var s0 = st();
+      var label = s0 === 'ok' ? '동기화됨' : s0 === 'busy' ? '동기화 중' : s0 === 'err' ? '오류' : '로그인 필요';
+      pill.className = 'phone-sync phone-sync--' + s0;
+      pill.innerHTML = '<i></i><span></span>'; pill.lastChild.textContent = label;
+      if (!sheet.hidden) fillSheet();
+    }
+    function btn(text, cls, fn) { var b = document.createElement('button'); b.type = 'button'; b.className = 'phone-btn' + (cls ? ' ' + cls : ''); b.textContent = text; b.addEventListener('click', function (ev) { ev.stopPropagation(); fn(); }); return b; }
+    function fillSheet() {
+      sheet.innerHTML = '';
+      var s0 = st();
+      var t = document.createElement('div'); t.className = 'phone-sync-title';
+      t.textContent = s0 === 'ok' ? '구글 드라이브와 동기화 중' : s0 === 'busy' ? '동기화하는 중…' : s0 === 'err' ? '동기화 오류' : '로그인이 필요해요';
+      var d = document.createElement('div'); d.className = 'phone-sync-detail';
+      d.textContent = s0 === 'err' ? (document.documentElement.getAttribute('data-cloud-error') || '') : s0 === 'off' ? '로그인은 1시간마다 풀려요. 다시 로그인하면 바로 이어집니다.' : ago();
+      sheet.appendChild(t); if (d.textContent) sheet.appendChild(d);
+      var row = document.createElement('div'); row.className = 'phone-sync-btns';
+      if (s0 === 'off') {
+        row.appendChild(btn('다시 로그인', '', function () {
+          requestToken('consent').then(function () { lsSet('tt_everLoggedIn', true); sheet.hidden = true; window.dispatchEvent(new Event('ttcloud-changed')); })
+            .catch(function (e) { d.textContent = e.message; if (!d.parentNode) sheet.insertBefore(d, row); });
+        }));
+      } else {
+        row.appendChild(btn('지금 동기화', '', function () { if (window.TTAPP && window.TTAPP.syncNow) window.TTAPP.syncNow(); sheet.hidden = true; }));
+      }
+      row.appendChild(btn('로그아웃', 'ghost', function () {
+        if (!window.confirm('로그아웃할까요? 이 휴대폰에서 연동이 끊기고, 다시 쓰려면 로그인해야 해요.')) return;
+        window.TTCLOUD.disconnect().then(function () { location.reload(); });
+      }));
+      sheet.appendChild(row);
+    }
+    pill.addEventListener('click', function (ev) { ev.stopPropagation(); sheet.hidden = !sheet.hidden; if (!sheet.hidden) fillSheet(); });
+    document.addEventListener('click', function (ev) { if (!sheet.hidden && !sheet.contains(ev.target)) sheet.hidden = true; });
+    window.addEventListener('ttcloud-state', paint);
+    setInterval(paint, 30000);
+    paint();
   }
 
   function boot() {

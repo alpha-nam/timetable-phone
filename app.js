@@ -1165,6 +1165,7 @@
   window.TTAPP = {
     scheduleSync: function () { scheduleCloudSync(); },
     refreshCalendar: function () { renderCalendar(); },
+    syncNow: function () { cloudState.error = ''; return cloudSyncNow(); },
     restoreAttendance: function (rec) {
       var r = Object.assign({}, rec, { updatedAt: Date.now() });
       attendanceRecords = attendanceRecords.filter(function (x) { return x.id !== r.id; });
