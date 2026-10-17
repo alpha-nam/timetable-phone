@@ -1251,6 +1251,12 @@
     chip.title = title || '';
   }
   function paintCloudChip() {
+    // 설정(톱니) 창이 읽어 갈 수 있게 동기화 상태를 문서에 적어 두고 알린다.
+    var de = document.documentElement;
+    de.setAttribute('data-cloud-state', !cloudState.connected ? 'off' : cloudState.busy ? 'busy' : cloudState.error ? 'err' : 'ok');
+    de.setAttribute('data-cloud-error', cloudState.error || '');
+    de.setAttribute('data-cloud-last', String(cloudState.last || 0));
+    window.dispatchEvent(new Event('ttcloud-state'));
     var chip = $('cloudChip');
     if (!chip) return;
     chip.hidden = !cloudState.configured;
