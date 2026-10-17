@@ -24,6 +24,8 @@
   var TOMBSTONE_KEEP_MS = 90 * 24 * 3600 * 1000;
   var NOTE_LISTS = ['memo', 'sections', 'dayTasks', 'trash', 'prefs', 'subj'];
   var BACKUP_PREFIX = 'TimeTablePlus-backup-';
+  var FOLDER_NAME = 'TimeTablePlus';
+  var FILE_PREFIX = 'TimeTablePlus-';
 
   function mergeEntries(a, b) {
     var byId = new Map();
@@ -59,6 +61,7 @@
     var uploadBase = deps.uploadBase || apiBase;
     var now = deps.now || function () { return Date.now(); };
     var ids = {};
+    var folderId = null, folderPromise = null, migrated = false;
 
     function api(method, url, opts) {
       opts = opts || {};
@@ -75,16 +78,57 @@
         }, function () { var e = new Error('구글 드라이브 오류(' + res.status + ')'); e.status = res.status; throw e; });
       });
     }
-    function findFile(name) {
-      if (ids[name]) return Promise.resolve(ids[name]);
-      var q = "name='" + name + "' and trashed=false";
-      return api('GET', apiBase + '/drive/v3/files?spaces=drive&fields=files(id,name)&q=' + encodeURIComponent(q))
+    // 파일이 "내 드라이브" 맨 위에 흩어지지 않도록 TimeTablePlus 폴더 안에 모은다.
+    // (폴더가 둘 이상이면 가장 먼저 만든 것을 쓴다 — PC와 폰이 동시에 처음 만들었을 때도 같은 폴더로 모이게)
+    function ensureFolder() {
+      if (folderId) return Promise.resolve(folderId);
+      if (folderPromise) return folderPromise;
+      var q = "mimeType='application/vnd.google-apps.folder' and name='" + FOLDER_NAME + "' and trashed=false";
+      folderPromise = api('GET', apiBase + '/drive/v3/files?spaces=drive&orderBy=createdTime&fields=files(id,name,createdTime)&q=' + encodeURIComponent(q))
         .then(function (r) { return r.json(); })
         .then(function (j) {
           var hit = (j.files || [])[0];
-          if (hit) ids[name] = hit.id;
-          return hit ? hit.id : null;
+          if (hit) return hit.id;
+          return api('POST', apiBase + '/drive/v3/files?fields=id', { headers: { 'Content-Type': 'application/json; charset=UTF-8' }, body: JSON.stringify({ name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' }) })
+            .then(function (r) { return r.json(); }).then(function (c) { return c.id; });
+        })
+        .then(function (id) { folderId = id; folderPromise = null; return id; }, function (e) { folderPromise = null; throw e; });
+      return folderPromise;
+    }
+    function moveIntoFolder(id, parents) {
+      var rm = (parents || []).filter(function (p) { return p !== folderId; });
+      var url = apiBase + '/drive/v3/files/' + id + '?addParents=' + encodeURIComponent(folderId) + (rm.length ? '&removeParents=' + encodeURIComponent(rm.join(',')) : '') + '&fields=id';
+      return api('PATCH', url, { headers: { 'Content-Type': 'application/json; charset=UTF-8' }, body: '{}' });
+    }
+    function findFile(name) {
+      if (ids[name]) return Promise.resolve(ids[name]);
+      return ensureFolder().then(function () {
+        var q = "name='" + name + "' and trashed=false";
+        return api('GET', apiBase + '/drive/v3/files?spaces=drive&fields=files(id,name,parents)&q=' + encodeURIComponent(q));
+      }).then(function (r) { return r.json(); })
+        .then(function (j) {
+          var list = j.files || [];
+          var inFolder = list.filter(function (x) { return (x.parents || []).indexOf(folderId) >= 0; })[0];
+          var hit = inFolder || list[0];
+          if (!hit) return null;
+          ids[name] = hit.id;
+          // 예전에 맨 위에 만든 파일이면 폴더로 옮긴다(실패해도 파일 자체는 그대로 쓴다).
+          if (!inFolder) return moveIntoFolder(hit.id, hit.parents).catch(function () { /* 다음 기회에 */ }).then(function () { return hit.id; });
+          return hit.id;
         });
+    }
+    // 처음 한 번: 맨 위(또는 다른 폴더)에 흩어져 있던 TimeTablePlus 파일을 모두 폴더로 옮긴다.
+    function migrateAll() {
+      if (migrated) return Promise.resolve();
+      migrated = true;
+      return ensureFolder().then(function () {
+        var q = "name contains '" + FILE_PREFIX + "' and trashed=false";
+        return api('GET', apiBase + '/drive/v3/files?spaces=drive&pageSize=200&fields=files(id,name,parents)&q=' + encodeURIComponent(q));
+      }).then(function (r) { return r.json(); }).then(function (j) {
+        return (j.files || []).filter(function (x) { return (x.parents || []).indexOf(folderId) < 0; }).reduce(function (p, x) {
+          return p.then(function () { return moveIntoFolder(x.id, x.parents).catch(function () { /* 하나 실패해도 계속 */ }); });
+        }, Promise.resolve());
+      }).catch(function () { migrated = false; });   // 실패하면 다음 동기화 때 다시 시도
     }
     function readJson(id) {
       return api('GET', apiBase + '/drive/v3/files/' + id + '?alt=media').then(function (r) { return r.json(); }).catch(function (e) {
@@ -94,10 +138,12 @@
     }
     function createJson(name, obj) {
       var boundary = 'tt' + Math.random().toString(16).slice(2) + now().toString(16);
-      var body = '--' + boundary + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify({ name: name, mimeType: 'application/json' })
+      return ensureFolder().then(function (fid) {
+      var body = '--' + boundary + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify({ name: name, mimeType: 'application/json', parents: [fid] })
         + '\r\n--' + boundary + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(obj) + '\r\n--' + boundary + '--';
       return api('POST', uploadBase + '/upload/drive/v3/files?uploadType=multipart&fields=id', { headers: { 'Content-Type': 'multipart/related; boundary=' + boundary }, body: body })
         .then(function (r) { return r.json(); }).then(function (j) { ids[name] = j.id; return j.id; });
+      });
     }
     function updateJson(id, obj) {
       return api('PATCH', uploadBase + '/upload/drive/v3/files/' + id + '?uploadType=media', { headers: { 'Content-Type': 'application/json; charset=UTF-8' }, body: JSON.stringify(obj) });
@@ -131,6 +177,9 @@
     // local: { attendance:{records,tombstones}, memo:{...}, dayTasks:{...} } (없는 묶음은 건너뜀)
     // 돌려주는 값: 같은 모양으로 합쳐진 { attendance, memo, dayTasks } (각 {records(삭제 제외), tombstones})
     function syncAll(local) {
+      return migrateAll().then(function () { return syncAllInner(local); });
+    }
+    function syncAllInner(local) {
       local = local || {};
       var out = {};
       var tasks = [];
