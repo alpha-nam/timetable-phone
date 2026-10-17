@@ -1271,13 +1271,7 @@
   }
   function initCloud() {
     loadTombstones();
-    var summaryBtn = $('attTabSummaryBtn');
-    if (summaryBtn && !$('cloudChip')) {
-      var chip = document.createElement('button');
-      chip.type = 'button'; chip.id = 'cloudChip'; chip.className = 'cloud-chip'; chip.hidden = true;
-      chip.addEventListener('click', function (ev) { ev.stopPropagation(); onCloudChipClick(); });
-      summaryBtn.parentNode.insertBefore(chip, summaryBtn);
-    }
+    // 휴대폰 연동 버튼은 이제 설정(톱니) 창에만 있다. 여기서는 연결돼 있으면 조용히 동기화만 한다.
     if (!window.TTCLOUD) return;
     window.TTCLOUD.status().then(function (st) {
       cloudState.configured = !!st.configured; cloudState.connected = !!st.connected; paintCloudChip();
