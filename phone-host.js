@@ -90,12 +90,18 @@
       });
     });
   }
-  // 토큰이 만료된 뒤 사용자가 화면을 한 번 누르면 조용히 새 토큰을 받는다(너무 자주 시도하지 않게 60초 간격).
+  // 로그인(출입증)은 1시간짜리라서, 화면을 누를 때마다 "곧 만료(10분 안)이거나 이미 만료"인지 보고 조용히 새로 받는다
+  // (너무 자주 시도하지 않게 60초 간격). 쓰는 동안에는 만료되지 않게 이어 가고, 새로 받으면 바로 동기화를 다시 시작한다.
   function refreshOnGesture() {
-    if (!appStarted || tokenValid() || !CFG.clientId || Date.now() - lastGesture < 60000) return;
+    if (!appStarted || !CFG.clientId || Date.now() - lastGesture < 60000) return;
+    var left = token ? token.exp - Date.now() : -1;
+    if (left > 10 * 60 * 1000) return;
     if (!lsGet('tt_everLoggedIn')) return;
     lastGesture = Date.now();
-    requestToken('').then(function () { note('', ''); document.dispatchEvent(new Event('tt-token-ok')); }).catch(function () { /* 다음에 다시 */ });
+    requestToken('').then(function () {
+      note('', ''); document.dispatchEvent(new Event('tt-token-ok'));
+      window.dispatchEvent(new Event('ttcloud-changed'));   // 앱이 연결 상태를 다시 읽고 바로 동기화한다
+    }).catch(function () { /* 다음에 다시 */ });
   }
 
   function getToken() {
