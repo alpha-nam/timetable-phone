@@ -1622,3 +1622,6 @@ html[data-shell="tabs"][data-tab="today"] .weather-day-temps .weather-day-temp {
 .board-row-main { flex: 1 1 110px; }
 .board-row-text { overflow-wrap: break-word; word-break: keep-all; }
 .board-row .board-primary, .board-row .board-tool { flex: 0 0 auto; }
+/* 백업 복원 목록의 "이 날짜로 되돌리기"는 "없어진 것만 되살리기"(파랑)와 구분되게 주황으로 강조 */
+.board-row .board-tool.danger { color: #fff; background: #f08a24; }
+.board-row .board-tool.danger:hover { color: #fff; background: #dc7710; }
