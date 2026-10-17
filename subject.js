@@ -13,7 +13,6 @@
 
   var KEY = 'dashboardSubjectAtt';
   var TOMB_KEY = 'dashboardSubjectAttTombs';
-  var TEACHER_KEY = 'dashboardSubjTeacher';
   var TYPES = ['결석', '지각', '조퇴', '결과'];
   var REASONS = ['질병', '미인정', '기타', '출석인정'];
   var DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
@@ -23,6 +22,7 @@
   var tombs = {};
   var viewDate = new Date();
   var teacherName = '';
+  var lastFollow = '';   // 마지막으로 따라간 "시간표 탭의 선생님"
   var selKey = '';
 
   function $(id) { return document.getElementById(id); }
@@ -36,7 +36,6 @@
   function load() {
     try { var v = JSON.parse(localStorage.getItem(KEY) || '[]'); records = Array.isArray(v) ? v : []; } catch (e) { records = []; }
     try { tombs = JSON.parse(localStorage.getItem(TOMB_KEY) || '{}') || {}; } catch (e) { tombs = {}; }
-    try { teacherName = localStorage.getItem(TEACHER_KEY) || ''; } catch (e) { teacherName = ''; }
   }
   function persist() {
     try { localStorage.setItem(KEY, JSON.stringify(records)); localStorage.setItem(TOMB_KEY, JSON.stringify(tombs)); } catch (e) { /* 저장 공간 문제는 조용히 넘어간다 */ }
@@ -122,11 +121,17 @@
   // ───────── 화면 ─────────
   function dateLabel(d) { return (d.getMonth() + 1) + '월 ' + d.getDate() + '일 (' + DAY_NAMES[d.getDay()] + ')'; }
 
+  // 시간표 탭에서 고른 선생님을 그대로 따라간다(시간표에서 선생님을 바꾸면 교과출결도 같이 바뀐다).
+  // 교과출결의 목록에서 직접 다른 선생님을 골라 볼 수도 있지만, 시간표의 선생님이 바뀌면 다시 그 선생님으로 맞춘다.
+  function followTimetableTeacher() {
+    var h = hooks().selectedTeacherName ? (hooks().selectedTeacherName() || '') : '';
+    if (h && h !== lastFollow) { lastFollow = h; teacherName = h; selKey = ''; }
+  }
+
   function fillTeachers() {
     var sel = $('subjTeacher'), tt = timetable();
     if (!sel || !tt) return;
     var names = (tt.teachers || []).map(function (t) { return t.teacherName; }).filter(Boolean).sort(function (a, b) { return a.localeCompare(b, 'ko'); });
-    if (!teacherName && hooks().selectedTeacherName) teacherName = hooks().selectedTeacherName() || '';
     sel.innerHTML = '';
     var blank = el('option', '', '선생님 선택'); blank.value = ''; sel.appendChild(blank);
     names.forEach(function (n) { var o = el('option', '', n); o.value = n; sel.appendChild(o); });
@@ -142,7 +147,9 @@
     var tt = timetable();
     body.innerHTML = '';
     if (!tt) { body.appendChild(el('div', 'subj-empty', '시간표 자료를 불러오는 중이에요.')); return; }
+    followTimetableTeacher();
     if (!$('subjTeacher').options.length) fillTeachers();
+    var tsel = $('subjTeacher'); if (tsel && tsel.value !== teacherName && [].some.call(tsel.options, function (o) { return o.value === teacherName; })) tsel.value = teacherName;
     if (!teacherName) { body.appendChild(el('div', 'subj-empty', '위에서 선생님 이름을 고르면 내 수업이 나와요.')); return; }
 
     var lessons = lessonsOn(viewDate);
@@ -412,7 +419,6 @@
     });
     $('subjTeacher').addEventListener('change', function () {
       teacherName = this.value; selKey = '';
-      try { localStorage.setItem(TEACHER_KEY, teacherName); } catch (e) { /* 무시 */ }
       render();
     });
   }
