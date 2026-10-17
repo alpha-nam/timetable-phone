@@ -1616,3 +1616,9 @@ html[data-shell="tabs"][data-tab="today"] .weather-day-temps .weather-day-temp {
 
 /* 교과 출결: 선택된 수업 칩은 옅은 연두색 */
 .subj-chip.on { background: #e3f4d4; color: #3d7a1f; border-color: #8fcb62; }
+
+/* 휴지통·백업 목록: 폭이 좁은 화면(휴대폰)에서도 글이 세로로 쌓이지 않게, 버튼은 아래 줄로 내려보낸다 */
+.board-row { flex-wrap: wrap; row-gap: 6px; }
+.board-row-main { flex: 1 1 110px; }
+.board-row-text { overflow-wrap: break-word; word-break: keep-all; }
+.board-row .board-primary, .board-row .board-tool { flex: 0 0 auto; }
