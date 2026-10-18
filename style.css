@@ -1630,3 +1630,11 @@ html[data-shell="tabs"][data-tab="today"] .weather-day-temps .weather-day-temp {
 .att-sum-detail-line--go, .subj-dline--go { cursor: pointer; border-radius: 6px; }
 .att-sum-detail-line--go:hover, .subj-dline--go:hover { background: var(--accent-soft); }
 .att-sum-detail-line--go b::after, .subj-dline--go b::after { content: ' ›'; color: var(--accent); }
+
+/* 출결 종합 표: 학생 칸의 "3-6 20번 이름 ▸"이 두 자리 번호에서도 줄바꿈 없이 한 줄로 나오게, 좁은 화면에서는 학생 칸을 넓히고 나머지 칸을 좁힌다 */
+.att-summary-row > div:first-child { white-space: nowrap; min-width: 0; }
+.att-summary-row--head > div { white-space: nowrap; }
+@media (max-width: 520px) {
+  .att-summary-row { grid-template-columns: minmax(112px, 2.2fr) 30px minmax(30px, 1fr) minmax(32px, 1fr) minmax(30px, 1fr) minmax(40px, 1.3fr) 28px; gap: 4px; padding-left: 8px; padding-right: 8px; font-size: 12px; }
+  .att-summary-row--head { font-size: 9.5px; letter-spacing: -0.3px; padding-left: 8px; padding-right: 8px; gap: 6px; }
+}
