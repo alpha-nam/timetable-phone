@@ -167,7 +167,7 @@
     });
     body.appendChild(chips);
 
-    var info = el('div', 'subj-info', lesson.students.length + '명 · 이름 옆 버튼을 눌러 체크해요\n(체크한 버튼을 다시 누르면 취소 확인)');
+    var info = el('div', 'subj-info', lesson.students.length + '명 · 이름 옆 버튼을 눌러 체크해요 (다시 누르면 취소 확인)');
     body.appendChild(info);
 
     var list = el('div', 'subj-list');
