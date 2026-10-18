@@ -278,11 +278,11 @@
   //  · 안드로이드 크롬 등: 브라우저가 설치 창을 직접 띄울 수 있으면 [설치] 버튼으로 바로 설치한다.
   //  · 아이폰(사파리·크롬)은 앱이 설치 창을 직접 띄울 수 없어서, 공유 버튼으로 추가하는 방법을 안내한다.
   //  · 그 밖에 설치 창이 안 뜨는 안드로이드 브라우저는 메뉴로 추가하는 방법을 안내한다.
-  // [나중에]는 7일 뒤에 다시, [다시 안 보기]는 영영 안 띄운다. 이미 홈 화면 앱으로 열었으면 아예 안 띄운다.
+  // [나중에]는 이번 방문에서만 닫고 다음에 들어올 때 다시 안내하고, [다시 안 보기]는 영영 안 띄운다. 이미 홈 화면 앱으로 열었으면 아예 안 띄운다.
   function isIOS() { return /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+  var installLaterThisVisit = false;   // [나중에]를 누른 방문 동안만 숨긴다(다음에 사이트에 들어오면 다시 안내)
   function installSuppressed() {
-    if (isStandalone() || lsGet('tt_installNever')) return true;
-    return Date.now() < (Number(lsGet('tt_installLater')) || 0);
+    return isStandalone() || !!lsGet('tt_installNever') || installLaterThisVisit;
   }
   function showInstallBanner() {
     if (installSuppressed() || $('phoneInstallBanner')) return;
@@ -297,7 +297,7 @@
     var row = document.createElement('div'); row.className = 'pib-btns';
     if (native) { var go = document.createElement('button'); go.type = 'button'; go.textContent = '설치'; go.addEventListener('click', doInstall); row.appendChild(go); }
     var later = document.createElement('button'); later.type = 'button'; later.className = 'ghost'; later.textContent = '나중에';
-    later.addEventListener('click', function () { lsSet('tt_installLater', Date.now() + 7 * 24 * 3600 * 1000); bn.remove(); });
+    later.addEventListener('click', function () { installLaterThisVisit = true; bn.remove(); });
     var never = document.createElement('button'); never.type = 'button'; never.className = 'ghost'; never.textContent = '다시 안 보기';
     never.addEventListener('click', function () { lsSet('tt_installNever', true); bn.remove(); });
     row.appendChild(later); row.appendChild(never);
