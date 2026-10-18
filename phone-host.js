@@ -195,7 +195,7 @@
     return loadScript('./app.js').then(function () { return loadScript('./board.js'); }).then(function () { return loadScript('./swap.js'); }).then(function () { return loadScript('./subject.js'); }).then(function () {
       document.dispatchEvent(new Event('DOMContentLoaded'));   // app.js는 DOMContentLoaded에서 시작한다(이미 지나갔으니 한 번 더 알려 준다)
       document.dispatchEvent(new Event('tt-phone-ready'));
-      showInstallBanner();
+      setTimeout(showInstallBanner, 2500);   // 설치 창 신호(beforeinstallprompt)가 올 시간을 잠깐 준다
       initSyncStatus();
     });
   }
@@ -265,6 +265,7 @@
     window.addEventListener('beforeinstallprompt', function (e) {
       e.preventDefault(); installEvent = e;
       var b = $('gateInstall'); if (b) b.hidden = false;
+      var old = $('phoneInstallBanner'); if (old) old.remove();   // 안내만 있던 배너가 있으면 [설치] 버튼이 있는 것으로 바꾼다
       if (appStarted) showInstallBanner();
     });
     window.addEventListener('appinstalled', function () { installEvent = null; var b = $('gateInstall'); if (b) b.hidden = true; var bn = $('phoneInstallBanner'); if (bn) bn.remove(); });
@@ -273,14 +274,34 @@
     var help = $('gateInstallHelp'); if (help) help.hidden = false;
   }
   function doInstall() { if (!installEvent) return; installEvent.prompt(); installEvent.userChoice.then(function () { installEvent = null; var bn = $('phoneInstallBanner'); if (bn) bn.remove(); }); }
+  // 홈 화면에 아직 없으면 "홈 화면에 추가할까요?" 안내를 띄운다.
+  //  · 안드로이드 크롬 등: 브라우저가 설치 창을 직접 띄울 수 있으면 [설치] 버튼으로 바로 설치한다.
+  //  · 아이폰(사파리·크롬)은 앱이 설치 창을 직접 띄울 수 없어서, 공유 버튼으로 추가하는 방법을 안내한다.
+  //  · 그 밖에 설치 창이 안 뜨는 안드로이드 브라우저는 메뉴로 추가하는 방법을 안내한다.
+  // [나중에]는 7일 뒤에 다시, [다시 안 보기]는 영영 안 띄운다. 이미 홈 화면 앱으로 열었으면 아예 안 띄운다.
+  function isIOS() { return /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+  function installSuppressed() {
+    if (isStandalone() || lsGet('tt_installNever')) return true;
+    return Date.now() < (Number(lsGet('tt_installLater')) || 0);
+  }
   function showInstallBanner() {
-    if (!installEvent || lsGet('tt_installDismissed') || $('phoneInstallBanner')) return;
+    if (installSuppressed() || $('phoneInstallBanner')) return;
+    var native = !!installEvent, ios = isIOS();
+    if (!native && !ios && !/Android/i.test(navigator.userAgent)) return;   // 컴퓨터 브라우저 등에서는 안내하지 않는다
     var bn = document.createElement('div'); bn.id = 'phoneInstallBanner'; bn.className = 'phone-install-banner';
-    var t = document.createElement('span'); t.textContent = '홈 화면에 설치하면 앱처럼 열려요';
-    var go = document.createElement('button'); go.type = 'button'; go.textContent = '설치'; go.addEventListener('click', doInstall);
-    var x = document.createElement('button'); x.type = 'button'; x.className = 'ghost'; x.textContent = '닫기';
-    x.addEventListener('click', function () { lsSet('tt_installDismissed', true); bn.remove(); });
-    bn.appendChild(t); bn.appendChild(go); bn.appendChild(x);
+    var t = document.createElement('div'); t.className = 'pib-text';
+    var head = document.createElement('b'); head.textContent = '홈 화면에 추가할까요?';
+    var how = document.createElement('div'); how.className = 'pib-how';
+    how.textContent = native ? '앱처럼 바로 열려요' : ios ? '아래 공유 버튼(□↑) → "홈 화면에 추가"' : '브라우저 메뉴(⋮) → "앱 설치" 또는 "홈 화면에 추가"';
+    t.appendChild(head); t.appendChild(how);
+    var row = document.createElement('div'); row.className = 'pib-btns';
+    if (native) { var go = document.createElement('button'); go.type = 'button'; go.textContent = '설치'; go.addEventListener('click', doInstall); row.appendChild(go); }
+    var later = document.createElement('button'); later.type = 'button'; later.className = 'ghost'; later.textContent = '나중에';
+    later.addEventListener('click', function () { lsSet('tt_installLater', Date.now() + 7 * 24 * 3600 * 1000); bn.remove(); });
+    var never = document.createElement('button'); never.type = 'button'; never.className = 'ghost'; never.textContent = '다시 안 보기';
+    never.addEventListener('click', function () { lsSet('tt_installNever', true); bn.remove(); });
+    row.appendChild(later); row.appendChild(never);
+    bn.appendChild(t); bn.appendChild(row);
     document.body.appendChild(bn);
   }
   function registerWorker() {
