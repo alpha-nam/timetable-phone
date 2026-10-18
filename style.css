@@ -1537,7 +1537,8 @@ html[data-shell="tabs"] #subjSummaryBtn { background: var(--accent); color: #fff
 .subj-chips { display: flex; gap: 6px; flex-wrap: wrap; flex-shrink: 0; }
 .subj-chip { font-family: inherit; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 99px; border: 1px solid var(--panel-border); background: var(--row-bg); color: var(--text-sub); cursor: pointer; white-space: nowrap; }
 .subj-chip.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
-.subj-info { font-size: 12px; color: var(--text-faint); flex-shrink: 0; }
+.subj-info { font-size: 12px; color: var(--text-faint); flex-shrink: 0; white-space: pre-line; word-break: keep-all; line-height: 1.5; }   /* 문장 단위로 두 줄(
+), 폭이 좁아도 어절 중간에서 안 끊기게 */
 .subj-list { display: flex; flex-direction: column; }
 .subj-row { border-bottom: 1px solid var(--card-border); padding: 4px 2px; }
 .subj-row.has { background: var(--accent-soft); border-radius: 8px; }
