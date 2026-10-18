@@ -1639,3 +1639,6 @@ html[data-shell="tabs"][data-tab="today"] .weather-day-temps .weather-day-temp {
   .att-summary-row { grid-template-columns: minmax(112px, 2.2fr) 30px minmax(30px, 1fr) minmax(32px, 1fr) minmax(30px, 1fr) minmax(40px, 1.3fr) 28px; gap: 4px; padding-left: 8px; padding-right: 8px; font-size: 12px; }
   .att-summary-row--head { font-size: 9.5px; letter-spacing: -0.3px; padding-left: 8px; padding-right: 8px; gap: 6px; }
 }
+
+/* 학급출결 탭: 기록 목록은 자기 안에서 따로 스크롤(160px 제한)하지 않고, 남는 화면을 쓰다가 넘치면 탭 전체가 스크롤된다(캘린더 팝업 안에서만 160px 제한 유지) */
+#attTabBody .att-record-list { max-height: none; overflow: visible; }
