@@ -187,3 +187,6 @@ html[data-phone] #subjSummaryBtn { margin-left: auto !important; }
   html[data-phone] .cal-badge b { font-size: 9.5px; }
 }
 .phone-sync-btns { flex-wrap: wrap; } .phone-sync-btns .phone-btn { flex: 1 1 40%; white-space: nowrap; }
+
+.pib-ico { display: inline-block; color: #9cc4ff; }
+.pib-ico svg { vertical-align: -4px; }
