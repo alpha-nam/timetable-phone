@@ -2337,6 +2337,52 @@
     renderAgenda();
   }
 
+  // ── 휴대폰 "이번 달 학사일정" 버튼: 누르면 달력 자리에 그 달 학사일정 목록이 펼쳐진다 ──
+  var eventsOpen = false;
+  function eventRanges() {   // 같은 이름이 이어지는 날은 한 줄로 묶는다
+    var keys = Object.keys(calEventDays).sort(), out = [];
+    keys.forEach(function (k) {
+      var last = out[out.length - 1], prev = last ? dateFromKey(last.to) : null;
+      if (last && last.name === calEventDays[k] && prev && ymd(new Date(prev.getFullYear(), prev.getMonth(), prev.getDate() + 1)) === k) last.to = k;
+      else out.push({ from: k, to: k, name: calEventDays[k] });
+    });
+    return out;
+  }
+  function applyEventsView() {
+    var btn = $('calEventsBtn'), list = $('calEventsList');
+    if (!btn || !list) return;
+    var on = agendaMode(), ranges = eventRanges();
+    btn.hidden = !on;
+    if (!on) { list.hidden = true; $('calWeekdays').hidden = false; $('calGrid').hidden = false; return; }
+    var open = eventsOpen;
+    btn.classList.toggle('open', open);
+    btn.innerHTML = '';
+    var t = document.createElement('b'); t.textContent = (calViewMonth + 1) + '월 학사일정';
+    var n = document.createElement('span'); n.className = 'cal-events-cnt'; n.textContent = ranges.length;
+    var ar = document.createElement('span'); ar.className = 'cal-events-arrow'; ar.textContent = open ? '▲' : '▼';
+    btn.appendChild(t); btn.appendChild(n); btn.appendChild(ar);
+    list.hidden = !open;
+    $('calWeekdays').hidden = open; $('calGrid').hidden = open;
+    if (open) $('calAgenda').hidden = true; else renderAgenda();
+    list.innerHTML = '';
+    if (!ranges.length) { var em = document.createElement('div'); em.className = 'cal-events-empty'; em.textContent = '이 달에는 학사일정이 없어요.'; list.appendChild(em); return; }
+    ranges.forEach(function (r) {
+      var row = document.createElement('button'); row.type = 'button'; row.className = 'cal-events-row';
+      var f = dateFromKey(r.from), d = document.createElement('span'); d.className = 'cal-events-date';
+      var txt = (f.getMonth() + 1) + '/' + f.getDate() + '(' + dayLabel(f.getDay()) + ')';
+      if (r.to !== r.from) { var tt = dateFromKey(r.to); txt += ' ~ ' + (tt.getMonth() + 1) + '/' + tt.getDate() + '(' + dayLabel(tt.getDay()) + ')'; }
+      d.textContent = txt;
+      var nm = document.createElement('span'); nm.className = 'cal-events-name'; nm.textContent = r.name;
+      row.appendChild(d); row.appendChild(nm);
+      row.addEventListener('click', function () { eventsOpen = false; selectCalDate(r.from); applyEventsView(); });
+      list.appendChild(row);
+    });
+  }
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest ? ev.target.closest('#calEventsBtn') : null;
+    if (b) { eventsOpen = !eventsOpen; applyEventsView(); }
+  });
+
   function renderAgenda() {
     var box = $('calAgenda');
     if (!box) return;
@@ -2507,6 +2553,7 @@
         grid.appendChild(cell);
       }
       renderAgenda();
+      applyEventsView();
     });
   }
 
