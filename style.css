@@ -1788,3 +1788,8 @@ html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calendarCard { c
 html[data-shell="tabs"]:not([data-phone]) #calAgenda { padding: 6px; }
 html[data-shell="tabs"]:not([data-phone]) .cal-ag-item { padding: 5px 4px; gap: 4px; }
 .cal-events-name { font-weight: 800; }
+
+/* 캘린더 목록: 출결 항목 순서 바꾸기 손잡이 */
+.cal-ag-grip { flex: 0 0 auto; align-self: center; width: 14px; margin: 0 -2px 0 -2px; text-align: center; font-size: 11px; letter-spacing: -2px; color: var(--text-faint); cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.cal-ag-item.dragging { opacity: .75; box-shadow: 0 3px 10px rgba(0,0,0,.18); position: relative; z-index: 2; }
+.cal-ag-item.dragging .cal-ag-grip { cursor: grabbing; }

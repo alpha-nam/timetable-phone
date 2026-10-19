@@ -2404,11 +2404,26 @@
     box.appendChild(head);
 
     var items = [];
+    // 학급·교과 출결은 번호순이 기본이고, 손잡이(⋮⋮)를 끌어 순서를 바꿀 수 있다(바꾼 순서는 날짜별로 저장·동기화).
+    var agNo = function (x, y) { return (+x.grade - +y.grade) || (+x.ban - +y.ban) || (+x.no - +y.no); };
+    var agOrdered = function (list, g) {
+      var p = prefs.filter(function (x) { return x.id === 'agord-' + calSelected + '-' + g; })[0], ord = (p && p.order) || [];
+      return list.slice().sort(function (x, y) {
+        var ix = ord.indexOf(x.id), iy = ord.indexOf(y.id);
+        if (ix < 0 && iy < 0) return 0;
+        return (ix < 0 ? 1e6 : ix) - (iy < 0 ? 1e6 : iy);
+      });
+    };
+    var saveAgOrder = function (g, ids) {
+      var id = 'agord-' + calSelected + '-' + g, p = prefs.filter(function (x) { return x.id === id; })[0];
+      if (!p) { p = { id: id }; prefs.push(p); }
+      p.order = ids; p.updatedAt = Date.now(); savePrefs();
+    };
     if (calEventDays[calSelected]) items.push({ c: '#3d7fd6', k: '학사일정', t: calEventDays[calSelected], tab: 'memo' });
     (window.BOARD && window.BOARD.memosOn ? window.BOARD.memosOn(calSelected) : []).forEach(function (mm) { items.push({ c: '#2fa866', k: '메모', t: (mm.done ? '✓ ' : '') + mm.text + (mm.dateEnd && mm.dateEnd !== mm.date ? '  (' + Number(mm.date.slice(4, 6)) + '/' + Number(mm.date.slice(6)) + '~' + Number(mm.dateEnd.slice(4, 6)) + '/' + Number(mm.dateEnd.slice(6)) + ')' : ''), tab: 'memo' }); });
-    attendanceRecordsForDate(calSelected).forEach(function (r) { items.push({ c: '#d6483f', k: '학급 출결', t: attendanceStudentLabel(r) + ' · ' + attendanceTypeLabel(r), d: r.memo ? '메모  ' + r.memo : '', tab: 'attendance' }); });
-    (window.SUBJ ? window.SUBJ.listOn(calSelected) : []).forEach(function (r) {
-      items.push({ c: '#8b7cf6', k: '교과 출결', t: r.period + '교시 ' + r.subject + ' ' + r.grade + '-' + r.ban + '-' + r.no + ' ' + r.studentName + ' · ' + (r.reason || '') + r.type, d: r.memo ? '메모  ' + r.memo : '', tab: 'subject' });
+    agOrdered(attendanceRecordsForDate(calSelected).slice().sort(agNo), 'att').forEach(function (r) { items.push({ id: r.id, g: 'att', c: '#d6483f', k: '학급 출결', t: attendanceStudentLabel(r) + ' · ' + attendanceTypeLabel(r), d: r.memo ? '메모  ' + r.memo : '', tab: 'attendance' }); });
+    agOrdered(window.SUBJ ? window.SUBJ.listOn(calSelected) : [], 'subj').forEach(function (r) {
+      items.push({ id: r.id, g: 'subj', c: '#8b7cf6', k: '교과 출결', t: r.period + '교시 ' + r.subject + ' ' + r.grade + '-' + r.ban + '-' + r.no + ' ' + r.studentName + ' · ' + (r.reason || '') + r.type, d: r.memo ? '메모  ' + r.memo : '', tab: 'subject' });
     });
     if (!items.length) { var e = document.createElement('div'); e.className = 'cal-ag-empty'; e.textContent = '이 날짜에는 일정이 없어요.'; box.appendChild(e); return; }
     items.forEach(function (it) {
@@ -2417,6 +2432,32 @@
       var kind = document.createElement('span'); kind.className = 'cal-ag-kind'; kind.textContent = it.k; kind.style.color = it.c;
       var txt = document.createElement('span'); txt.className = 'cal-ag-text'; txt.textContent = it.t;
       row.appendChild(bar); row.appendChild(kind); row.appendChild(txt);
+      if (it.g) {
+        row.dataset.g = it.g; row.dataset.rid = it.id;
+        var grip = document.createElement('span'); grip.className = 'cal-ag-grip'; grip.textContent = '⋮⋮'; grip.title = '끌어서 순서 바꾸기';
+        row.insertBefore(grip, bar.nextSibling);
+        grip.addEventListener('click', function (ev) { ev.stopPropagation(); });
+        grip.addEventListener('pointerdown', function (ev) {
+          ev.preventDefault(); ev.stopPropagation();
+          try { grip.setPointerCapture(ev.pointerId); } catch (e0) {}
+          row.classList.add('dragging');
+          var move = function (e) {
+            var peers = Array.prototype.slice.call(box.querySelectorAll('.cal-ag-item[data-g="' + it.g + '"]')).filter(function (r2) { return r2 !== row; });
+            var placed = false;
+            for (var pi = 0; pi < peers.length; pi++) {
+              var rc = peers[pi].getBoundingClientRect();
+              if (e.clientY < rc.top + rc.height / 2) { if (row.nextSibling !== peers[pi]) box.insertBefore(row, peers[pi]); placed = true; break; }
+            }
+            if (!placed && peers.length) { var last = peers[peers.length - 1]; if (last.nextSibling !== row) box.insertBefore(row, last.nextSibling); }
+          };
+          var up = function () {
+            grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', up); grip.removeEventListener('pointercancel', up);
+            row.classList.remove('dragging');
+            saveAgOrder(it.g, Array.prototype.map.call(box.querySelectorAll('.cal-ag-item[data-g="' + it.g + '"]'), function (r3) { return r3.dataset.rid; }));
+          };
+          grip.addEventListener('pointermove', move); grip.addEventListener('pointerup', up); grip.addEventListener('pointercancel', up);
+        });
+      }
       var openEditor = function () { dayEditorTab = it.tab; openDayTaskEditor(date); };
       if (it.d) {   // 사유·메모가 있으면 누를 때 세부사항을 펼친다(수정은 펼친 곳의 버튼으로)
         row.classList.add('cal-ag-item--more');
