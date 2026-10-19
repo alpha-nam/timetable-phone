@@ -1721,3 +1721,30 @@ html[data-shell="tabs"] #attendanceSummaryBtn { display: none !important; }
 .cal-events-date2 { display: block; font-size: 12px; font-weight: 700; opacity: .85; }
 .cal-events-name { flex: 1; word-break: keep-all; line-height: 1.25; }
 .cal-events-empty { padding: 18px 0; text-align: center; color: var(--text-sub); font-size: 13px; }
+
+/* ── PC 위젯 캘린더 탭: 휴대폰과 같은 방식(칸에는 배지, 선택한 날짜의 목록은 오른쪽) ── */
+html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calendarCard {
+  display: grid !important; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr);
+  column-gap: 12px; row-gap: 0; min-height: 0;
+}
+html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calEventsBtn { grid-column: 1; grid-row: 1; align-self: center; width: auto; justify-self: start; margin: 0 0 6px; padding: 5px 12px; font-size: 13px; }
+html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calendarCard .card-head { grid-column: 2; grid-row: 1; margin: 0 0 6px; flex-wrap: nowrap; gap: 6px; }
+html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calWeekdays { grid-column: 1; grid-row: 2; gap: 3px; margin-bottom: 4px; font-size: 12px; }
+html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calGrid { grid-column: 1; grid-row: 3; gap: 3px; min-height: 0; }
+html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calEventsList { grid-column: 1 / -1; grid-row: 2 / 4; overflow-y: auto; min-height: 0; }
+html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calAgenda { grid-column: 2; grid-row: 2 / 4; overflow-y: auto; min-height: 0; margin: 0; padding: 10px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; }
+html[data-shell="tabs"]:not([data-phone]) #calGrid .cal-cell { padding: 3px 4px 2px; min-height: 0; border-radius: 8px; align-items: center; }
+html[data-shell="tabs"]:not([data-phone]) #calGrid .cal-num { font-size: 13px; line-height: 16px; }
+html[data-shell="tabs"]:not([data-phone]) #calGrid .cal-event-label { display: none !important; }
+html[data-shell="tabs"]:not([data-phone]) #calGrid .cal-badges { display: grid; grid-template-columns: repeat(2, auto); justify-content: center; gap: 1px; margin-top: auto; }
+html[data-shell="tabs"]:not([data-phone]) #calGrid .cal-badge { padding: 0 3px 0 1px; justify-content: center; }
+html[data-shell="tabs"]:not([data-phone]) #calGrid .cal-badge svg { width: 9px !important; height: 9px !important; }
+html[data-shell="tabs"]:not([data-phone]) #calGrid .cal-badge b { font-size: 9px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-cell--sel { box-shadow: 0 0 0 2px var(--accent); }
+html[data-shell="tabs"]:not([data-phone]) .cal-ag-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 14px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-ag-head button { font-family: inherit; font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border: none; border-radius: 8px; padding: 5px 10px; cursor: pointer; }
+html[data-shell="tabs"]:not([data-phone]) .cal-ag-empty { font-size: 13px; color: var(--text-faint); padding: 6px 2px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-ag-item { display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px; margin-bottom: 5px; background: var(--row-bg); border-radius: 9px; font-size: 13px; line-height: 1.45; }
+html[data-shell="tabs"]:not([data-phone]) .cal-ag-item i { flex: 0 0 4px; align-self: stretch; border-radius: 3px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-ag-kind { flex: 0 0 auto; font-size: 11px; font-weight: 800; min-width: 52px; padding-top: 1px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-ag-text { flex: 1; min-width: 0; font-weight: 600; word-break: keep-all; overflow-wrap: anywhere; white-space: pre-line; }
