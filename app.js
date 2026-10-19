@@ -1783,6 +1783,9 @@
     var listTitle = document.createElement('div');
     listTitle.className = 'att-list-title';
     listTitle.textContent = '이 날짜 출결 기록';
+    var listCount = document.createElement('span');
+    listCount.className = 'att-list-count';
+    listTitle.appendChild(listCount);
     var list = document.createElement('div');
     list.className = 'att-record-list';
 
@@ -1801,6 +1804,7 @@
     function renderList() {
       list.innerHTML = '';
       var records = attendanceRecordsForDate(dateKey);
+      listCount.textContent = ' (총 ' + records.length + '건)';
       if (!records.length) {
         var empty = document.createElement('div');
         empty.className = 'att-list-empty';
