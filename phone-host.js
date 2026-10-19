@@ -294,11 +294,11 @@
     var how = document.createElement('div'); how.className = 'pib-how';
     if (native) how.textContent = '앱처럼 바로 열려요';
     else if (ios) {
-      // 아이폰 공유 버튼 모양(네모 위로 화살표)을 그림으로 보여 준다
-      how.appendChild(document.createTextNode('아래 공유 버튼 '));
+      // 아이폰: 아래 ⋯ 버튼 → 공유(네모에서 화살표가 위로 나오는 아이콘) → 더보기 → 홈 화면에 추가
+      how.appendChild(document.createTextNode('아래 ⋯ 버튼 → 공유 '));
       var ico = document.createElement('span'); ico.className = 'pib-ico'; ico.innerHTML = '<svg class="share-ico" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="공유 버튼" style="vertical-align:-3px"><path d="M12 15V3"/><path d="M8.5 6.5L12 3l3.5 3.5"/><path d="M7 9.5H6a2 2 0 0 0-2 2V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.5a2 2 0 0 0-2-2h-1"/></svg>';
       how.appendChild(ico);
-      how.appendChild(document.createTextNode(' → "홈 화면에 추가"'));
+      how.appendChild(document.createTextNode(' → 더보기 → "홈 화면에 추가"'));
     } else how.textContent = '브라우저 메뉴(⋮) → "앱 설치" 또는 "홈 화면에 추가"';
     t.appendChild(head); t.appendChild(how);
     var row = document.createElement('div'); row.className = 'pib-btns';
