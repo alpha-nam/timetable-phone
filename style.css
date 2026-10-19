@@ -1674,3 +1674,15 @@ html[data-shell="tabs"] #attendanceSummaryBtn { display: none !important; }
 .cal-cell--today .cal-memo-label { color: rgba(255,255,255,0.92); }
 /* 메모가 같이 있는 칸에서는 학사일정 이름을 한 줄로 줄여 서로 겹치지 않게 한다 */
 .cal-cell:has(.cal-memo-label) .cal-event-label { -webkit-line-clamp: 1; line-clamp: 1; }
+
+/* 캘린더 팝업의 메모 탭 */
+.dm-add { display: flex; gap: 6px; margin-bottom: 10px; }
+.dm-input { flex: 1; min-width: 0; font-family: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--panel-border); border-radius: 9px; background: var(--row-bg); color: var(--text); outline: none; }
+.dm-input:focus { border-color: var(--accent); }
+.dm-list { display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow-y: auto; }
+.dm-row { display: flex; align-items: center; gap: 8px; background: var(--row-bg); border-radius: 9px; padding: 7px 9px; }
+.dm-chk { flex: 0 0 22px; width: 22px; height: 22px; border-radius: 7px; border: 1.5px solid var(--text-faint); background: transparent; color: #fff; font-size: 13px; line-height: 1; cursor: pointer; padding: 0; }
+.dm-row.done .dm-chk { background: var(--accent); border-color: var(--accent); }
+.dm-text { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; cursor: text; }
+.dm-row.done .dm-text { color: var(--text-veryfaint); text-decoration: line-through; font-weight: 500; }
+.dm-del { flex-shrink: 0; font-family: inherit; font-size: 12px; font-weight: 700; color: #b3342a; background: #fdecea; border: none; border-radius: 7px; padding: 4px 8px; cursor: pointer; }

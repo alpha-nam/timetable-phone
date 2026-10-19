@@ -1002,7 +1002,7 @@
   // ── 캘린더 날짜별 개인 할 일(로컬 저장만, 서버 전송 없음) ──
   var DAY_TASK_KEY = 'dashboardDayTasks';
   var dayTasks = {};
-  var dayEditorTab = 'task'; // 'task' | 'attendance' — 팝업 안에서 탭 전환한 걸 기억(다음 열 때도 그대로)
+  var dayEditorTab = 'memo'; // 'memo' | 'attendance' | 'subject' — 팝업 안에서 탭 전환한 걸 기억(다음 열 때도 그대로)
 
   function loadDayTasks() {
     try { dayTasks = JSON.parse(localStorage.getItem(DAY_TASK_KEY) || '{}'); } catch (e) { dayTasks = {}; }
@@ -1402,7 +1402,7 @@
     var taskTabBtn = document.createElement('button');
     taskTabBtn.type = 'button';
     taskTabBtn.className = 'day-task-tab';
-    taskTabBtn.textContent = '할 일';
+    taskTabBtn.textContent = '메모';
     var attTabBtn = document.createElement('button');
     attTabBtn.type = 'button';
     attTabBtn.className = 'day-task-tab';
@@ -1415,49 +1415,80 @@
     tabRow.appendChild(attTabBtn);
     tabRow.appendChild(subjTabBtn);
 
-    // ── 할일 패널 ──
+    // ── 메모 패널(그 날짜로 지정한 메모 카드) ──
     var taskPanel = document.createElement('div');
     taskPanel.className = 'day-editor-panel';
-    var input = document.createElement('textarea');
-    input.className = 'day-task-input';
-    input.placeholder = '이 날짜에 할 일을 입력하세요(줄바꿈 가능)';
-    input.value = dayTasks[key] || '';
-    var taskBtnRow = document.createElement('div');
-    taskBtnRow.className = 'day-task-btns';
-    var saveBtn = document.createElement('button');
-    saveBtn.type = 'button';
-    saveBtn.className = 'day-task-save';
-    saveBtn.textContent = '저장';
-    saveBtn.addEventListener('click', function (ev) {
-      ev.stopPropagation();
+    var memoList = document.createElement('div');
+    memoList.className = 'dm-list';
+    var memoAdd = document.createElement('div');
+    memoAdd.className = 'dm-add';
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'dm-input';
+    input.placeholder = '이 날짜의 메모를 입력하세요';
+    input.autocomplete = 'off';
+    var addMemoBtn = document.createElement('button');
+    addMemoBtn.type = 'button';
+    addMemoBtn.className = 'day-task-save';
+    addMemoBtn.textContent = '+ 추가';
+    function paintMemos() {
+      memoList.innerHTML = '';
+      var ms = window.BOARD && window.BOARD.memosOn ? window.BOARD.memosOn(key) : [];
+      if (!ms.length) {
+        var e = document.createElement('div');
+        e.className = 'att-list-empty';
+        e.textContent = '이 날짜에 지정된 메모가 없습니다.';
+        memoList.appendChild(e);
+        return;
+      }
+      ms.forEach(function (m) {
+        var row = document.createElement('div');
+        row.className = 'dm-row' + (m.done ? ' done' : '');
+        var chk = document.createElement('button');
+        chk.type = 'button'; chk.className = 'dm-chk'; chk.textContent = m.done ? '✓' : '';
+        chk.setAttribute('aria-label', m.done ? '완료 취소' : '완료');
+        chk.addEventListener('click', function (ev) { ev.stopPropagation(); window.BOARD.toggleById(m.id); paintMemos(); });
+        var txt = document.createElement('div');
+        txt.className = 'dm-text'; txt.textContent = m.text; txt.title = '눌러서 고치기';
+        txt.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          var inp = document.createElement('input');
+          inp.type = 'text'; inp.className = 'dm-input'; inp.value = m.text;
+          function fin(commit) { if (commit) window.BOARD.setTextById(m.id, inp.value); paintMemos(); }
+          inp.addEventListener('keydown', function (e2) { if (e2.key === 'Enter') { e2.preventDefault(); fin(true); } else if (e2.key === 'Escape') fin(false); });
+          inp.addEventListener('blur', function () { fin(true); });
+          inp.addEventListener('click', function (e2) { e2.stopPropagation(); });
+          row.replaceChild(inp, txt);
+          inp.focus(); inp.select();
+        });
+        var del = document.createElement('button');
+        del.type = 'button'; del.className = 'dm-del'; del.textContent = '삭제';
+        del.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          if (!window.confirm('"' + m.text.split('\n')[0].slice(0, 20) + '" 메모를 삭제할까요?\n(삭제해도 휴지통에서 되살릴 수 있어요.)')) return;
+          window.BOARD.removeById(m.id); paintMemos();
+        });
+        row.appendChild(chk); row.appendChild(txt); row.appendChild(del);
+        memoList.appendChild(row);
+      });
+    }
+    function addMemo() {
       var v = input.value.trim();
-      if (!v && dayTasks[key] && window.BOARD) window.BOARD.trash('daytask', { id: key, text: dayTasks[key] });
-      if (v) dayTasks[key] = v; else delete dayTasks[key];
-      saveDayTasks();
-      closeDayTaskEditor();
-      renderCalendar();
-    });
-    var delBtn = document.createElement('button');
-    delBtn.type = 'button';
-    delBtn.className = 'day-task-del';
-    delBtn.textContent = '삭제';
-    delBtn.addEventListener('click', function (ev) {
-      ev.stopPropagation();
-      if (dayTasks[key] && window.BOARD) window.BOARD.trash('daytask', { id: key, text: dayTasks[key] });
-      delete dayTasks[key];
-      saveDayTasks();
-      closeDayTaskEditor();
-      renderCalendar();
-    });
-    // 줄바꿈이 가능한 textarea라 그냥 Enter는 줄바꿈으로 두고, Ctrl(⌘)+Enter로 저장.
+      if (!v || !window.BOARD || !window.BOARD.addDated) return;
+      window.BOARD.addDated(key, v);
+      input.value = '';
+      paintMemos();
+    }
+    addMemoBtn.addEventListener('click', function (ev) { ev.stopPropagation(); addMemo(); });
     input.addEventListener('keydown', function (ev) {
-      if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); saveBtn.click(); }
+      if (ev.key === 'Enter') { ev.preventDefault(); addMemo(); }
       else if (ev.key === 'Escape') { closeDayTaskEditor(); }
     });
-    taskBtnRow.appendChild(saveBtn);
-    taskBtnRow.appendChild(delBtn);
-    taskPanel.appendChild(input);
-    taskPanel.appendChild(taskBtnRow);
+    memoAdd.appendChild(input);
+    memoAdd.appendChild(addMemoBtn);
+    taskPanel.appendChild(memoAdd);
+    taskPanel.appendChild(memoList);
+    paintMemos();
 
     // ── 출석 패널 ──
     var attPanel = buildAttendancePanel(key);
@@ -1490,15 +1521,15 @@
 
     function switchTab(tab) {
       dayEditorTab = tab;
-      taskPanel.hidden = tab !== 'task';
+      taskPanel.hidden = tab !== 'memo';
       attPanel.hidden = tab !== 'attendance';
       subjPanel.hidden = tab !== 'subject';
-      taskTabBtn.classList.toggle('active', tab === 'task');
+      taskTabBtn.classList.toggle('active', tab === 'memo');
       attTabBtn.classList.toggle('active', tab === 'attendance');
       subjTabBtn.classList.toggle('active', tab === 'subject');
-      if (tab === 'task') input.focus();
+      if (tab === 'memo') input.focus();
     }
-    taskTabBtn.addEventListener('click', function (ev) { ev.stopPropagation(); switchTab('task'); });
+    taskTabBtn.addEventListener('click', function (ev) { ev.stopPropagation(); switchTab('memo'); });
     attTabBtn.addEventListener('click', function (ev) { ev.stopPropagation(); switchTab('attendance'); });
     subjTabBtn.addEventListener('click', function (ev) { ev.stopPropagation(); switchTab('subject'); });
 
@@ -2321,8 +2352,7 @@
     box.appendChild(head);
 
     var items = [];
-    if (calEventDays[calSelected]) items.push({ c: '#3d7fd6', k: '학사일정', t: calEventDays[calSelected], tab: 'task' });
-    if (dayTasks[calSelected]) items.push({ c: '#2fa866', k: '할 일', t: dayTasks[calSelected], tab: 'task' });
+    if (calEventDays[calSelected]) items.push({ c: '#3d7fd6', k: '학사일정', t: calEventDays[calSelected], tab: 'memo' });
     (window.BOARD && window.BOARD.memosOn ? window.BOARD.memosOn(calSelected) : []).forEach(function (mm) { items.push({ c: '#2fa866', k: '메모', t: (mm.done ? '✓ ' : '') + mm.text, tab: 'memo' }); });
     attendanceRecordsForDate(calSelected).forEach(function (r) { items.push({ c: '#d6483f', k: '학급 출결', t: attendanceStudentLabel(r) + ' · ' + attendanceTypeLabel(r), tab: 'attendance' }); });
     (window.SUBJ ? window.SUBJ.listOn(calSelected) : []).forEach(function (r) {
@@ -2337,7 +2367,6 @@
       row.appendChild(bar); row.appendChild(kind); row.appendChild(txt);
       row.addEventListener('click', function (ev) {
         ev.stopPropagation();
-        if (it.tab === 'memo') { setTab('memo', true); return; }   // 메모는 메모 탭에서 고친다
         dayEditorTab = it.tab; openDayTaskEditor(date);
       });
       box.appendChild(row);
@@ -2423,15 +2452,6 @@
           ml.textContent = dayMemos.length === 1 ? dayMemos[0].text.split('\n')[0] : '메모 ' + dayMemos.length;
           ml.title = dayMemos.map(function (m2) { return (m2.done ? '✓ ' : '') + m2.text; }).join('\n');
           cell.appendChild(ml);
-        }
-
-        var taskText = dayTasks[ymd(cellDate)];
-        if (taskText) {
-          var taskLabel = document.createElement('div');
-          taskLabel.className = 'cal-task-label';
-          taskLabel.textContent = taskText;
-          taskLabel.title = taskText;
-          cell.appendChild(taskLabel);
         }
 
         // 학급 출결 / 교과 출결은 칸이 좁아서 이름 대신 작은 배지(건수)로 보여 준다. 자세한 건 날짜를 눌러 팝업에서 본다.
@@ -3121,6 +3141,17 @@
     setTab('timetable', false);
   }
 
+  // 예전 "날짜별 할 일"은 메모 카드(날짜 지정)로 옮긴다. 옛 데이터는 그대로 두고(되돌릴 수 있게), 화면에서만 뺀다.
+  // 어느 기기든 한 번 옮기면 동기화되는 설정(dt-migrated)에 표시해서 다른 기기가 또 옮기지 않게 한다.
+  function migrateDayTasks() {
+    if (!window.BOARD || !window.BOARD.addMigrated) return;
+    if (prefs.some(function (p0) { return p0.id === 'dt-migrated'; })) return;
+    var list = Object.keys(dayTasks).filter(function (k) { return dayTasks[k]; }).map(function (k) { return { id: 'dt' + k, text: dayTasks[k], date: k }; });
+    if (list.length) window.BOARD.addMigrated(list);
+    prefs.push({ id: 'dt-migrated', date: '1', updatedAt: Date.now() });
+    savePrefs();
+  }
+
   function init() {
     initSettings();
     initCardToggles(); // 첫 렌더 전에 꺼진 카드부터 숨겨둬야 숨은 카드가 불필요하게 그려/호출되지 않는다
@@ -3130,6 +3161,7 @@
     loadAttendanceRecords();
     initCloud();
     if (window.BOARD) window.BOARD.init();
+    migrateDayTasks();
     initAttendanceSummary();
     initTabs();
 

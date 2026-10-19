@@ -516,6 +516,31 @@
       .sort(function (a, b) { return (a.done ? 1 : 0) - (b.done ? 1 : 0) || (a.order || 0) - (b.order || 0); });
   }
 
+  function cardById(id) { return cards.filter(function (c) { return c.id === id; })[0] || null; }
+  // 캘린더 팝업의 "메모" 탭이 쓴다: 그 날짜로 지정한 새 메모(섹션 없는 칸 맨 아래), 완료 토글, 글 고치기, 삭제
+  function addDated(dateStr, text) {
+    text = String(text || '').trim();
+    if (!text) return null;
+    var c = { id: uid('m'), text: text, done: false, sectionId: '', order: sectionCards('').length, date: dateStr };
+    cards.push(c); save(); render();
+    return c;
+  }
+  function toggleById(id) { var c = cardById(id); if (c) { toggleDone(c); render(); } }
+  function setTextById(id, text) { var c = cardById(id), v = String(text || '').trim(); if (c && v && v !== c.text) { c.text = v; save(); render(); } }
+  function removeById(id) { var c = cardById(id); if (c) { deleteCard(c); render(); } }
+  // 예전 "날짜별 할 일"을 메모 카드로 옮긴다. 카드 id를 날짜로 정해(dt날짜) 여러 기기에서 각각 옮겨도 같은 카드로 합쳐지고,
+  // 이미 지운(삭제 표시가 있는) 것은 되살리지 않는다. 옮긴 개수를 돌려준다.
+  function addMigrated(list) {
+    var n = 0, t = Date.now();
+    (list || []).forEach(function (x) {
+      if (!x || !x.id || !x.text || cardById(x.id) || tombs[x.id]) return;
+      cards.push({ id: x.id, text: String(x.text), done: false, sectionId: '', order: sectionCards('').length, date: x.date });
+      n++;
+    });
+    if (n) { save(); render(); }
+    return n;
+  }
+
   function promptTag(card, anchor) {
     closeMenu();
     var m = el('div', 'board-menu board-tagbox'); m.id = 'boardMenu';
@@ -996,7 +1021,7 @@
   window.BOARD = {
     init: init, render: render, getSyncState: getSyncState, applySync: applySync,
     trash: function (kind, item) { addToTrash(kind, item); }, openRecovery: openRecovery,
-    memosOn: memosOn,
+    memosOn: memosOn, addDated: addDated, toggleById: toggleById, setTextById: setTextById, removeById: removeById, addMigrated: addMigrated,
     exportState: exportState, importState: importState
   };
 })();
