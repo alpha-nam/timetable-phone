@@ -2370,13 +2370,19 @@
       var row = document.createElement('button'); row.type = 'button'; row.className = 'cal-events-row';
       var f = dateFromKey(r.from), d = document.createElement('span'); d.className = 'cal-events-date';
       var txt = (f.getMonth() + 1) + '/' + f.getDate() + '(' + dayLabel(f.getDay()) + ')';
+      if (r.to !== r.from) { var tt = dateFromKey(r.to); txt += ' ~ ' + (tt.getMonth() + 1) + '/' + tt.getDate() + '(' + dayLabel(tt.getDay()) + ')'; }
       d.textContent = txt;
-      if (r.to !== r.from) { var tt = dateFromKey(r.to), d2 = document.createElement('span'); d2.className = 'cal-events-date2'; d2.textContent = '~ ' + (tt.getMonth() + 1) + '/' + tt.getDate() + '(' + dayLabel(tt.getDay()) + ')'; d.appendChild(d2); }
       var nm = document.createElement('span'); nm.className = 'cal-events-name'; nm.textContent = r.name;
       row.appendChild(d); row.appendChild(nm);
       row.addEventListener('click', function () { eventsOpen = false; selectCalDate(r.from); applyEventsView(); });
       list.appendChild(row);
     });
+    // 날짜 칸 너비를 가장 긴 날짜에 맞춰, 일정 이름이 모두 같은 자리에서 시작하게 한다
+    if (open) {
+      list.style.removeProperty('--evw');
+      var mw = 0; Array.prototype.forEach.call(list.querySelectorAll('.cal-events-date'), function (x) { mw = Math.max(mw, x.offsetWidth); });
+      if (mw) list.style.setProperty('--evw', mw + 'px');
+    }
   }
   document.addEventListener('click', function (ev) {
     var b = ev.target.closest ? ev.target.closest('#calEventsBtn') : null;

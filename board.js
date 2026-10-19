@@ -502,7 +502,7 @@
         grid.appendChild(b);
       }
       m.appendChild(grid);
-      m.appendChild(el('div', 'bdp-hint', pending ? '끝나는 날을 누르세요 (하루면 같은 날 한 번 더)' : card.date ? rangeChipText(card) : '하루는 한 번, 기간은 시작일 → 종료일 순서로 누르세요'));
+      m.appendChild(el('div', 'bdp-hint', pending ? '끝나는 날 선택 (하루면 한 번 더)' : card.date ? rangeChipText(card) : '하루는 한 번, 기간은 시작일 → 종료일 순서로 누르세요'));
       var foot = el('div', 'bdp-foot');
       var clr = el('button', 'danger', '날짜 지우기'); clr.type = 'button';
       clr.addEventListener('click', function (ev) { ev.stopPropagation(); pick(''); });
