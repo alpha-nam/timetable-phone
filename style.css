@@ -1763,3 +1763,12 @@ html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calendarCard { g
 html[data-shell="tabs"]:not([data-phone]) .cal-ag-item { font-size: 11px; letter-spacing: -0.2px; padding: 5px 6px; gap: 5px; }
 html[data-shell="tabs"]:not([data-phone]) #calAgenda { padding: 7px; }
 html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calEventsBtn { justify-self: stretch; width: 100%; padding: 7px 14px; font-size: 14px; margin-bottom: 6px; }
+
+/* 캘린더 목록 항목: 누르면 사유·메모 세부사항이 펼쳐진다 */
+.cal-ag-item { flex-wrap: wrap; }
+.cal-ag-item--more { cursor: pointer; }
+.cal-ag-item--more .cal-ag-text::after { content: ' ▾'; font-size: 9px; opacity: .5; }
+.cal-ag-item--more.open .cal-ag-text::after { content: ' ▴'; }
+.cal-ag-detail { flex: 1 0 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 2px 0 0 12px; padding-top: 4px; border-top: 1px dashed rgba(0,0,0,.12); font-size: 12px; font-weight: 600; white-space: pre-line; word-break: keep-all; color: var(--text-sub); }
+.cal-ag-detail[hidden] { display: none; }
+.cal-ag-detail button { flex: 0 0 auto; font-family: inherit; font-size: 11px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border: none; border-radius: 7px; padding: 3px 9px; cursor: pointer; }

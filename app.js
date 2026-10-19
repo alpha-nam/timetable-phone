@@ -2406,9 +2406,9 @@
     var items = [];
     if (calEventDays[calSelected]) items.push({ c: '#3d7fd6', k: '학사일정', t: calEventDays[calSelected], tab: 'memo' });
     (window.BOARD && window.BOARD.memosOn ? window.BOARD.memosOn(calSelected) : []).forEach(function (mm) { items.push({ c: '#2fa866', k: '메모', t: (mm.done ? '✓ ' : '') + mm.text + (mm.dateEnd && mm.dateEnd !== mm.date ? '  (' + Number(mm.date.slice(4, 6)) + '/' + Number(mm.date.slice(6)) + '~' + Number(mm.dateEnd.slice(4, 6)) + '/' + Number(mm.dateEnd.slice(6)) + ')' : ''), tab: 'memo' }); });
-    attendanceRecordsForDate(calSelected).forEach(function (r) { items.push({ c: '#d6483f', k: '학급 출결', t: attendanceStudentLabel(r) + ' · ' + attendanceTypeLabel(r), tab: 'attendance' }); });
+    attendanceRecordsForDate(calSelected).forEach(function (r) { items.push({ c: '#d6483f', k: '학급 출결', t: attendanceStudentLabel(r) + ' · ' + attendanceTypeLabel(r), d: r.memo ? '메모  ' + r.memo : '', tab: 'attendance' }); });
     (window.SUBJ ? window.SUBJ.listOn(calSelected) : []).forEach(function (r) {
-      items.push({ c: '#8b7cf6', k: '교과 출결', t: r.period + '교시 ' + (r.label ? r.label + ' ' : '') + r.subject + '\n' + r.grade + '-' + r.ban + '-' + r.no + ' ' + r.studentName + ' · ' + (r.reason || '') + r.type + (r.memo ? ' · ' + r.memo : ''), tab: 'subject' });
+      items.push({ c: '#8b7cf6', k: '교과 출결', t: r.period + '교시 ' + (r.label ? r.label + ' ' : '') + r.subject + ' · ' + r.grade + '-' + r.ban + '-' + r.no + ' ' + r.studentName + ' · ' + r.type, d: [r.reason ? '사유  ' + r.reason : '', r.memo ? '메모  ' + r.memo : ''].filter(Boolean).join('\n'), tab: 'subject' });
     });
     if (!items.length) { var e = document.createElement('div'); e.className = 'cal-ag-empty'; e.textContent = '이 날짜에는 일정이 없어요.'; box.appendChild(e); return; }
     items.forEach(function (it) {
@@ -2417,10 +2417,18 @@
       var kind = document.createElement('span'); kind.className = 'cal-ag-kind'; kind.textContent = it.k; kind.style.color = it.c;
       var txt = document.createElement('span'); txt.className = 'cal-ag-text'; txt.textContent = it.t;
       row.appendChild(bar); row.appendChild(kind); row.appendChild(txt);
-      row.addEventListener('click', function (ev) {
-        ev.stopPropagation();
-        dayEditorTab = it.tab; openDayTaskEditor(date);
-      });
+      var openEditor = function () { dayEditorTab = it.tab; openDayTaskEditor(date); };
+      if (it.d) {   // 사유·메모가 있으면 누를 때 세부사항을 펼친다(수정은 펼친 곳의 버튼으로)
+        row.classList.add('cal-ag-item--more');
+        var det = document.createElement('div'); det.className = 'cal-ag-detail'; det.hidden = true;
+        var dt = document.createElement('span'); dt.textContent = it.d;
+        var eb = document.createElement('button'); eb.type = 'button'; eb.textContent = '수정';
+        eb.addEventListener('click', function (ev) { ev.stopPropagation(); openEditor(); });
+        det.appendChild(dt); det.appendChild(eb); row.appendChild(det);
+        row.addEventListener('click', function (ev) { ev.stopPropagation(); det.hidden = !det.hidden; row.classList.toggle('open', !det.hidden); });
+      } else {
+        row.addEventListener('click', function (ev) { ev.stopPropagation(); openEditor(); });
+      }
       box.appendChild(row);
     });
   }
