@@ -1772,3 +1772,9 @@ html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calEventsBtn { j
 .cal-ag-detail { flex: 1 0 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 2px 0 0 12px; padding-top: 4px; border-top: 1px dashed rgba(0,0,0,.12); font-size: 12px; font-weight: 600; white-space: pre-line; word-break: keep-all; color: var(--text-sub); }
 .cal-ag-detail[hidden] { display: none; }
 .cal-ag-detail button { flex: 0 0 auto; font-family: inherit; font-size: 11px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border: none; border-radius: 7px; padding: 3px 9px; cursor: pointer; }
+/* 펼침 표시(▾)는 글자 줄 밖 오른쪽 아래에 둬서 줄바꿈을 만들지 않게 */
+.cal-ag-item { position: relative; }
+.cal-ag-item--more .cal-ag-text::after { content: none; }
+.cal-ag-item--more::after { content: '▾'; position: absolute; right: 3px; bottom: 1px; font-size: 8px; line-height: 1; opacity: .45; }
+.cal-ag-item--more.open::after { content: '▴'; }
+html[data-shell="tabs"]:not([data-phone]) .cal-ag-item { letter-spacing: -0.35px; padding: 5px 5px; }
