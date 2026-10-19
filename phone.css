@@ -163,3 +163,26 @@ html[data-phone] #subjSummaryBtn { margin-left: auto !important; }
 .phone-install-banner .pib-text b { font-size: 14px; font-weight: 800; }
 .phone-install-banner .pib-how { font-size: 12.5px; font-weight: 600; color: #dfe9f7; margin-top: 3px; line-height: 1.5; word-break: keep-all; }
 .phone-install-banner .pib-btns { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+
+/* 휴대폰 캘린더: 세로로 긴 화면에서 칸이 길쭉해지지 않게 정사각형에 가깝게 고정하고, 아래에 누른 날짜의 목록을 보여 준다 */
+@media (max-width: 699px) {
+  html[data-phone][data-shell="tabs"][data-tab="calendar"] #calendarCard { overflow-y: auto; }
+  html[data-phone] #calGrid { flex: 0 0 auto; grid-auto-rows: auto; gap: 4px; }
+  html[data-phone] #calGrid .cal-cell { aspect-ratio: 1 / 1.08; min-height: 0; padding: 3px 3px 2px; }
+  html[data-phone] .cal-cell--sel { box-shadow: 0 0 0 2px var(--accent); }
+  html[data-phone] #calAgenda { margin-top: 10px; padding: 10px 12px 12px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; }
+  html[data-phone] .cal-ag-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 14px; }
+  html[data-phone] .cal-ag-head button { font-family: inherit; font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border: none; border-radius: 8px; padding: 5px 10px; }
+  html[data-phone] .cal-ag-empty { font-size: 13px; color: var(--text-faint); padding: 6px 2px; }
+  html[data-phone] .cal-ag-item { display: flex; align-items: flex-start; gap: 8px; padding: 7px 8px; margin-bottom: 5px; background: var(--row-bg); border-radius: 9px; font-size: 13px; line-height: 1.45; }
+  html[data-phone] .cal-ag-item i { flex: 0 0 4px; align-self: stretch; border-radius: 3px; }
+  html[data-phone] .cal-ag-kind { flex: 0 0 auto; font-size: 11px; font-weight: 800; min-width: 52px; padding-top: 1px; }
+  html[data-phone] .cal-ag-text { flex: 1; min-width: 0; font-weight: 600; word-break: keep-all; overflow-wrap: anywhere; white-space: pre-line; }
+}
+@media (max-width: 699px) {
+  /* 폭이 좁은 칸에서는 학급/교과 배지를 위아래로 쌓아 잘리지 않게 한다 */
+  html[data-phone] .cal-badges { flex-wrap: wrap; gap: 2px; }
+  html[data-phone] .cal-badge { padding: 0 4px 0 2px; }
+  html[data-phone] .cal-badge svg, html[data-phone] .cal-badge svg.fl { width: 10px !important; height: 10px !important; }
+  html[data-phone] .cal-badge b { font-size: 9.5px; }
+}

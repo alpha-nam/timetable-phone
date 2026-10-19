@@ -2281,6 +2281,55 @@
     return svg ? svg.outerHTML : '';
   }
 
+  // ── 휴대폰(폭 좁은 화면) 캘린더: 칸을 정사각형에 가깝게 두고, 남는 아래 공간에 "누른 날짜"의 일정·할 일·출결을 목록으로 보여 준다 ──
+  var calSelected = null;       // 'YYYYMMDD'
+  var calEventDays = {};        // 이번에 그린 달의 학사일정 이름
+  function agendaMode() { return document.documentElement.hasAttribute('data-phone') && window.innerWidth < 700; }
+  function dateFromKey(k) { return new Date(+k.slice(0, 4), +k.slice(4, 6) - 1, +k.slice(6, 8)); }
+
+  function selectCalDate(key) {
+    var d = dateFromKey(key);
+    if (d.getFullYear() !== calViewYear || d.getMonth() !== calViewMonth) {   // 다른 달의 날짜를 눌렀으면 그 달로 넘어간다
+      calViewYear = d.getFullYear(); calViewMonth = d.getMonth(); calSelected = key; renderCalendar(); return;
+    }
+    calSelected = key;
+    Array.prototype.forEach.call(document.querySelectorAll('#calGrid .cal-cell'), function (c) { c.classList.toggle('cal-cell--sel', c.dataset.date === key); });
+    renderAgenda();
+  }
+
+  function renderAgenda() {
+    var box = $('calAgenda');
+    if (!box) return;
+    if (!agendaMode() || !calSelected) { box.hidden = true; return; }
+    var date = dateFromKey(calSelected);
+    box.hidden = false;
+    box.innerHTML = '';
+    var head = document.createElement('div'); head.className = 'cal-ag-head';
+    var ttl = document.createElement('b'); ttl.textContent = (date.getMonth() + 1) + '월 ' + date.getDate() + '일 (' + dayLabel(date.getDay()) + ')';
+    var open = document.createElement('button'); open.type = 'button'; open.textContent = '입력·수정';
+    open.addEventListener('click', function (ev) { ev.stopPropagation(); openDayTaskEditor(date); });
+    head.appendChild(ttl); head.appendChild(open);
+    box.appendChild(head);
+
+    var items = [];
+    if (calEventDays[calSelected]) items.push({ c: '#3d7fd6', k: '학사일정', t: calEventDays[calSelected], tab: 'task' });
+    if (dayTasks[calSelected]) items.push({ c: '#2fa866', k: '할 일', t: dayTasks[calSelected], tab: 'task' });
+    attendanceRecordsForDate(calSelected).forEach(function (r) { items.push({ c: '#d6483f', k: '학급 출결', t: attendanceStudentLabel(r) + ' · ' + attendanceTypeLabel(r), tab: 'attendance' }); });
+    (window.SUBJ ? window.SUBJ.listOn(calSelected) : []).forEach(function (r) {
+      items.push({ c: '#8b7cf6', k: '교과 출결', t: r.period + '교시 ' + (r.label ? r.label + ' ' : '') + r.subject + ' · ' + r.grade + '-' + r.ban + '-' + r.no + ' ' + r.studentName + ' · ' + r.type, tab: 'subject' });
+    });
+    if (!items.length) { var e = document.createElement('div'); e.className = 'cal-ag-empty'; e.textContent = '이 날짜에는 일정이 없어요.'; box.appendChild(e); return; }
+    items.forEach(function (it) {
+      var row = document.createElement('div'); row.className = 'cal-ag-item';
+      var bar = document.createElement('i'); bar.style.background = it.c;
+      var kind = document.createElement('span'); kind.className = 'cal-ag-kind'; kind.textContent = it.k; kind.style.color = it.c;
+      var txt = document.createElement('span'); txt.className = 'cal-ag-text'; txt.textContent = it.t;
+      row.appendChild(bar); row.appendChild(kind); row.appendChild(txt);
+      row.addEventListener('click', function (ev) { ev.stopPropagation(); dayEditorTab = it.tab; openDayTaskEditor(date); });
+      box.appendChild(row);
+    });
+  }
+
   function renderCalendar() {
     var now = new Date();
     if (calViewYear === null) { calViewYear = now.getFullYear(); calViewMonth = now.getMonth(); }
@@ -2309,6 +2358,10 @@
     fetchMonthEvents(year, month).then(function (eventDays) {
       var grid = $('calGrid');
       grid.innerHTML = '';
+      calEventDays = eventDays || {};
+      // 선택한 날짜: 보고 있는 달 안이어야 한다(아니면 오늘 또는 그 달 1일)
+      var selOk = calSelected && calSelected.slice(0, 6) === year + String(month + 1).padStart(2, '0');
+      if (!selOk) calSelected = (year === now.getFullYear() && month === now.getMonth()) ? ymd(now) : ymd(new Date(year, month, 1));
 
       var firstWeekday = new Date(year, month, 1).getDay();
       var daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -2392,12 +2445,15 @@
         if (!inMonth) cell.classList.add('cal-cell--other');
         if (ymd(cellDate) === todayStr) cell.classList.add('cal-cell--today');
 
+        cell.dataset.date = ymd(cellDate);
+        if (agendaMode() && ymd(cellDate) === calSelected) cell.classList.add('cal-cell--sel');
         (function (clickDate) {
-          cell.addEventListener('click', function () { openDayTaskEditor(clickDate); });
+          cell.addEventListener('click', function () { if (agendaMode()) selectCalDate(ymd(clickDate)); else openDayTaskEditor(clickDate); });
         })(cellDate);
 
         grid.appendChild(cell);
       }
+      renderAgenda();
     });
   }
 
