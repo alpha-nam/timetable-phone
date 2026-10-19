@@ -231,7 +231,7 @@
 
   // ───────── 작은 UI 도구 ─────────
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
-  function closeMenu() { var m = $('boardMenu'); if (m) m.remove(); }
+  function closeMenu() { var m = $('boardMenu'); if (m) { m.remove(); if (m._onClose) m._onClose(); } }
   function openMenu(anchor, items) {
     closeMenu();
     var m = el('div', 'board-menu'); m.id = 'boardMenu';
@@ -476,11 +476,12 @@
     var pending = false;   // 시작일만 찍은 상태: 다음에 누르는 날이 종료일
     function pick(k) { if (k) card.date = k; else card.date = null; if (!k) delete card.date; delete card.dateEnd; save(); closeMenu(); render(); }
     function pickDay(k) {
-      if (!pending) { card.date = k; delete card.dateEnd; pending = true; save(); render(); paint(); return; }
+      if (!pending) { card.date = k; delete card.dateEnd; pending = true; save(); paint(); return; }   // 달력을 열어 둔 채로(render 하면 달력이 닫힌다)
       var s = card.date;
       if (k === s) { delete card.dateEnd; } else if (k < s) { card.date = k; card.dateEnd = s; } else { card.dateEnd = k; }
       pending = false; save(); closeMenu(); render();
     }
+    m._onClose = function () { if (pending) { pending = false; render(); } };   // 시작일만 찍고 닫으면 하루짜리로 두고 화면만 갱신
     function paint() {
       m.innerHTML = '';
       var head = el('div', 'bdp-head');
