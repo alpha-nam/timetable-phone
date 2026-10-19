@@ -2324,7 +2324,7 @@
   // ── 휴대폰(폭 좁은 화면) 캘린더: 칸을 정사각형에 가깝게 두고, 남는 아래 공간에 "누른 날짜"의 일정·할 일·출결을 목록으로 보여 준다 ──
   var calSelected = null;       // 'YYYYMMDD'
   var calEventDays = {};        // 이번에 그린 달의 학사일정 이름
-  function agendaMode() { return document.documentElement.hasAttribute('data-phone') && window.innerWidth < 700; }
+  function agendaMode() { return document.documentElement.hasAttribute('data-phone'); }   // 폰·태블릿·폴드 모두 같은 방식(칸은 배지, 아래에 목록)
   function dateFromKey(k) { return new Date(+k.slice(0, 4), +k.slice(4, 6) - 1, +k.slice(6, 8)); }
 
   function selectCalDate(key) {
