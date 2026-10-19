@@ -1748,3 +1748,6 @@ html[data-shell="tabs"]:not([data-phone]) .cal-ag-item { display: flex; align-it
 html[data-shell="tabs"]:not([data-phone]) .cal-ag-item i { flex: 0 0 4px; align-self: stretch; border-radius: 3px; }
 html[data-shell="tabs"]:not([data-phone]) .cal-ag-kind { flex: 0 0 auto; font-size: 11px; font-weight: 800; min-width: 52px; padding-top: 1px; }
 html[data-shell="tabs"]:not([data-phone]) .cal-ag-text { flex: 1; min-width: 0; font-weight: 600; word-break: keep-all; overflow-wrap: anywhere; white-space: pre-line; }
+
+/* hidden 속성이 display 지정에 밀리지 않게(학사일정 목록을 펼치면 달력이 완전히 사라져야 한다) */
+#calWeekdays[hidden], #calGrid[hidden], #calAgenda[hidden], #calEventsList[hidden], #calEventsBtn[hidden] { display: none !important; }
