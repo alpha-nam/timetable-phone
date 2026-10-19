@@ -1778,8 +1778,10 @@ html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calEventsBtn { j
 .cal-ag-item--more::after { content: '▾'; position: absolute; right: 3px; bottom: 1px; font-size: 8px; line-height: 1; opacity: .45; }
 .cal-ag-item--more.open::after { content: '▴'; }
 html[data-shell="tabs"]:not([data-phone]) .cal-ag-item { letter-spacing: -0.35px; padding: 5px 5px; }
-/* 펼침 표시(▾·▴) 없앰 */
-.cal-ag-item--more::after, .cal-ag-item--more.open::after, .cal-ag-item--more .cal-ag-text::after { content: none !important; }
+/* 펼침 표시(▾·▴): 글자 줄 밖 오른쪽 아래 구석 */
+.cal-ag-item--more .cal-ag-text::after { content: none !important; }
+.cal-ag-item--more::after { content: '▾' !important; }
+.cal-ag-item--more.open::after { content: '▴' !important; }
 /* 목록 항목은 한 줄로만(넘치면 …로 줄임. 전체 내용은 눌러서 수정 팝업에서 확인) */
 .cal-ag-item .cal-ag-text { white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; }
 html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calendarCard { column-gap: 6px; }
