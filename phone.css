@@ -208,3 +208,10 @@ html[data-phone] select { font-size: 16px !important; }
   html[data-phone] #dayTaskOverlay .att-record-list { max-height: none; overflow: visible; }
   html[data-phone] #dayTaskOverlay .day-task-close--bottom { position: sticky; bottom: 0; display: block; width: 100%; margin: 16px 0 0; padding: 12px; font-size: 15px; box-shadow: 0 -8px 12px var(--panel-bg); }
 }
+
+/* 휴대폰 캘린더: 학사일정 글자는 칸에서 빼고 파란 배지로(이름은 날짜를 누르면 아래 목록에). 배지 최대 4개는 2줄로 */
+@media (max-width: 699px) {
+  html[data-phone] #calGrid .cal-event-label { display: none !important; }
+  html[data-phone] #calGrid .cal-badges { display: grid; grid-template-columns: repeat(2, auto); justify-content: center; gap: 2px; }
+  html[data-phone] #calGrid .cal-badge { justify-content: center; }
+}

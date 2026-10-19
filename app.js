@@ -2378,6 +2378,7 @@
     var open = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
     if (kind === 'cls') return open + '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8 12.5l2.7 2.7L16 9.5"/></svg>';
     if (kind === 'subj') return open + '<rect x="5" y="4.5" width="14" height="16.5" rx="3"/><path d="M9 4.5V3h6v1.5"/><path d="M8.5 11.5l1.6 1.6 2.9-3M8.5 17h7"/></svg>';
+    if (kind === 'event') return open + '<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>';
     return open + '<path d="M6 3.5h8.5L19 8v12.5H6z"/><path d="M9 12.5h7M9 16.5h5"/></svg>';
   }
 
@@ -2467,7 +2468,8 @@
         var attRecords = attendanceRecordsForDate(ymd(cellDate));
         var subjRecords = window.SUBJ ? window.SUBJ.listOn(ymd(cellDate)) : [];
         var memoBadgeRecs = agendaMode() ? dayMemos : [];
-        if (attRecords.length || subjRecords.length || memoBadgeRecs.length) {
+        var eventBadge = agendaMode() && eventName;
+        if (attRecords.length || subjRecords.length || memoBadgeRecs.length || eventBadge) {
           var badges = document.createElement('div');
           badges.className = 'cal-badges';
           var addBadge = function (kind, count, title) {
@@ -2475,9 +2477,11 @@
             b.className = 'cal-badge cal-badge--' + kind;
             b.innerHTML = badgeIcon(kind) + '<b></b>';
             b.lastChild.textContent = count;
+            if (count === '') b.lastChild.remove();
             b.title = title;
             badges.appendChild(b);
           };
+          if (eventBadge) addBadge('event', '', '학사일정\n' + eventName);
           if (memoBadgeRecs.length) addBadge('memo', memoBadgeRecs.length, '메모\n' + memoBadgeRecs.map(function (m3) { return (m3.done ? '✓ ' : '') + m3.text; }).join('\n'));
           if (attRecords.length) addBadge('cls', attRecords.length, '학급 출결\n' + attRecords.map(function (r) { return attendanceStudentLabel(r) + ' - ' + attendanceTypeLabel(r); }).join('\n'));
           if (subjRecords.length) addBadge('subj', subjRecords.length, '교과 출결\n' + subjRecords.map(function (r) { return r.period + '교시 ' + r.studentName + ' - ' + r.type; }).join('\n'));

@@ -1704,3 +1704,6 @@ html[data-shell="tabs"] #attendanceSummaryBtn { display: none !important; }
 /* 메모 기간 선택 */
 .bdp-day.inrange { background: rgba(47,168,102,0.18); border-radius: 0; }
 .bdp-hint { font-size: 11px; color: var(--text-sub); text-align: center; margin: 6px 0 2px; }
+
+.cal-badge--event { background: rgba(61,127,214,0.16); color: #2a64b0; }
+.cal-cell--today .cal-badge--event { color: #2a64b0; }
