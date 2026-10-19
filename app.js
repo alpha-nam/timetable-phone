@@ -2406,9 +2406,9 @@
     var items = [];
     if (calEventDays[calSelected]) items.push({ c: '#3d7fd6', k: '학사일정', t: calEventDays[calSelected], tab: 'memo' });
     (window.BOARD && window.BOARD.memosOn ? window.BOARD.memosOn(calSelected) : []).forEach(function (mm) { items.push({ c: '#2fa866', k: '메모', t: (mm.done ? '✓ ' : '') + mm.text + (mm.dateEnd && mm.dateEnd !== mm.date ? '  (' + Number(mm.date.slice(4, 6)) + '/' + Number(mm.date.slice(6)) + '~' + Number(mm.dateEnd.slice(4, 6)) + '/' + Number(mm.dateEnd.slice(6)) + ')' : ''), tab: 'memo' }); });
-    attendanceRecordsForDate(calSelected).forEach(function (r) { items.push({ c: '#d6483f', k: '학급 출결', t: attendanceStudentLabel(r) + ' · ' + r.type, d: [r.reason ? '사유  ' + r.reason : '', r.memo ? '메모  ' + r.memo : ''].filter(Boolean).join('\n'), tab: 'attendance' }); });
+    attendanceRecordsForDate(calSelected).forEach(function (r) { items.push({ c: '#d6483f', k: '학급 출결', t: attendanceStudentLabel(r) + ' · ' + attendanceTypeLabel(r), d: r.memo ? '메모  ' + r.memo : '', tab: 'attendance' }); });
     (window.SUBJ ? window.SUBJ.listOn(calSelected) : []).forEach(function (r) {
-      items.push({ c: '#8b7cf6', k: '교과 출결', t: r.period + '교시 ' + (r.label ? r.label + ' ' : '') + r.subject + ' · ' + r.grade + '-' + r.ban + '-' + r.no + ' ' + r.studentName + ' · ' + r.type, d: [r.reason ? '사유  ' + r.reason : '', r.memo ? '메모  ' + r.memo : ''].filter(Boolean).join('\n'), tab: 'subject' });
+      items.push({ c: '#8b7cf6', k: '교과 출결', t: r.period + '교시 ' + r.subject + ' · ' + r.grade + '-' + r.ban + '-' + r.no + ' ' + r.studentName + ' · ' + (r.reason || '') + r.type, d: r.memo ? '메모  ' + r.memo : '', tab: 'subject' });
     });
     if (!items.length) { var e = document.createElement('div'); e.className = 'cal-ag-empty'; e.textContent = '이 날짜에는 일정이 없어요.'; box.appendChild(e); return; }
     items.forEach(function (it) {
