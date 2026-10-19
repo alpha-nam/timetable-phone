@@ -186,3 +186,4 @@ html[data-phone] #subjSummaryBtn { margin-left: auto !important; }
   html[data-phone] .cal-badge svg, html[data-phone] .cal-badge svg.fl { width: 10px !important; height: 10px !important; }
   html[data-phone] .cal-badge b { font-size: 9.5px; }
 }
+.phone-sync-btns { flex-wrap: wrap; } .phone-sync-btns .phone-btn { flex: 1 1 40%; white-space: nowrap; }

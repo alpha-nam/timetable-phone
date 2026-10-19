@@ -349,6 +349,14 @@
       } else {
         row.appendChild(btn('지금 동기화', '', function () { if (window.TTAPP && window.TTAPP.syncNow) window.TTAPP.syncNow(); sheet.hidden = true; }));
       }
+      // "다시 안 보기"를 눌렀어도 여기서 언제든 홈 화면에 추가 안내를 다시 볼 수 있다.
+      if (!isStandalone() && (isIOS() || /Android/i.test(navigator.userAgent))) {
+        row.appendChild(btn('홈 화면에 추가', 'ghost', function () {
+          lsSet('tt_installNever', null); installLaterThisVisit = false;
+          var oldBn = $('phoneInstallBanner'); if (oldBn) oldBn.remove();
+          sheet.hidden = true; showInstallBanner();
+        }));
+      }
       row.appendChild(btn('로그아웃', 'ghost', function () {
         if (!window.confirm('로그아웃할까요? 이 휴대폰에서 연동이 끊기고, 다시 쓰려면 로그인해야 해요.')) return;
         window.TTCLOUD.disconnect().then(function () { location.reload(); });

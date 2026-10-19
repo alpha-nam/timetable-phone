@@ -1643,3 +1643,6 @@ html[data-shell="tabs"][data-tab="today"] .weather-day-temps .weather-day-temp {
 /* 학급출결 탭: 기록 목록은 자기 안에서 따로 스크롤(160px 제한)하지 않고, 남는 화면을 쓰다가 넘치면 탭 전체가 스크롤된다(캘린더 팝업 안에서만 160px 제한 유지) */
 #attTabBody .att-record-list { max-height: none; overflow: visible; }
 .att-list-count { margin-left: 4px; font-weight: 700; color: var(--accent); }
+
+/* 캘린더 위의 체크 모양 버튼("출결 종합")은 기능이 애매해서 숨긴다(출결 종합은 학급출결·교과출결 탭에서 연다) */
+html[data-shell="tabs"] #attendanceSummaryBtn { display: none !important; }
