@@ -1700,3 +1700,7 @@ html[data-shell="tabs"] #attendanceSummaryBtn { display: none !important; }
 /* 팝업(날짜 상세)의 "닫기" 버튼: 눈에 잘 띄게 */
 .day-task-close--bottom { background: var(--accent); color: #fff; font-weight: 800; font-size: 14px; border-radius: 10px; padding: 9px 30px; }
 .day-task-close--bottom:hover { filter: brightness(1.08); }
+
+/* 메모 기간 선택 */
+.bdp-day.inrange { background: rgba(47,168,102,0.18); border-radius: 0; }
+.bdp-hint { font-size: 11px; color: var(--text-sub); text-align: center; margin: 6px 0 2px; }

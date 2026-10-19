@@ -30,7 +30,7 @@
   function read(key, fallback) { try { var v = JSON.parse(localStorage.getItem(key)); return v == null ? fallback : v; } catch (e) { return fallback; } }
   function write(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* 저장 불가 */ } }
 
-  function sigCard(c) { return JSON.stringify([c.text, !!c.done, c.sectionId, c.order, c.tag ? [c.tag.text, c.tag.color] : null, styleSig(c.style), c.date || '']); }
+  function sigCard(c) { return JSON.stringify([c.text, !!c.done, c.sectionId, c.order, c.tag ? [c.tag.text, c.tag.color] : null, styleSig(c.style), c.date || '', c.dateEnd || '']); }
   function sigSec(s) { return JSON.stringify([s.name, s.order, styleSig(s.style)]); }
   function sigMap(list, fn) { var m = {}; list.forEach(function (x) { if (x && x.id) m[x.id] = fn(x); }); return m; }
 
@@ -436,8 +436,8 @@
         main.appendChild(tag);
       }
       // 날짜(선택): 캘린더에 이 날짜로 보인다. 지났는데 안 끝낸 메모는 붉게.
-      var late = !!c.date && isPastDate(c.date) && !c.done;
-      var dchip = el('button', 'bd-date ' + (c.date ? (late ? 'past' : 'on') : 'off'), c.date ? dateChipText(c.date) + (late ? ' · 지남' : '') : '+ 날짜');
+      var late = !!c.date && isPastDate(c.dateEnd || c.date) && !c.done;
+      var dchip = el('button', 'bd-date ' + (c.date ? (late ? 'past' : 'on') : 'off'), c.date ? rangeChipText(c) + (late ? ' · 지남' : '') : '+ 날짜');
       dchip.type = 'button'; dchip.title = c.date ? '날짜 바꾸기' : '날짜 지정(캘린더에 표시)';
       dchip.addEventListener('click', function (ev) { ev.stopPropagation(); openDatePick(c, dchip); });
       main.appendChild(dchip);
@@ -451,7 +451,7 @@
         { label: c.tag ? '꼬리표 바꾸기' : '꼬리표 달기', onClick: function () { promptTag(c, more); } },
         c.tag ? { label: '꼬리표 지우기', onClick: function () { delete c.tag; save(); render(); } } : null,
         { label: c.date ? '날짜 바꾸기' : '날짜 지정', onClick: function () { openDatePick(c, more); } },
-        c.date ? { label: '날짜 지우기', onClick: function () { delete c.date; save(); render(); } } : null,
+        c.date ? { label: '날짜 지우기', onClick: function () { delete c.date; delete c.dateEnd; save(); render(); } } : null,
         '-', { label: '삭제', danger: true, onClick: function () { deleteCard(c); render(); } }
       ].filter(Boolean));
     });
@@ -464,6 +464,7 @@
   function dkey(d) { return d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0'); }
   function dparse(k) { return new Date(+k.slice(0, 4), +k.slice(4, 6) - 1, +k.slice(6, 8)); }
   function dateChipText(k) { var d = dparse(k); return (d.getMonth() + 1) + '/' + d.getDate() + ' (' + DOW[d.getDay()] + ')'; }
+  function rangeChipText(c) { return c.dateEnd && c.dateEnd !== c.date ? dateChipText(c.date) + ' ~ ' + dateChipText(c.dateEnd) : dateChipText(c.date); }
   function isPastDate(k) { return k < dkey(new Date()); }
 
   // 작은 달력으로 날짜를 고른다(날짜 지우기·오늘 버튼 포함).
@@ -472,7 +473,14 @@
     var m = el('div', 'board-menu board-datepick'); m.id = 'boardMenu';
     var base = card.date ? dparse(card.date) : new Date();
     var vy = base.getFullYear(), vm = base.getMonth();
-    function pick(k) { if (k) card.date = k; else delete card.date; save(); closeMenu(); render(); }
+    var pending = false;   // 시작일만 찍은 상태: 다음에 누르는 날이 종료일
+    function pick(k) { if (k) card.date = k; else card.date = null; if (!k) delete card.date; delete card.dateEnd; save(); closeMenu(); render(); }
+    function pickDay(k) {
+      if (!pending) { card.date = k; delete card.dateEnd; pending = true; save(); render(); paint(); return; }
+      var s = card.date;
+      if (k === s) { delete card.dateEnd; } else if (k < s) { card.date = k; card.dateEnd = s; } else { card.dateEnd = k; }
+      pending = false; save(); closeMenu(); render();
+    }
     function paint() {
       m.innerHTML = '';
       var head = el('div', 'bdp-head');
@@ -487,12 +495,13 @@
       var first = new Date(vy, vm, 1), start = new Date(vy, vm, 1 - first.getDay()), today = dkey(new Date());
       for (var i = 0; i < 42; i++) {
         var d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i), k = dkey(d);
-        var b = el('button', 'bdp-day' + (d.getMonth() !== vm ? ' other' : '') + (k === card.date ? ' sel' : '') + (k === today ? ' today' : '') + (d.getDay() === 0 ? ' sun' : d.getDay() === 6 ? ' sat' : ''), String(d.getDate()));
+        var b = el('button', 'bdp-day' + (d.getMonth() !== vm ? ' other' : '') + (k === card.date || k === card.dateEnd ? ' sel' : card.date && card.dateEnd && k > card.date && k < card.dateEnd ? ' inrange' : '') + (k === today ? ' today' : '') + (d.getDay() === 0 ? ' sun' : d.getDay() === 6 ? ' sat' : ''), String(d.getDate()));
         b.type = 'button';
-        (function (kk) { b.addEventListener('click', function (ev) { ev.stopPropagation(); pick(kk); }); })(k);
+        (function (kk) { b.addEventListener('click', function (ev) { ev.stopPropagation(); pickDay(kk); }); })(k);
         grid.appendChild(b);
       }
       m.appendChild(grid);
+      m.appendChild(el('div', 'bdp-hint', pending ? '끝나는 날을 누르세요 (하루면 같은 날 한 번 더)' : card.date ? rangeChipText(card) : '하루는 한 번, 기간은 시작일 → 종료일 순서로 누르세요'));
       var foot = el('div', 'bdp-foot');
       var clr = el('button', 'danger', '날짜 지우기'); clr.type = 'button';
       clr.addEventListener('click', function (ev) { ev.stopPropagation(); pick(''); });
@@ -512,7 +521,7 @@
 
   // 캘린더가 쓴다: 그 날짜(YYYYMMDD)에 지정된 메모(안 끝낸 것 먼저, 그다음 보드 순서)
   function memosOn(dateStr) {
-    return cards.filter(function (c) { return c.date === dateStr; })
+    return cards.filter(function (c) { return c.date && c.date <= dateStr && dateStr <= (c.dateEnd || c.date); })
       .sort(function (a, b) { return (a.done ? 1 : 0) - (b.done ? 1 : 0) || (a.order || 0) - (b.order || 0); });
   }
 
