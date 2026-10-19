@@ -962,7 +962,16 @@
   // ── 캘린더(이번 달 월간력, NEIS 학사일정 이름을 날짜 칸에 바로 표시) ──
   var WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
 
+  var monthEventCache = {};   // 'YYYY-M' → { at, p } (메모를 고칠 때마다 캘린더를 다시 그려도 학사일정을 매번 새로 받지 않게 10분간 기억한다)
   function fetchMonthEvents(year, month) {
+    var ck = year + '-' + month, hit = monthEventCache[ck];
+    if (hit && Date.now() - hit.at < 10 * 60 * 1000) return hit.p;
+    var pr = fetchMonthEventsRaw(year, month);
+    monthEventCache[ck] = { at: Date.now(), p: pr };
+    pr.then(function (d) { if (!d || !Object.keys(d).length) delete monthEventCache[ck]; });   // 실패·빈 결과는 기억하지 않는다
+    return pr;
+  }
+  function fetchMonthEventsRaw(year, month) {
     var neis = CONFIG.neis;
     var from = new Date(year, month, 1);
     var to = new Date(year, month + 1, 0);
@@ -2314,6 +2323,7 @@
     var items = [];
     if (calEventDays[calSelected]) items.push({ c: '#3d7fd6', k: '학사일정', t: calEventDays[calSelected], tab: 'task' });
     if (dayTasks[calSelected]) items.push({ c: '#2fa866', k: '할 일', t: dayTasks[calSelected], tab: 'task' });
+    (window.BOARD && window.BOARD.memosOn ? window.BOARD.memosOn(calSelected) : []).forEach(function (mm) { items.push({ c: '#2fa866', k: '메모', t: (mm.done ? '✓ ' : '') + mm.text, tab: 'memo' }); });
     attendanceRecordsForDate(calSelected).forEach(function (r) { items.push({ c: '#d6483f', k: '학급 출결', t: attendanceStudentLabel(r) + ' · ' + attendanceTypeLabel(r), tab: 'attendance' }); });
     (window.SUBJ ? window.SUBJ.listOn(calSelected) : []).forEach(function (r) {
       items.push({ c: '#8b7cf6', k: '교과 출결', t: r.period + '교시 ' + (r.label ? r.label + ' ' : '') + r.subject + ' · ' + r.grade + '-' + r.ban + '-' + r.no + ' ' + r.studentName + ' · ' + r.type, tab: 'subject' });
@@ -2325,7 +2335,11 @@
       var kind = document.createElement('span'); kind.className = 'cal-ag-kind'; kind.textContent = it.k; kind.style.color = it.c;
       var txt = document.createElement('span'); txt.className = 'cal-ag-text'; txt.textContent = it.t;
       row.appendChild(bar); row.appendChild(kind); row.appendChild(txt);
-      row.addEventListener('click', function (ev) { ev.stopPropagation(); dayEditorTab = it.tab; openDayTaskEditor(date); });
+      row.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        if (it.tab === 'memo') { setTab('memo', true); return; }   // 메모는 메모 탭에서 고친다
+        dayEditorTab = it.tab; openDayTaskEditor(date);
+      });
       box.appendChild(row);
     });
   }
@@ -2399,6 +2413,16 @@
           label.title = eventName;
           cell.appendChild(label);
           cell.classList.add('cal-cell--event');
+        }
+
+        // 날짜를 지정한 메모(메모 탭의 카드): 첫 메모를 초록 한 줄로, 여러 개면 "메모 N"
+        var dayMemos = window.BOARD && window.BOARD.memosOn ? window.BOARD.memosOn(ymd(cellDate)) : [];
+        if (dayMemos.length) {
+          var ml = document.createElement('div');
+          ml.className = 'cal-memo-label' + (dayMemos[0].done && dayMemos.length === 1 ? ' done' : '');
+          ml.textContent = dayMemos.length === 1 ? dayMemos[0].text.split('\n')[0] : '메모 ' + dayMemos.length;
+          ml.title = dayMemos.map(function (m2) { return (m2.done ? '✓ ' : '') + m2.text; }).join('\n');
+          cell.appendChild(ml);
         }
 
         var taskText = dayTasks[ymd(cellDate)];

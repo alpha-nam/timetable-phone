@@ -30,7 +30,7 @@
   function read(key, fallback) { try { var v = JSON.parse(localStorage.getItem(key)); return v == null ? fallback : v; } catch (e) { return fallback; } }
   function write(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* 저장 불가 */ } }
 
-  function sigCard(c) { return JSON.stringify([c.text, !!c.done, c.sectionId, c.order, c.tag ? [c.tag.text, c.tag.color] : null, styleSig(c.style)]); }
+  function sigCard(c) { return JSON.stringify([c.text, !!c.done, c.sectionId, c.order, c.tag ? [c.tag.text, c.tag.color] : null, styleSig(c.style), c.date || '']); }
   function sigSec(s) { return JSON.stringify([s.name, s.order, styleSig(s.style)]); }
   function sigMap(list, fn) { var m = {}; list.forEach(function (x) { if (x && x.id) m[x.id] = fn(x); }); return m; }
 
@@ -75,6 +75,7 @@
     write(KEYS.cards, cards); write(KEYS.sections, sections); write(KEYS.tombs, tombs); write(KEYS.secTombs, secTombs);
     write(KEYS.trash, trash); write(KEYS.trashTombs, trashTombs);
     if (app().scheduleSync) app().scheduleSync();
+    if (app().refreshCalendar) app().refreshCalendar();   // 날짜가 있는 메모가 캘린더에 보이므로 같이 갱신
   }
 
   // ───────── 구글 동기화 연결부 ─────────
@@ -434,6 +435,12 @@
         var tag = el('span', 'bd-tag', c.tag.text); tag.style.background = c.tag.color || TAG_COLORS[0];
         main.appendChild(tag);
       }
+      // 날짜(선택): 캘린더에 이 날짜로 보인다. 지났는데 안 끝낸 메모는 붉게.
+      var late = !!c.date && isPastDate(c.date) && !c.done;
+      var dchip = el('button', 'bd-date ' + (c.date ? (late ? 'past' : 'on') : 'off'), c.date ? dateChipText(c.date) + (late ? ' · 지남' : '') : '+ 날짜');
+      dchip.type = 'button'; dchip.title = c.date ? '날짜 바꾸기' : '날짜 지정(캘린더에 표시)';
+      dchip.addEventListener('click', function (ev) { ev.stopPropagation(); openDatePick(c, dchip); });
+      main.appendChild(dchip);
     }
     var more = el('button', 'bd-more', '⋮'); more.type = 'button'; more.title = '메모 메뉴';
     more.addEventListener('click', function (ev) {
@@ -443,11 +450,70 @@
         { label: '꾸미기', onClick: function () { openStylePanel(more, c, 'card'); } },
         { label: c.tag ? '꼬리표 바꾸기' : '꼬리표 달기', onClick: function () { promptTag(c, more); } },
         c.tag ? { label: '꼬리표 지우기', onClick: function () { delete c.tag; save(); render(); } } : null,
+        { label: c.date ? '날짜 바꾸기' : '날짜 지정', onClick: function () { openDatePick(c, more); } },
+        c.date ? { label: '날짜 지우기', onClick: function () { delete c.date; save(); render(); } } : null,
         '-', { label: '삭제', danger: true, onClick: function () { deleteCard(c); render(); } }
       ].filter(Boolean));
     });
     row.appendChild(grip); row.appendChild(chk); row.appendChild(main); row.appendChild(more);
     return row;
+  }
+
+  // ───────── 메모 날짜(선택) ─────────
+  var DOW = ['일', '월', '화', '수', '목', '금', '토'];
+  function dkey(d) { return d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0'); }
+  function dparse(k) { return new Date(+k.slice(0, 4), +k.slice(4, 6) - 1, +k.slice(6, 8)); }
+  function dateChipText(k) { var d = dparse(k); return (d.getMonth() + 1) + '/' + d.getDate() + ' (' + DOW[d.getDay()] + ')'; }
+  function isPastDate(k) { return k < dkey(new Date()); }
+
+  // 작은 달력으로 날짜를 고른다(날짜 지우기·오늘 버튼 포함).
+  function openDatePick(card, anchor) {
+    closeMenu();
+    var m = el('div', 'board-menu board-datepick'); m.id = 'boardMenu';
+    var base = card.date ? dparse(card.date) : new Date();
+    var vy = base.getFullYear(), vm = base.getMonth();
+    function pick(k) { if (k) card.date = k; else delete card.date; save(); closeMenu(); render(); }
+    function paint() {
+      m.innerHTML = '';
+      var head = el('div', 'bdp-head');
+      var prev = el('button', '', '‹'); prev.type = 'button';
+      var next = el('button', '', '›'); next.type = 'button';
+      prev.addEventListener('click', function (ev) { ev.stopPropagation(); vm--; if (vm < 0) { vm = 11; vy--; } paint(); });
+      next.addEventListener('click', function (ev) { ev.stopPropagation(); vm++; if (vm > 11) { vm = 0; vy++; } paint(); });
+      head.appendChild(prev); head.appendChild(el('span', '', vy + '년 ' + (vm + 1) + '월')); head.appendChild(next);
+      m.appendChild(head);
+      var grid = el('div', 'bdp-grid');
+      DOW.forEach(function (n, i) { grid.appendChild(el('span', 'bdp-dow' + (i === 0 ? ' sun' : i === 6 ? ' sat' : ''), n)); });
+      var first = new Date(vy, vm, 1), start = new Date(vy, vm, 1 - first.getDay()), today = dkey(new Date());
+      for (var i = 0; i < 42; i++) {
+        var d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i), k = dkey(d);
+        var b = el('button', 'bdp-day' + (d.getMonth() !== vm ? ' other' : '') + (k === card.date ? ' sel' : '') + (k === today ? ' today' : '') + (d.getDay() === 0 ? ' sun' : d.getDay() === 6 ? ' sat' : ''), String(d.getDate()));
+        b.type = 'button';
+        (function (kk) { b.addEventListener('click', function (ev) { ev.stopPropagation(); pick(kk); }); })(k);
+        grid.appendChild(b);
+      }
+      m.appendChild(grid);
+      var foot = el('div', 'bdp-foot');
+      var clr = el('button', 'danger', '날짜 지우기'); clr.type = 'button';
+      clr.addEventListener('click', function (ev) { ev.stopPropagation(); pick(''); });
+      var td = el('button', '', '오늘'); td.type = 'button';
+      td.addEventListener('click', function (ev) { ev.stopPropagation(); pick(dkey(new Date())); });
+      if (card.date) foot.appendChild(clr);
+      foot.appendChild(td);
+      m.appendChild(foot);
+    }
+    m.addEventListener('click', function (ev) { ev.stopPropagation(); });
+    paint();
+    $('board').appendChild(m);
+    var r = anchor.getBoundingClientRect();
+    m.style.top = Math.max(8, Math.min(r.bottom + 4, window.innerHeight - m.offsetHeight - 8)) + 'px';
+    m.style.left = Math.max(8, Math.min(r.left, window.innerWidth - m.offsetWidth - 8)) + 'px';
+  }
+
+  // 캘린더가 쓴다: 그 날짜(YYYYMMDD)에 지정된 메모(안 끝낸 것 먼저, 그다음 보드 순서)
+  function memosOn(dateStr) {
+    return cards.filter(function (c) { return c.date === dateStr; })
+      .sort(function (a, b) { return (a.done ? 1 : 0) - (b.done ? 1 : 0) || (a.order || 0) - (b.order || 0); });
   }
 
   function promptTag(card, anchor) {
@@ -930,6 +996,7 @@
   window.BOARD = {
     init: init, render: render, getSyncState: getSyncState, applySync: applySync,
     trash: function (kind, item) { addToTrash(kind, item); }, openRecovery: openRecovery,
+    memosOn: memosOn,
     exportState: exportState, importState: importState
   };
 })();

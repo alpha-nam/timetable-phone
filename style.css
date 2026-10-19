@@ -1646,3 +1646,31 @@ html[data-shell="tabs"][data-tab="today"] .weather-day-temps .weather-day-temp {
 
 /* 캘린더 위의 체크 모양 버튼("출결 종합")은 기능이 애매해서 숨긴다(출결 종합은 학급출결·교과출결 탭에서 연다) */
 html[data-shell="tabs"] #attendanceSummaryBtn { display: none !important; }
+
+/* 메모 날짜 칩 + 작은 달력 */
+.bd-date { display: inline-block; margin-top: 5px; font-family: inherit; font-size: 11px; font-weight: 700; border-radius: 99px; padding: 1px 8px; cursor: pointer; border: 1px solid transparent; }
+.bd-date.on { background: #e3f4d4; color: #3d7a1f; }
+.bd-date.past { background: #fdecea; color: #b3342a; }
+.bd-date.off { background: transparent; color: var(--text-veryfaint); border: 1px dashed var(--card-border); }
+.bd-date.off:hover { color: var(--accent); border-color: var(--accent); }
+.board-datepick { width: 232px; padding: 10px; }
+.bdp-head { display: flex; align-items: center; justify-content: space-between; font-weight: 800; font-size: 13px; margin-bottom: 6px; }
+.bdp-head button { font-family: inherit; font-size: 16px; font-weight: 700; color: var(--text-sub); background: var(--row-bg); border: none; border-radius: 8px; width: 28px; height: 26px; cursor: pointer; }
+.bdp-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.bdp-dow { text-align: center; font-size: 11px; font-weight: 700; color: var(--text-veryfaint); padding: 2px 0; }
+.bdp-dow.sun, .bdp-day.sun { color: var(--sun-color); }
+.bdp-dow.sat, .bdp-day.sat { color: var(--sat-color); }
+.bdp-day { font-family: inherit; font-size: 12px; font-weight: 600; background: transparent; color: var(--text); border: none; border-radius: 7px; height: 28px; cursor: pointer; }
+.bdp-day.other { opacity: .35; }
+.bdp-day:hover { background: var(--accent-soft); }
+.bdp-day.today { box-shadow: inset 0 0 0 1px var(--accent); }
+.bdp-day.sel { background: var(--accent); color: #fff; }
+.bdp-foot { display: flex; justify-content: space-between; margin-top: 8px; }
+.bdp-foot button { font-family: inherit; font-size: 12px; font-weight: 700; color: var(--accent); background: var(--accent-soft); border: none; border-radius: 8px; padding: 5px 10px; cursor: pointer; margin-left: auto; }
+.bdp-foot button.danger { color: #b3342a; background: #fdecea; margin-left: 0; }
+/* 캘린더 칸의 메모(초록 한 줄) */
+.cal-memo-label { width: 100%; font-size: 12px; font-weight: 700; color: #3d7a1f; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.3; }
+.cal-memo-label.done { color: var(--text-faint); text-decoration: line-through; }
+.cal-cell--today .cal-memo-label { color: rgba(255,255,255,0.92); }
+/* 메모가 같이 있는 칸에서는 학사일정 이름을 한 줄로 줄여 서로 겹치지 않게 한다 */
+.cal-cell:has(.cal-memo-label) .cal-event-label { -webkit-line-clamp: 1; line-clamp: 1; }
