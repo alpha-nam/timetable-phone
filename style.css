@@ -1787,3 +1787,4 @@ html[data-shell="tabs"]:not([data-phone]) .cal-ag-item { letter-spacing: -0.35px
 html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calendarCard { column-gap: 6px; }
 html[data-shell="tabs"]:not([data-phone]) #calAgenda { padding: 6px; }
 html[data-shell="tabs"]:not([data-phone]) .cal-ag-item { padding: 5px 4px; gap: 4px; }
+.cal-events-name { font-weight: 800; }
