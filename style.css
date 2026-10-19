@@ -1686,3 +1686,17 @@ html[data-shell="tabs"] #attendanceSummaryBtn { display: none !important; }
 .dm-text { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; cursor: text; }
 .dm-row.done .dm-text { color: var(--text-veryfaint); text-decoration: line-through; font-weight: 500; }
 .dm-del { flex-shrink: 0; font-family: inherit; font-size: 12px; font-weight: 700; color: #b3342a; background: #fdecea; border: none; border-radius: 7px; padding: 4px 8px; cursor: pointer; }
+
+/* 캘린더 칸 배지 색 = 아래 목록·팝업의 색: 학급 빨강 / 교과 보라 / 메모 초록 */
+.cal-badge--cls { background: rgba(214,72,63,0.14); color: #c9302c; }
+.cal-badge--subj { background: rgba(139,124,246,0.18); color: #5b4fd0; }
+.cal-badge--memo { background: rgba(47,168,102,0.16); color: #23804a; }
+.cal-cell--today .cal-badge { background: rgba(255,255,255,0.94); }
+.cal-cell--today .cal-badge--cls { color: #c9302c; }
+.cal-cell--today .cal-badge--subj { color: #5b4fd0; }
+.cal-cell--today .cal-badge--memo { color: #23804a; }
+.cal-badge svg { stroke-width: 2.4; }
+
+/* 팝업(날짜 상세)의 "닫기" 버튼: 눈에 잘 띄게 */
+.day-task-close--bottom { background: var(--accent); color: #fff; font-weight: 800; font-size: 14px; border-radius: 10px; padding: 9px 30px; }
+.day-task-close--bottom:hover { filter: brightness(1.08); }

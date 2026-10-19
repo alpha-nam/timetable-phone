@@ -190,3 +190,21 @@ html[data-phone] #subjSummaryBtn { margin-left: auto !important; }
 
 .pib-ico { display: inline-block; color: #9cc4ff; }
 .pib-ico svg { vertical-align: -4px; }
+
+/* 휴대폰: 입력칸 글자를 16px로(아이폰은 이보다 작으면 입력할 때 화면이 확대된다) */
+html[data-phone] input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),
+html[data-phone] textarea,
+html[data-phone] select { font-size: 16px !important; }
+
+/* 휴대폰: 날짜 팝업(메모·학급·교과)을 다른 탭처럼 화면 전체로 */
+@media (max-width: 699px) {
+  html[data-phone] #dayTaskOverlay { background: var(--panel-bg); align-items: stretch; justify-content: stretch; z-index: 70; }
+  html[data-phone] #dayTaskOverlay .day-task-box,
+  html[data-phone] #dayTaskOverlay .day-task-box--wide {
+    width: 100%; max-width: none; height: 100%; max-height: none; box-sizing: border-box; border: none; border-radius: 0; box-shadow: none; overflow-y: auto;
+    padding: calc(16px + env(safe-area-inset-top)) 14px calc(14px + env(safe-area-inset-bottom));
+  }
+  html[data-phone] #dayTaskOverlay .dm-list { max-height: none; }
+  html[data-phone] #dayTaskOverlay .att-record-list { max-height: none; overflow: visible; }
+  html[data-phone] #dayTaskOverlay .day-task-close--bottom { position: sticky; bottom: 0; display: block; width: 100%; margin: 16px 0 0; padding: 12px; font-size: 15px; box-shadow: 0 -8px 12px var(--panel-bg); }
+}

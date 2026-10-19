@@ -2373,6 +2373,14 @@
     });
   }
 
+  // 캘린더 칸 배지 아이콘: 학급(체크 상자) / 교과(클립보드) / 메모(쪽지). 색은 글자색(currentColor)을 따른다.
+  function badgeIcon(kind) {
+    var open = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+    if (kind === 'cls') return open + '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8 12.5l2.7 2.7L16 9.5"/></svg>';
+    if (kind === 'subj') return open + '<rect x="5" y="4.5" width="14" height="16.5" rx="3"/><path d="M9 4.5V3h6v1.5"/><path d="M8.5 11.5l1.6 1.6 2.9-3M8.5 17h7"/></svg>';
+    return open + '<path d="M6 3.5h8.5L19 8v12.5H6z"/><path d="M9 12.5h7M9 16.5h5"/></svg>';
+  }
+
   function renderCalendar() {
     var now = new Date();
     if (calViewYear === null) { calViewYear = now.getFullYear(); calViewMonth = now.getMonth(); }
@@ -2446,7 +2454,7 @@
 
         // 날짜를 지정한 메모(메모 탭의 카드): 첫 메모를 초록 한 줄로, 여러 개면 "메모 N"
         var dayMemos = window.BOARD && window.BOARD.memosOn ? window.BOARD.memosOn(ymd(cellDate)) : [];
-        if (dayMemos.length) {
+        if (dayMemos.length && !agendaMode()) {
           var ml = document.createElement('div');
           ml.className = 'cal-memo-label' + (dayMemos[0].done && dayMemos.length === 1 ? ' done' : '');
           ml.textContent = dayMemos.length === 1 ? dayMemos[0].text.split('\n')[0] : '메모 ' + dayMemos.length;
@@ -2454,28 +2462,25 @@
           cell.appendChild(ml);
         }
 
-        // 학급 출결 / 교과 출결은 칸이 좁아서 이름 대신 작은 배지(건수)로 보여 준다. 자세한 건 날짜를 눌러 팝업에서 본다.
+        // 학급 출결 / 교과 출결 / (휴대폰에서는) 메모는 칸이 좁아서 이름 대신 작은 배지(건수)로 보여 준다.
+        // 색은 아래 목록·팝업과 같다: 학급=빨강, 교과=보라, 메모=초록. 자세한 건 날짜를 눌러 본다.
         var attRecords = attendanceRecordsForDate(ymd(cellDate));
         var subjRecords = window.SUBJ ? window.SUBJ.listOn(ymd(cellDate)) : [];
-        if (attRecords.length || subjRecords.length) {
+        var memoBadgeRecs = agendaMode() ? dayMemos : [];
+        if (attRecords.length || subjRecords.length || memoBadgeRecs.length) {
           var badges = document.createElement('div');
           badges.className = 'cal-badges';
-          if (attRecords.length) {
-            var b1 = document.createElement('span');
-            b1.className = 'cal-badge cal-badge--cls';
-            b1.innerHTML = tabIconHtml('attendance') + '<b></b>';
-            b1.lastChild.textContent = attRecords.length;
-            b1.title = '학급 출결\n' + attRecords.map(function (r) { return attendanceStudentLabel(r) + ' - ' + attendanceTypeLabel(r); }).join('\n');
-            badges.appendChild(b1);
-          }
-          if (subjRecords.length) {
-            var b2 = document.createElement('span');
-            b2.className = 'cal-badge cal-badge--subj';
-            b2.innerHTML = tabIconHtml('subject') + '<b></b>';
-            b2.lastChild.textContent = subjRecords.length;
-            b2.title = '교과 출결\n' + subjRecords.map(function (r) { return r.period + '교시 ' + r.studentName + ' - ' + r.type; }).join('\n');
-            badges.appendChild(b2);
-          }
+          var addBadge = function (kind, count, title) {
+            var b = document.createElement('span');
+            b.className = 'cal-badge cal-badge--' + kind;
+            b.innerHTML = badgeIcon(kind) + '<b></b>';
+            b.lastChild.textContent = count;
+            b.title = title;
+            badges.appendChild(b);
+          };
+          if (memoBadgeRecs.length) addBadge('memo', memoBadgeRecs.length, '메모\n' + memoBadgeRecs.map(function (m3) { return (m3.done ? '✓ ' : '') + m3.text; }).join('\n'));
+          if (attRecords.length) addBadge('cls', attRecords.length, '학급 출결\n' + attRecords.map(function (r) { return attendanceStudentLabel(r) + ' - ' + attendanceTypeLabel(r); }).join('\n'));
+          if (subjRecords.length) addBadge('subj', subjRecords.length, '교과 출결\n' + subjRecords.map(function (r) { return r.period + '교시 ' + r.studentName + ' - ' + r.type; }).join('\n'));
           cell.appendChild(badges);
         }
 
