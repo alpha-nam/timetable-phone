@@ -1709,14 +1709,14 @@ html[data-shell="tabs"] #attendanceSummaryBtn { display: none !important; }
 .cal-cell--today .cal-badge--event { color: #2a64b0; }
 
 /* 휴대폰 "이번 달 학사일정" 버튼 + 목록 */
-.cal-events-btn { display: flex; align-items: center; gap: 8px; width: 100%; margin: 0 0 8px; padding: 9px 12px; border: none; border-radius: 12px; background: rgba(61,127,214,0.14); color: #2a64b0; font-size: 14px; font-family: inherit; cursor: pointer; }
+.cal-events-btn { display: flex; align-items: center; gap: 8px; width: 100%; margin: 0 0 8px; padding: 9px 12px; border: none; border-radius: 12px; background: rgba(132,189,0,0.20); color: #4a7300; font-size: 14px; font-family: inherit; cursor: pointer; }
 .cal-events-btn[hidden], .cal-events-list[hidden] { display: none; }
 .cal-events-btn b { flex: 1; text-align: left; font-weight: 800; }
-.cal-events-cnt { background: #3d7fd6; color: #fff; border-radius: 99px; padding: 0 9px; font-size: 12px; font-weight: 800; }
+.cal-events-cnt { background: #7cb518; color: #fff; border-radius: 99px; padding: 0 9px; font-size: 12px; font-weight: 800; }
 .cal-events-arrow { font-size: 10px; }
-.cal-events-btn.open { background: #3d7fd6; color: #fff; }
-.cal-events-btn.open .cal-events-cnt { background: #fff; color: #2a64b0; }
+.cal-events-btn.open { background: #6aa10f; color: #fff; }
+.cal-events-btn.open .cal-events-cnt { background: #fff; color: #4a7300; }
 .cal-events-row { display: flex; gap: 10px; align-items: baseline; width: 100%; margin: 0 0 6px; padding: 10px 12px; border: 1px solid var(--card-border, rgba(0,0,0,.1)); border-radius: 10px; background: var(--row-bg, transparent); color: inherit; font-family: inherit; font-size: 14px; text-align: left; cursor: pointer; }
-.cal-events-date { min-width: 92px; font-weight: 800; color: #2a64b0; white-space: nowrap; }
+.cal-events-date { min-width: 92px; font-weight: 800; color: #4a7300; white-space: nowrap; }
 .cal-events-name { flex: 1; word-break: keep-all; }
 .cal-events-empty { padding: 18px 0; text-align: center; color: var(--text-sub); font-size: 13px; }
