@@ -88,19 +88,28 @@
       trash: { records: trash, tombstones: trashTombs }
     };
   }
+  // 동기화가 진행되는 몇 초 사이에 사용자가 바꾼 것(★ 켜고 끄기 등)이 서버 결과로 덮여 되돌아오지 않게,
+  // 결과와 "지금 화면의 기록"을 항목별로 updatedAt이 더 최근인 쪽으로 합친다.
+  function keepNewest(localRecs, localTombs, resRecs, resTombs) {
+    return window.TTMERGE ? window.TTMERGE(localRecs, localTombs, resRecs, resTombs) : { records: resRecs || [], tombstones: resTombs || {} };
+  }
   function applySync(res) {
     var changed = false;
     if (res.memo) {
+      var mm = keepNewest(cards, tombs, res.memo.records, res.memo.tombstones);
+      res = Object.assign({}, res, { memo: mm });
       var nc = res.memo.records || [];
       if (JSON.stringify(nc) !== JSON.stringify(cards)) { cards = nc; changed = true; }
       tombs = res.memo.tombstones || {}; sigCards = sigMap(cards, sigCard);
     }
     if (res.sections) {
+      res = Object.assign({}, res, { sections: keepNewest(sections, secTombs, res.sections.records, res.sections.tombstones) });
       var ns = res.sections.records || [];
       if (JSON.stringify(ns) !== JSON.stringify(sections)) { sections = ns; changed = true; }
       secTombs = res.sections.tombstones || {}; sigSecs = sigMap(sections, sigSec);
     }
     if (res.trash) {
+      res = Object.assign({}, res, { trash: keepNewest(trash, trashTombs, res.trash.records, res.trash.tombstones) });
       var nt = res.trash.records || [];
       if (JSON.stringify(nt) !== JSON.stringify(trash)) { trash = nt; changed = true; }
       trashTombs = res.trash.tombstones || {};

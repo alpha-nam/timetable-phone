@@ -1152,7 +1152,7 @@
     }
     if (window.BOARD && (res.memo || res.sections || res.trash)) { if (window.BOARD.applySync(res)) changed = true; }
     if (window.SUBJ && res.subj) { if (window.SUBJ.applySync(res)) changed = true; }
-    if (res.prefs) { var np = res.prefs.records || []; if (JSON.stringify(np) !== JSON.stringify(prefs)) { prefs = np; try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (e) {} changed = true; } }
+    if (res.prefs) { var np = (window.TTMERGE ? window.TTMERGE(prefs, {}, res.prefs.records, {}).records : (res.prefs.records || [])); if (JSON.stringify(np) !== JSON.stringify(prefs)) { prefs = np; try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (e) {} changed = true; } }
     if (res.dayTasks) {
       var nextDay = {}, nextStamps = {};
       (res.dayTasks.records || []).forEach(function (r) { if (r.text) { nextDay[r.id] = r.text; nextStamps[r.id] = r.updatedAt || 0; } });
