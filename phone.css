@@ -231,3 +231,9 @@ html[data-phone] .cal-upcoming { margin: 10px 0 8px; }
 html[data-phone] .cal-up-item { font-size: 13.5px; padding: 6px 7px; }
 html[data-phone] .cal-up-btn { font-size: 12px; padding: 5px 6px; }
 html[data-phone] .cal-up-btn.star { font-size: 17px; }
+
+/* 휴대폰: "다가오는 일"과 선택한 날짜 목록의 글자 크기·굵기·줄 높이를 같게 */
+html[data-phone] .cal-up-item, html[data-phone] .cal-ag-item { font-size: 14.5px; line-height: 1.4; padding: 7px 8px; }
+html[data-phone] .cal-up-text, html[data-phone] .cal-ag-text { font-weight: 700; }
+html[data-phone] .cal-ag-kind { font-size: 12px; }
+html[data-phone] .cal-ag-head, html[data-phone] .cal-up-head { font-size: 15px; }

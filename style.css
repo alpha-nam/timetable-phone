@@ -1823,3 +1823,7 @@ html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] .cal-upcoming { m
 html[data-shell="tabs"]:not([data-phone]) .cal-up-item { font-size: 11.5px; padding: 4px; gap: 4px; letter-spacing: -0.2px; }
 .cal-side { display: block; }
 .cal-ag-item.starred { background: rgba(245,176,30,0.22) !important; box-shadow: inset 3px 0 0 #f0a81e; }
+
+/* PC 탭 화면: 위(다가오는 일)·아래(선택한 날짜) 목록 글자 크기·굵기를 같게 */
+html[data-shell="tabs"]:not([data-phone]) .cal-up-item, html[data-shell="tabs"]:not([data-phone]) .cal-ag-item { font-size: 11.5px; line-height: 1.35; padding: 5px 5px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-up-text, html[data-shell="tabs"]:not([data-phone]) .cal-ag-text { font-weight: 700; }
