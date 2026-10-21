@@ -1793,3 +1793,32 @@ html[data-shell="tabs"]:not([data-phone]) .cal-ag-item { padding: 5px 4px; gap: 
 .cal-ag-grip { flex: 0 0 auto; align-self: center; width: 14px; margin: 0 -2px 0 -2px; text-align: center; font-size: 11px; letter-spacing: -2px; color: var(--text-faint); cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
 .cal-ag-item.dragging { opacity: .75; box-shadow: 0 3px 10px rgba(0,0,0,.18); position: relative; z-index: 2; }
 .cal-ag-item.dragging .cal-ag-grip { cursor: grabbing; }
+
+/* ── 다가오는 일정(캘린더 목록 위) ── */
+.cal-side[hidden], .cal-upcoming[hidden] { display: none; }
+.cal-upcoming { margin: 10px 0 8px; padding: 8px 10px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; }
+.cal-up-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; font-size: 14px; }
+.cal-up-head small { font-size: 11px; color: var(--text-faint); margin-left: auto; }
+.cal-up-item { display: flex; align-items: center; gap: 6px; padding: 5px 6px; margin-bottom: 4px; background: var(--row-bg); border-radius: 9px; font-size: 13px; line-height: 1.35; cursor: pointer; }
+.cal-up-item.star { background: rgba(245,176,30,0.2); box-shadow: inset 3px 0 0 #f0a81e; }
+.cal-up-item.dragging { opacity: .75; box-shadow: 0 3px 10px rgba(0,0,0,.18); position: relative; z-index: 2; }
+.cal-up-d { flex: 0 0 auto; min-width: 36px; text-align: center; font-size: 11px; font-weight: 800; border-radius: 6px; padding: 1px 4px; background: var(--card-bg); color: var(--text-sub); border: 1px solid var(--card-border); }
+.cal-up-d.today { background: #e6483f; color: #fff; border-color: #e6483f; }
+.cal-up-d.star { background: rgba(245,176,30,0.4); color: #7a4e00; border-color: transparent; }
+.cal-up-text { flex: 1; min-width: 0; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-up-btn { flex: 0 0 auto; font-family: inherit; font-size: 11px; font-weight: 800; border: none; background: transparent; color: var(--text-faint); padding: 3px 4px; border-radius: 6px; cursor: pointer; }
+.cal-up-btn.star { font-size: 15px; line-height: 1; }
+.cal-up-btn.star.on { color: #e0a11b; }
+.cal-up-more { display: block; width: 100%; font-family: inherit; font-size: 12px; font-weight: 700; color: var(--text-sub); background: transparent; border: none; padding: 3px 0 0; cursor: pointer; }
+.cal-badge--star { background: rgba(245,176,30,0.35); color: #7a4e00; }
+.cal-cell--today .cal-badge--star { color: #7a4e00; }
+.bd-star { font-family: inherit; font-size: 15px; line-height: 1; border: none; background: transparent; color: var(--text-faint); cursor: pointer; padding: 0 3px; }
+.bd-star.on { color: #e0a11b; }
+.cal-ag-item.starred { background: rgba(245,176,30,0.2); }
+
+/* PC 탭 화면: 오른쪽 칸에 "다가오는 일정"과 선택한 날짜 목록을 함께 쌓는다 */
+html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calSide { grid-column: 2; grid-row: 2 / 4; overflow-y: auto; min-height: 0; }
+html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calSide #calAgenda { grid-column: auto; grid-row: auto; overflow: visible; }
+html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] .cal-upcoming { margin-top: 0; padding: 6px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-up-item { font-size: 11.5px; padding: 4px; gap: 4px; letter-spacing: -0.2px; }
+.cal-side { display: block; }

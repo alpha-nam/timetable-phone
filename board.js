@@ -30,7 +30,7 @@
   function read(key, fallback) { try { var v = JSON.parse(localStorage.getItem(key)); return v == null ? fallback : v; } catch (e) { return fallback; } }
   function write(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* 저장 불가 */ } }
 
-  function sigCard(c) { return JSON.stringify([c.text, !!c.done, c.sectionId, c.order, c.tag ? [c.tag.text, c.tag.color] : null, styleSig(c.style), c.date || '', c.dateEnd || '']); }
+  function sigCard(c) { return JSON.stringify([c.text, !!c.done, c.sectionId, c.order, c.tag ? [c.tag.text, c.tag.color] : null, styleSig(c.style), c.date || '', c.dateEnd || '', c.star ? 1 : 0]); }
   function sigSec(s) { return JSON.stringify([s.name, s.order, styleSig(s.style)]); }
   function sigMap(list, fn) { var m = {}; list.forEach(function (x) { if (x && x.id) m[x.id] = fn(x); }); return m; }
 
@@ -437,6 +437,9 @@
       }
       // 날짜(선택): 캘린더에 이 날짜로 보인다. 지났는데 안 끝낸 메모는 붉게.
       var late = !!c.date && isPastDate(c.dateEnd || c.date) && !c.done;
+      var sbtn = el('button', 'bd-star' + (c.star ? ' on' : ''), c.star ? '★' : '☆'); sbtn.type = 'button'; sbtn.title = c.star ? '중요 표시 해제' : '중요 메모로 표시(캘린더 맨 위·노란 강조)';
+      sbtn.addEventListener('click', function (ev) { ev.stopPropagation(); if (c.star) delete c.star; else c.star = true; save(); render(); });
+      main.appendChild(sbtn);
       var dchip = el('button', 'bd-date ' + (c.date ? (late ? 'past' : 'on') : 'off'), c.date ? rangeChipText(c) + (late ? ' · 지남' : '') : '+ 날짜');
       dchip.type = 'button'; dchip.title = c.date ? '날짜 바꾸기' : '날짜 지정(캘린더에 표시)';
       dchip.addEventListener('click', function (ev) { ev.stopPropagation(); openDatePick(c, dchip); });
@@ -450,6 +453,7 @@
         { label: '꾸미기', onClick: function () { openStylePanel(more, c, 'card'); } },
         { label: c.tag ? '꼬리표 바꾸기' : '꼬리표 달기', onClick: function () { promptTag(c, more); } },
         c.tag ? { label: '꼬리표 지우기', onClick: function () { delete c.tag; save(); render(); } } : null,
+        { label: c.star ? '중요 표시 해제' : '중요 표시(★)', onClick: function () { c.star = !c.star; if (!c.star) delete c.star; save(); render(); } },
         { label: c.date ? '날짜 바꾸기' : '날짜 지정', onClick: function () { openDatePick(c, more); } },
         c.date ? { label: '날짜 지우기', onClick: function () { delete c.date; delete c.dateEnd; save(); render(); } } : null,
         '-', { label: '삭제', danger: true, onClick: function () { deleteCard(c); render(); } }
@@ -524,6 +528,21 @@
   function memosOn(dateStr) {
     return cards.filter(function (c) { return c.date && c.date <= dateStr && dateStr <= (c.dateEnd || c.date); })
       .sort(function (a, b) { return (a.done ? 1 : 0) - (b.done ? 1 : 0) || (a.order || 0) - (b.order || 0); });
+  }
+
+  // 캘린더 "다가오는 일정"이 쓴다: [from, to](YYYYMMDD)와 겹치는 날짜의 안 끝낸 메모
+  function upcoming(fromKey, toKey) {
+    return cards.filter(function (c) { return !c.done && c.date && c.date <= toKey && (c.dateEnd || c.date) >= fromKey; });
+  }
+  function toggleStarById(id) { var c = cardById(id); if (!c) return; if (c.star) delete c.star; else c.star = true; save(); render(); }
+  function openStyleById(anchor, id) { var c = cardById(id); if (c) openStylePanel(anchor, c, 'card'); }
+  // 메모에 준 색·글꼴·크기를 다른 화면의 줄(row)·글(txt)에도 똑같이 입힌다
+  function styleRow(row, txt, id) {
+    var c = cardById(id); if (!c) return;
+    var owner = sections.filter(function (x) { return x.id === c.sectionId; })[0];
+    var bg = c.style && c.style.bg;
+    if (bg) row.style.background = bg;
+    applyText(txt, effText(c, owner), bg);
   }
 
   function cardById(id) { return cards.filter(function (c) { return c.id === id; })[0] || null; }
@@ -1031,7 +1050,7 @@
   window.BOARD = {
     init: init, render: render, getSyncState: getSyncState, applySync: applySync,
     trash: function (kind, item) { addToTrash(kind, item); }, openRecovery: openRecovery,
-    memosOn: memosOn, addDated: addDated, toggleById: toggleById, setTextById: setTextById, removeById: removeById, addMigrated: addMigrated,
+    memosOn: memosOn, upcoming: upcoming, toggleStarById: toggleStarById, openStyleById: openStyleById, styleRow: styleRow, addDated: addDated, toggleById: toggleById, setTextById: setTextById, removeById: removeById, addMigrated: addMigrated,
     exportState: exportState, importState: importState
   };
 })();

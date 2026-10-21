@@ -2363,7 +2363,7 @@
     btn.appendChild(t); btn.appendChild(n); btn.appendChild(ar);
     list.hidden = !open;
     $('calWeekdays').hidden = open; $('calGrid').hidden = open;
-    if (open) $('calAgenda').hidden = true; else renderAgenda();
+    if (open) { $('calAgenda').hidden = true; if ($('calUpcoming')) $('calUpcoming').hidden = true; } else { renderAgenda(); renderUpcoming(); }
     list.innerHTML = '';
     if (!ranges.length) { var em = document.createElement('div'); em.className = 'cal-events-empty'; em.textContent = '이 달에는 학사일정이 없어요.'; list.appendChild(em); return; }
     ranges.forEach(function (r) {
@@ -2388,6 +2388,113 @@
     var b = ev.target.closest ? ev.target.closest('#calEventsBtn') : null;
     if (b) { eventsOpen = !eventsOpen; applyEventsView(); }
   });
+
+  // ── "다가오는 일정": 오늘부터 30일 안의 학사일정·메모를 D-day와 함께 모은다 ──
+  // 중요(★) 메모가 맨 위, 그다음 가까운 날짜순. 줄 왼쪽 손잡이(⋮⋮)를 끌어 순서를 바꿀 수 있고(저장·동기화),
+  // 메모 줄의 ★·Aa 버튼으로 중요 표시와 색·글꼴·크기를 바꾼다(메모 탭의 "꾸미기"와 같은 설정).
+  var upExpanded = false, upToken = 0;
+  function renderUpcoming() {
+    var box = $('calUpcoming');
+    if (!box) return;
+    if (!agendaMode() || eventsOpen) { box.hidden = true; return; }
+    var my = ++upToken;
+    var today = new Date(); today = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    var end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 30);
+    var fromKey = ymd(today), toKey = ymd(end);
+    var months = [{ y: today.getFullYear(), m: today.getMonth() }];
+    if (end.getMonth() !== today.getMonth()) months.push({ y: end.getFullYear(), m: end.getMonth() });
+    Promise.all(months.map(function (mm) { return Promise.resolve(fetchMonthEvents(mm.y, mm.m)).then(function (d) { return d || {}; }, function () { return {}; }); })).then(function (maps) {
+      if (my !== upToken) return;
+      var evMap = Object.assign.apply(null, [{}].concat(maps));
+      var items = [];
+      var days = Object.keys(evMap).filter(function (k) { return k >= fromKey && k <= toKey; }).sort();
+      days.forEach(function (k) {
+        var last = items[items.length - 1];
+        var prev = last && last.kind === 'event' ? dateFromKey(last.end) : null;
+        if (last && last.kind === 'event' && last.text === evMap[k] && prev && ymd(new Date(prev.getFullYear(), prev.getMonth(), prev.getDate() + 1)) === k) last.end = k;
+        else items.push({ id: 'e:' + k + ':' + evMap[k], kind: 'event', start: k, end: k, text: evMap[k] });
+      });
+      ((window.BOARD && window.BOARD.upcoming) ? window.BOARD.upcoming(fromKey, toKey) : []).forEach(function (c) {
+        items.push({ id: 'm:' + c.id, kind: 'memo', cid: c.id, start: c.date, end: c.dateEnd || c.date, text: String(c.text || '').split(String.fromCharCode(10))[0], star: !!c.star });
+      });
+      items.forEach(function (it) { it.eff = it.start < fromKey ? fromKey : it.start; });
+      items.sort(function (x, y) { return (y.star ? 1 : 0) - (x.star ? 1 : 0) || (x.eff < y.eff ? -1 : x.eff > y.eff ? 1 : 0) || (x.kind === y.kind ? 0 : x.kind === 'event' ? -1 : 1); });
+      var op = prefs.filter(function (x) { return x.id === 'upord'; })[0], ord = (op && op.order) || [];
+      if (ord.length) items.sort(function (x, y) {
+        var ix = ord.indexOf(x.id), iy = ord.indexOf(y.id);
+        if (ix < 0 && iy < 0) return 0;
+        return (ix < 0 ? 1e6 : ix) - (iy < 0 ? 1e6 : iy);
+      });
+
+      box.hidden = false; box.innerHTML = '';
+      var head = document.createElement('div'); head.className = 'cal-up-head';
+      var t = document.createElement('b'); t.textContent = '다가오는 일정';
+      var sm = document.createElement('small'); sm.textContent = '앞으로 30일';
+      head.appendChild(t); head.appendChild(sm); box.appendChild(head);
+      if (!items.length) { var em = document.createElement('div'); em.className = 'cal-ag-empty'; em.textContent = '30일 안에 예정된 일정이 없어요.'; box.appendChild(em); return; }
+      var LIMIT = document.documentElement.hasAttribute('data-phone') ? 5 : 3;
+      var shown = upExpanded ? items : items.slice(0, LIMIT);
+      var list = document.createElement('div'); list.className = 'cal-up-list'; box.appendChild(list);
+      var dd = function (it) {
+        if (it.start <= fromKey && it.end >= fromKey) return '오늘';
+        var n = Math.round((dateFromKey(it.start) - today) / 86400000);
+        return n === 1 ? '내일' : 'D-' + n;
+      };
+      var shortDate = function (k) { return Number(k.slice(4, 6)) + '/' + Number(k.slice(6)); };
+      shown.forEach(function (it) {
+        var row = document.createElement('div'); row.className = 'cal-up-item' + (it.star ? ' star' : '') + (it.kind === 'event' ? ' ev' : ' memo');
+        row.dataset.rid = it.id;
+        var grip = document.createElement('span'); grip.className = 'cal-ag-grip'; grip.textContent = '⋮⋮'; grip.title = '끌어서 순서 바꾸기';
+        var chip = document.createElement('span'); var d = dd(it); chip.className = 'cal-up-d' + (d === '오늘' ? ' today' : it.star ? ' star' : '');
+        chip.textContent = d;
+        var txt = document.createElement('span'); txt.className = 'cal-up-text';
+        txt.textContent = it.text + (it.end !== it.start ? '  ~' + shortDate(it.end) : '');
+        txt.title = it.text;
+        row.appendChild(grip); row.appendChild(chip); row.appendChild(txt);
+        if (it.kind === 'memo') {
+          var sb = document.createElement('button'); sb.type = 'button'; sb.className = 'cal-up-btn star' + (it.star ? ' on' : ''); sb.textContent = it.star ? '★' : '☆'; sb.title = '중요 표시';
+          sb.addEventListener('click', function (ev) { ev.stopPropagation(); window.BOARD.toggleStarById(it.cid); });
+          var ab = document.createElement('button'); ab.type = 'button'; ab.className = 'cal-up-btn'; ab.textContent = 'Aa'; ab.title = '색·글꼴·크기';
+          ab.addEventListener('click', function (ev) { ev.stopPropagation(); window.BOARD.openStyleById(ab, it.cid); });
+          row.appendChild(sb); row.appendChild(ab);
+          if (window.BOARD.styleRow) window.BOARD.styleRow(row, txt, it.cid);
+        }
+        row.addEventListener('click', function () { selectCalDate(it.eff); });
+        grip.addEventListener('click', function (ev) { ev.stopPropagation(); });
+        grip.addEventListener('pointerdown', function (ev) {
+          ev.preventDefault(); ev.stopPropagation();
+          try { grip.setPointerCapture(ev.pointerId); } catch (e0) {}
+          row.classList.add('dragging');
+          var move = function (e) {
+            var peers = Array.prototype.slice.call(list.querySelectorAll('.cal-up-item')).filter(function (r2) { return r2 !== row; });
+            var placed = false;
+            for (var pi = 0; pi < peers.length; pi++) {
+              var rc = peers[pi].getBoundingClientRect();
+              if (e.clientY < rc.top + rc.height / 2) { if (row.nextSibling !== peers[pi]) list.insertBefore(row, peers[pi]); placed = true; break; }
+            }
+            if (!placed && peers.length) { var lastp = peers[peers.length - 1]; if (lastp.nextSibling !== row) list.insertBefore(row, lastp.nextSibling); }
+          };
+          var up = function () {
+            grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', up); grip.removeEventListener('pointercancel', up);
+            row.classList.remove('dragging');
+            var ids = Array.prototype.map.call(list.querySelectorAll('.cal-up-item'), function (r3) { return r3.dataset.rid; });
+            var rest = ord.filter(function (x) { return ids.indexOf(x) < 0; });
+            var p2 = prefs.filter(function (x) { return x.id === 'upord'; })[0];
+            if (!p2) { p2 = { id: 'upord' }; prefs.push(p2); }
+            p2.order = ids.concat(rest); p2.updatedAt = Date.now(); savePrefs();
+          };
+          grip.addEventListener('pointermove', move); grip.addEventListener('pointerup', up); grip.addEventListener('pointercancel', up);
+        });
+        list.appendChild(row);
+      });
+      if (items.length > LIMIT) {
+        var more = document.createElement('button'); more.type = 'button'; more.className = 'cal-up-more';
+        more.textContent = upExpanded ? '접기 ▴' : '+ ' + (items.length - LIMIT) + '개 더 보기 ▾';
+        more.addEventListener('click', function () { upExpanded = !upExpanded; renderUpcoming(); });
+        box.appendChild(more);
+      }
+    });
+  }
 
   function renderAgenda() {
     var box = $('calAgenda');
@@ -2420,7 +2527,7 @@
       p.order = ids; p.updatedAt = Date.now(); savePrefs();
     };
     if (calEventDays[calSelected]) items.push({ c: '#3d7fd6', k: '학사일정', t: calEventDays[calSelected], tab: 'memo' });
-    (window.BOARD && window.BOARD.memosOn ? window.BOARD.memosOn(calSelected) : []).forEach(function (mm) { items.push({ c: '#2fa866', k: '메모', t: (mm.done ? '✓ ' : '') + mm.text + (mm.dateEnd && mm.dateEnd !== mm.date ? '  (' + Number(mm.date.slice(4, 6)) + '/' + Number(mm.date.slice(6)) + '~' + Number(mm.dateEnd.slice(4, 6)) + '/' + Number(mm.dateEnd.slice(6)) + ')' : ''), tab: 'memo' }); });
+    (window.BOARD && window.BOARD.memosOn ? window.BOARD.memosOn(calSelected) : []).forEach(function (mm) { items.push({ c: '#2fa866', k: '메모', t: (mm.star ? '★ ' : '') + (mm.done ? '✓ ' : '') + mm.text + (mm.dateEnd && mm.dateEnd !== mm.date ? '  (' + Number(mm.date.slice(4, 6)) + '/' + Number(mm.date.slice(6)) + '~' + Number(mm.dateEnd.slice(4, 6)) + '/' + Number(mm.dateEnd.slice(6)) + ')' : ''), tab: 'memo' }); });
     agOrdered(attendanceRecordsForDate(calSelected).slice().sort(agNo), 'att').forEach(function (r) { items.push({ id: r.id, g: 'att', c: '#d6483f', k: '학급 출결', t: attendanceStudentLabel(r) + ' · ' + attendanceTypeLabel(r), d: r.memo ? '메모  ' + r.memo : '', tab: 'attendance' }); });
     agOrdered(window.SUBJ ? window.SUBJ.listOn(calSelected) : [], 'subj').forEach(function (r) {
       items.push({ id: r.id, g: 'subj', c: '#8b7cf6', k: '교과 출결', t: r.period + '교시 ' + r.subject + ' ' + r.grade + '-' + r.ban + '-' + r.no + ' ' + r.studentName + ' · ' + (r.reason || '') + r.type, d: r.memo ? '메모  ' + r.memo : '', tab: 'subject' });
@@ -2480,6 +2587,7 @@
     if (kind === 'cls') return open + '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8 12.5l2.7 2.7L16 9.5"/></svg>';
     if (kind === 'subj') return open + '<rect x="5" y="4.5" width="14" height="16.5" rx="3"/><path d="M9 4.5V3h6v1.5"/><path d="M8.5 11.5l1.6 1.6 2.9-3M8.5 17h7"/></svg>';
     if (kind === 'event') return open + '<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>';
+    if (kind === 'star') return open + '<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9 6.8 19.7l1-5.9L3.5 9.7l5.9-.8z"/></svg>';
     return open + '<path d="M6 3.5h8.5L19 8v12.5H6z"/><path d="M9 12.5h7M9 16.5h5"/></svg>';
   }
 
@@ -2583,7 +2691,7 @@
             badges.appendChild(b);
           };
           if (eventBadge) addBadge('event', '', '학사일정\n' + eventName);
-          if (memoBadgeRecs.length) addBadge('memo', memoBadgeRecs.length, '메모\n' + memoBadgeRecs.map(function (m3) { return (m3.done ? '✓ ' : '') + m3.text; }).join('\n'));
+          if (memoBadgeRecs.length) addBadge(memoBadgeRecs.some(function (m4) { return m4.star; }) ? 'star' : 'memo', memoBadgeRecs.length, '메모\n' + memoBadgeRecs.map(function (m3) { return (m3.done ? '✓ ' : '') + m3.text; }).join('\n'));
           if (attRecords.length) addBadge('cls', attRecords.length, '학급 출결\n' + attRecords.map(function (r) { return attendanceStudentLabel(r) + ' - ' + attendanceTypeLabel(r); }).join('\n'));
           if (subjRecords.length) addBadge('subj', subjRecords.length, '교과 출결\n' + subjRecords.map(function (r) { return r.period + '교시 ' + r.studentName + ' - ' + r.type; }).join('\n'));
           cell.appendChild(badges);
@@ -2608,6 +2716,7 @@
         grid.appendChild(cell);
       }
       renderAgenda();
+      renderUpcoming();
       applyEventsView();
     });
   }

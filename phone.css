@@ -225,3 +225,9 @@ html[data-phone] select { font-size: 16px !important; }
   html[data-phone] .cal-ag-head { font-size: 16px; }
   html[data-phone] .cal-events-row, html[data-phone] .cal-events-row * { font-size: 16px; }
 }
+
+/* 휴대폰: 다가오는 일정 줄 */
+html[data-phone] .cal-upcoming { margin: 10px 0 8px; }
+html[data-phone] .cal-up-item { font-size: 13.5px; padding: 6px 7px; }
+html[data-phone] .cal-up-btn { font-size: 12px; padding: 5px 6px; }
+html[data-phone] .cal-up-btn.star { font-size: 17px; }
