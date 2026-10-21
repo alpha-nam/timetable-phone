@@ -2335,6 +2335,7 @@
     calSelected = key;
     Array.prototype.forEach.call(document.querySelectorAll('#calGrid .cal-cell'), function (c) { c.classList.toggle('cal-cell--sel', c.dataset.date === key); });
     renderAgenda();
+    renderUpcoming();
   }
 
   // ── 휴대폰 "이번 달 학사일정" 버튼: 누르면 달력 자리에 그 달 학사일정 목록이 펼쳐진다 ──
@@ -2417,6 +2418,8 @@
       ((window.BOARD && window.BOARD.upcoming) ? window.BOARD.upcoming(fromKey, toKey) : []).forEach(function (c) {
         items.push({ id: 'm:' + c.id, kind: 'memo', cid: c.id, start: c.date, end: c.dateEnd || c.date, text: String(c.text || '').split(String.fromCharCode(10))[0], star: !!c.star });
       });
+      // 선택한 날짜에 걸리는 항목은 아래 목록이 보여 주므로 여기서는 뺀다(위아래가 겹쳐 보이지 않게)
+      items = items.filter(function (it) { return !(calSelected && it.start <= calSelected && calSelected <= it.end); });
       items.forEach(function (it) { it.eff = it.start < fromKey ? fromKey : it.start; });
       items.sort(function (x, y) { return (y.star ? 1 : 0) - (x.star ? 1 : 0) || (x.eff < y.eff ? -1 : x.eff > y.eff ? 1 : 0) || (x.kind === y.kind ? 0 : x.kind === 'event' ? -1 : 1); });
       var op = prefs.filter(function (x) { return x.id === 'upord'; })[0], ord = (op && op.order) || [];
@@ -2428,10 +2431,10 @@
 
       box.hidden = false; box.innerHTML = '';
       var head = document.createElement('div'); head.className = 'cal-up-head';
-      var t = document.createElement('b'); t.textContent = '다가오는 일정';
-      var sm = document.createElement('small'); sm.textContent = '앞으로 30일';
+      var t = document.createElement('b'); t.textContent = '다가오는 일';
+      var sm = document.createElement('small'); sm.textContent = '앞으로 30일 · 선택한 날 제외';
       head.appendChild(t); head.appendChild(sm); box.appendChild(head);
-      if (!items.length) { var em = document.createElement('div'); em.className = 'cal-ag-empty'; em.textContent = '30일 안에 예정된 일정이 없어요.'; box.appendChild(em); return; }
+      if (!items.length) { var em = document.createElement('div'); em.className = 'cal-ag-empty'; em.textContent = '이 밖에 30일 안에 예정된 일이 없어요.'; box.appendChild(em); return; }
       var LIMIT = document.documentElement.hasAttribute('data-phone') ? 5 : 3;
       var shown = upExpanded ? items : items.slice(0, LIMIT);
       var list = document.createElement('div'); list.className = 'cal-up-list'; box.appendChild(list);
@@ -2527,14 +2530,14 @@
       p.order = ids; p.updatedAt = Date.now(); savePrefs();
     };
     if (calEventDays[calSelected]) items.push({ c: '#3d7fd6', k: '학사일정', t: calEventDays[calSelected], tab: 'memo' });
-    (window.BOARD && window.BOARD.memosOn ? window.BOARD.memosOn(calSelected) : []).forEach(function (mm) { items.push({ c: '#2fa866', k: '메모', t: (mm.star ? '★ ' : '') + (mm.done ? '✓ ' : '') + mm.text + (mm.dateEnd && mm.dateEnd !== mm.date ? '  (' + Number(mm.date.slice(4, 6)) + '/' + Number(mm.date.slice(6)) + '~' + Number(mm.dateEnd.slice(4, 6)) + '/' + Number(mm.dateEnd.slice(6)) + ')' : ''), tab: 'memo' }); });
+    (window.BOARD && window.BOARD.memosOn ? window.BOARD.memosOn(calSelected) : []).forEach(function (mm) { items.push({ star: !!mm.star, c: '#2fa866', k: '메모', t: (mm.star ? '★ ' : '') + (mm.done ? '✓ ' : '') + mm.text + (mm.dateEnd && mm.dateEnd !== mm.date ? '  (' + Number(mm.date.slice(4, 6)) + '/' + Number(mm.date.slice(6)) + '~' + Number(mm.dateEnd.slice(4, 6)) + '/' + Number(mm.dateEnd.slice(6)) + ')' : ''), tab: 'memo' }); });
     agOrdered(attendanceRecordsForDate(calSelected).slice().sort(agNo), 'att').forEach(function (r) { items.push({ id: r.id, g: 'att', c: '#d6483f', k: '학급 출결', t: attendanceStudentLabel(r) + ' · ' + attendanceTypeLabel(r), d: r.memo ? '메모  ' + r.memo : '', tab: 'attendance' }); });
     agOrdered(window.SUBJ ? window.SUBJ.listOn(calSelected) : [], 'subj').forEach(function (r) {
       items.push({ id: r.id, g: 'subj', c: '#8b7cf6', k: '교과 출결', t: r.period + '교시 ' + r.subject + ' ' + r.grade + '-' + r.ban + '-' + r.no + ' ' + r.studentName + ' · ' + (r.reason || '') + r.type, d: r.memo ? '메모  ' + r.memo : '', tab: 'subject' });
     });
     if (!items.length) { var e = document.createElement('div'); e.className = 'cal-ag-empty'; e.textContent = '이 날짜에는 일정이 없어요.'; box.appendChild(e); return; }
     items.forEach(function (it) {
-      var row = document.createElement('div'); row.className = 'cal-ag-item';
+      var row = document.createElement('div'); row.className = 'cal-ag-item' + (it.star ? ' starred' : '');
       var bar = document.createElement('i'); bar.style.background = it.c;
       var kind = document.createElement('span'); kind.className = 'cal-ag-kind'; kind.textContent = it.k; kind.style.color = it.c;
       var txt = document.createElement('span'); txt.className = 'cal-ag-text'; txt.textContent = it.t;
