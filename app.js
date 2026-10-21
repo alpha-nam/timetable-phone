@@ -2530,7 +2530,7 @@
       p.order = ids; p.updatedAt = Date.now(); savePrefs();
     };
     if (calEventDays[calSelected]) items.push({ c: '#3d7fd6', k: '학사일정', t: calEventDays[calSelected], tab: 'memo' });
-    (window.BOARD && window.BOARD.memosOn ? window.BOARD.memosOn(calSelected) : []).forEach(function (mm) { items.push({ star: !!mm.star, c: '#2fa866', k: '메모', t: (mm.star ? '★ ' : '') + (mm.done ? '✓ ' : '') + mm.text + (mm.dateEnd && mm.dateEnd !== mm.date ? '  (' + Number(mm.date.slice(4, 6)) + '/' + Number(mm.date.slice(6)) + '~' + Number(mm.dateEnd.slice(4, 6)) + '/' + Number(mm.dateEnd.slice(6)) + ')' : ''), tab: 'memo' }); });
+    agOrdered(window.BOARD && window.BOARD.memosOn ? window.BOARD.memosOn(calSelected) : [], 'memo').forEach(function (mm) { items.push({ id: mm.id, g: 'memo', cid: mm.id, star: !!mm.star, c: '#2fa866', k: '메모', t: (mm.done ? '✓ ' : '') + mm.text + (mm.dateEnd && mm.dateEnd !== mm.date ? '  (' + Number(mm.date.slice(4, 6)) + '/' + Number(mm.date.slice(6)) + '~' + Number(mm.dateEnd.slice(4, 6)) + '/' + Number(mm.dateEnd.slice(6)) + ')' : ''), tab: 'memo' }); });
     agOrdered(attendanceRecordsForDate(calSelected).slice().sort(agNo), 'att').forEach(function (r) { items.push({ id: r.id, g: 'att', c: '#d6483f', k: '학급 출결', t: attendanceStudentLabel(r) + ' · ' + attendanceTypeLabel(r), d: r.memo ? '메모  ' + r.memo : '', tab: 'attendance' }); });
     agOrdered(window.SUBJ ? window.SUBJ.listOn(calSelected) : [], 'subj').forEach(function (r) {
       items.push({ id: r.id, g: 'subj', c: '#8b7cf6', k: '교과 출결', t: r.period + '교시 ' + r.subject + ' ' + r.grade + '-' + r.ban + '-' + r.no + ' ' + r.studentName + ' · ' + (r.reason || '') + r.type, d: r.memo ? '메모  ' + r.memo : '', tab: 'subject' });
@@ -2567,6 +2567,14 @@
           };
           grip.addEventListener('pointermove', move); grip.addEventListener('pointerup', up); grip.addEventListener('pointercancel', up);
         });
+      }
+      if (it.cid && window.BOARD) {
+        var sb2 = document.createElement('button'); sb2.type = 'button'; sb2.className = 'cal-up-btn star' + (it.star ? ' on' : ''); sb2.textContent = it.star ? '★' : '☆'; sb2.title = '중요 표시';
+        sb2.addEventListener('click', function (ev) { ev.stopPropagation(); window.BOARD.toggleStarById(it.cid); });
+        var ab2 = document.createElement('button'); ab2.type = 'button'; ab2.className = 'cal-up-btn'; ab2.textContent = 'Aa'; ab2.title = '색·글꼴·크기';
+        ab2.addEventListener('click', function (ev) { ev.stopPropagation(); window.BOARD.openStyleById(ab2, it.cid); });
+        row.appendChild(sb2); row.appendChild(ab2);
+        if (window.BOARD.styleRow) window.BOARD.styleRow(row, txt, it.cid);
       }
       var openEditor = function () { dayEditorTab = it.tab; openDayTaskEditor(date); };
       if (it.d) {   // 사유·메모가 있으면 누를 때 세부사항을 펼친다(수정은 펼친 곳의 버튼으로)
