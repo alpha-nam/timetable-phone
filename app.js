@@ -2464,7 +2464,8 @@
           row.appendChild(sb); row.appendChild(ab);
           if (window.BOARD.styleRow) window.BOARD.styleRow(row, txt, it.cid);
         }
-        row.addEventListener('click', function () { selectCalDate(it.eff); });
+        // 줄 전체가 아니라 "내일·D-5" 칩을 눌러야 그 날짜로 이동한다(실수로 달력이 넘어가지 않게)
+        chip.title = '이 날짜로 이동'; chip.addEventListener('click', function (ev) { ev.stopPropagation(); selectCalDate(it.eff); });
         grip.addEventListener('click', function (ev) { ev.stopPropagation(); });
         grip.addEventListener('pointerdown', function (ev) {
           ev.preventDefault(); ev.stopPropagation();
