@@ -1849,3 +1849,14 @@ html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] .cal-upcoming { m
 /* 다가오는 일: 제목 오른쪽의 날짜 */
 .cal-up-date { flex: 0 0 auto; font-size: 12px; font-weight: 600; color: var(--text-faint); white-space: nowrap; }
 html[data-shell="tabs"]:not([data-phone]) .cal-up-date { font-size: 10.5px; letter-spacing: -0.3px; }
+
+/* 학사일정=파랑(버튼·목록), 중요(★)=민트: 시안 4 */
+.cal-events-btn { background: rgba(61,127,214,0.14); color: #2a64b0; }
+.cal-events-cnt { background: #3d7fd6; }
+.cal-events-btn.open { background: #3d7fd6; color: #fff; }
+.cal-events-btn.open .cal-events-cnt { background: #fff; color: #2a64b0; }
+.cal-events-date { color: #2a64b0; }
+.cal-up-item.star, .cal-ag-item.starred { background: #e3f6ee !important; outline: 1.5px solid #7fcdb0; outline-offset: -1.5px; }
+.cal-up-d.star { background: rgba(127,205,176,0.5); color: #0f5f46; }
+.cal-up-btn.star.on, .bd-star.on { color: #1d9a73; }
+.cal-badge--star, .cal-cell--today .cal-badge--star { background: rgba(127,205,176,0.5); color: #0f5f46; }
