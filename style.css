@@ -1899,3 +1899,10 @@ html[data-shell="tabs"]:not([data-phone]) .cal-ag-check { width: 16px; height: 1
 .cal-up-item { cursor: default; }
 .cal-up-d { cursor: pointer; }
 .cal-up-d:hover { filter: brightness(0.95); }
+
+/* 목록 제목 앞 아이콘: 선택한 날짜=캘린더 탭 아이콘, 다가오는 일=모래시계 */
+.cal-head-title { display: inline-flex; align-items: center; gap: 6px; }
+.cal-head-ic { width: 22px; height: 22px; flex: 0 0 auto; display: block; }
+.cal-head-ic-wrap { display: inline-flex; }
+html[data-shell="tabs"]:not([data-phone]) .cal-head-ic { width: 16px; height: 16px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-head-title { gap: 4px; }

@@ -2431,7 +2431,10 @@
 
       box.hidden = false; box.innerHTML = '';
       var head = document.createElement('div'); head.className = 'cal-up-head';
-      var t = document.createElement('b'); t.textContent = '다가오는 일';
+      var t = document.createElement('b'); t.className = 'cal-head-title';
+      var hg = document.createElement('span'); hg.className = 'cal-head-ic-wrap';
+      hg.innerHTML = '<svg class="cal-head-ic" viewBox="0 0 32 32" aria-hidden="true"><path d="M9 6h14c0 5-3.2 7.6-5 10 1.8 2.4 5 5 5 10H9c0-5 3.2-7.6 5-10-1.8-2.4-5-5-5-10Z" fill="#D6EAF8"/><path d="M11 6.5h10c-.4 3-2.6 5-5 6.8-2.4-1.8-4.6-3.8-5-6.8Z" fill="#FFC83D"/><rect x="15.35" y="13" width="1.3" height="6" rx=".6" fill="#FFC83D"/><path d="M10.4 25.5h11.2c-.5-3-2.7-4.6-5.6-6.3-2.9 1.7-5.1 3.3-5.6 6.3Z" fill="#FFB020"/><rect x="6" y="2.5" width="20" height="3.6" rx="1.8" fill="#A56A43"/><rect x="6" y="25.9" width="20" height="3.6" rx="1.8" fill="#A56A43"/></svg>';
+      t.appendChild(hg); t.appendChild(document.createTextNode('다가오는 일'));
       var sm = document.createElement('small'); sm.textContent = '앞으로 30일 · 선택한 날 제외';
       head.appendChild(t); head.appendChild(sm); box.appendChild(head);
       if (!items.length) { var em = document.createElement('div'); em.className = 'cal-ag-empty'; em.textContent = '이 밖에 30일 안에 예정된 일이 없어요.'; box.appendChild(em); return; }
@@ -2526,7 +2529,10 @@
     box.hidden = false;
     box.innerHTML = '';
     var head = document.createElement('div'); head.className = 'cal-ag-head';
-    var ttl = document.createElement('b'); ttl.textContent = (date.getMonth() + 1) + '월 ' + date.getDate() + '일 (' + dayLabel(date.getDay()) + ')';
+    var ttl = document.createElement('b'); ttl.className = 'cal-head-title';
+    var calSvg = document.querySelector('.tabbtn[data-tab="calendar"] svg');
+    if (calSvg) { var ci = calSvg.cloneNode(true); ci.setAttribute('class', 'cal-head-ic'); ci.removeAttribute('width'); ci.removeAttribute('height'); ttl.appendChild(ci); }
+    ttl.appendChild(document.createTextNode((date.getMonth() + 1) + '월 ' + date.getDate() + '일 (' + dayLabel(date.getDay()) + ')'));
     var open = document.createElement('button'); open.type = 'button'; open.textContent = '입력·수정';
     open.addEventListener('click', function (ev) { ev.stopPropagation(); openDayTaskEditor(date); });
     head.appendChild(ttl); head.appendChild(open);
