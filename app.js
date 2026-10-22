@@ -2435,8 +2435,7 @@
       var sm = document.createElement('small'); sm.textContent = '앞으로 30일 · 선택한 날 제외';
       head.appendChild(t); head.appendChild(sm); box.appendChild(head);
       if (!items.length) { var em = document.createElement('div'); em.className = 'cal-ag-empty'; em.textContent = '이 밖에 30일 안에 예정된 일이 없어요.'; box.appendChild(em); return; }
-      var LIMIT = document.documentElement.hasAttribute('data-phone') ? 5 : 3;
-      var shown = upExpanded ? items : items.slice(0, LIMIT);
+      var shown = items;   // 일단 전부 그린 뒤, 화면에 들어가는 만큼만 남기고 나머지는 "더 보기"로 접는다(아래 fit)
       var list = document.createElement('div'); list.className = 'cal-up-list'; box.appendChild(list);
       var dd = function (it) {
         if (it.start <= fromKey && it.end >= fromKey) return '오늘';
@@ -2493,14 +2492,30 @@
         });
         list.appendChild(row);
       });
-      if (items.length > LIMIT) {
-        var more = document.createElement('button'); more.type = 'button'; more.className = 'cal-up-more';
-        more.textContent = upExpanded ? '접기 ▴' : '+ ' + (items.length - LIMIT) + '개 더 보기 ▾';
-        more.addEventListener('click', function () { upExpanded = !upExpanded; renderUpcoming(); });
-        box.appendChild(more);
+      var more = document.createElement('button'); more.type = 'button'; more.className = 'cal-up-more'; more.hidden = true;
+      more.addEventListener('click', function () { upExpanded = !upExpanded; renderUpcoming(); });
+      box.appendChild(more);
+      // 보이는 영역 맨 아래까지 최대한 채우고, 못 들어가는 항목만 "더 보기"로 접는다
+      var rowsEl = Array.prototype.slice.call(list.children);
+      var limitBottom = document.documentElement.hasAttribute('data-phone') ? window.innerHeight - 10 : ($('calSide').getBoundingClientRect().bottom - 4);
+      var moreH = 26, cut = -1;
+      if (upExpanded) { more.hidden = false; more.textContent = '접기 ▴'; }
+      else {
+        for (var ri = 0; ri < rowsEl.length; ri++) {
+          var rb = rowsEl[ri].getBoundingClientRect().bottom + 4;
+          if (rb > limitBottom - (ri < rowsEl.length - 1 ? moreH : 0)) { cut = ri; break; }
+        }
+        if (cut >= 0) {
+          cut = Math.max(cut, 1);
+          for (var hi = cut; hi < rowsEl.length; hi++) rowsEl[hi].style.display = 'none';
+          more.hidden = false; more.textContent = '+ ' + (rowsEl.length - cut) + '개 더 보기 ▾';
+        }
       }
     });
   }
+  // 창 크기가 바뀌면(폴드 접기·펼치기, 세로·가로 전환) 들어가는 개수를 다시 계산한다
+  var upResizeT = null;
+  window.addEventListener('resize', function () { clearTimeout(upResizeT); upResizeT = setTimeout(function () { if ($('calUpcoming') && !$('calUpcoming').hidden) renderUpcoming(); }, 200); });
 
   function renderAgenda() {
     var box = $('calAgenda');

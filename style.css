@@ -1860,3 +1860,27 @@ html[data-shell="tabs"]:not([data-phone]) .cal-up-date { font-size: 10.5px; lett
 .cal-up-d.star { background: rgba(127,205,176,0.5); color: #0f5f46; }
 .cal-up-btn.star.on, .bd-star.on { color: #1d9a73; }
 .cal-badge--star, .cal-cell--today .cal-badge--star { background: rgba(127,205,176,0.5); color: #0f5f46; }
+
+/* PC 캘린더 탭: 왼쪽 달력 폭을 줄이고 오른쪽 목록 글씨를 줄여서(11.5px→10.5px) 한 화면에 들어가게 */
+html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calendarCard { grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr); }
+html[data-shell="tabs"]:not([data-phone]) .cal-up-item, html[data-shell="tabs"]:not([data-phone]) .cal-ag-item { font-size: 10.5px; padding: 3px 4px; margin-bottom: 3px; gap: 3px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-up-date { font-size: 9.5px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-up-d { font-size: 10px; min-width: 31px; padding: 0 3px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-ag-head, html[data-shell="tabs"]:not([data-phone]) .cal-up-head { font-size: 12px; margin-bottom: 4px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-up-head small { font-size: 9.5px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-ag-head button { font-size: 11px; padding: 3px 8px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-up-btn { font-size: 10.5px; padding: 2px 3px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-up-btn.star { font-size: 13.5px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-ag-grip { font-size: 9.5px; width: 10px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-upcoming { padding: 5px; margin-top: 6px; }
+html[data-shell="tabs"]:not([data-phone]) #calAgenda { padding: 5px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-ag-kind { font-size: 10px; min-width: 42px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-up-more { font-size: 11px; }
+
+
+.cal-up-more[hidden] { display: none; }
+/* 메모 탭 카드: ★·꼬리표·날짜 칩을 글 오른쪽 같은 줄에 둔다(세로로 길어지지 않게) */
+.bd-main { display: flex; align-items: center; gap: 6px; }
+.bd-main .bd-text { flex: 1; min-width: 0; }
+.bd-main .bd-edit { flex: 1; min-width: 0; }
+.bd-main .bd-tag, .bd-main .bd-date, .bd-main .bd-star { flex: 0 0 auto; margin-top: 0; }
