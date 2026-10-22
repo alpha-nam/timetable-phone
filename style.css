@@ -1845,3 +1845,7 @@ html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] .cal-upcoming { m
 .cal-up-d.star { background: rgba(140,198,63,0.35); color: #3f6b08; }
 .cal-up-btn.star.on, .bd-star.on { color: #5f9a14; }
 .cal-badge--star, .cal-cell--today .cal-badge--star { background: rgba(140,198,63,0.4); color: #3f6b08; }
+
+/* 다가오는 일: 제목 오른쪽의 날짜 */
+.cal-up-date { flex: 0 0 auto; font-size: 12px; font-weight: 600; color: var(--text-faint); white-space: nowrap; }
+html[data-shell="tabs"]:not([data-phone]) .cal-up-date { font-size: 10.5px; letter-spacing: -0.3px; }

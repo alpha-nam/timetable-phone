@@ -2454,6 +2454,9 @@
         txt.textContent = it.text + (it.end !== it.start ? '  ~' + shortDate(it.end) : '');
         txt.title = it.text;
         row.appendChild(grip); row.appendChild(chip); row.appendChild(txt);
+        var ed = dateFromKey(it.eff), dsp = document.createElement('span'); dsp.className = 'cal-up-date';
+        dsp.textContent = (ed.getMonth() + 1) + '/' + ed.getDate() + '(' + dayLabel(ed.getDay()) + ')';
+        row.appendChild(dsp);
         if (it.kind === 'memo') {
           var sb = document.createElement('button'); sb.type = 'button'; sb.className = 'cal-up-btn star' + (it.star ? ' on' : ''); sb.textContent = it.star ? '★' : '☆'; sb.title = '중요 표시';
           sb.addEventListener('click', function (ev) { ev.stopPropagation(); window.BOARD.toggleStarById(it.cid); });
