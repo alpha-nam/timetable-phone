@@ -1889,3 +1889,9 @@ html[data-shell="tabs"]:not([data-phone]) .cal-up-more { font-size: 11px; }
 .cal-up-item.star, .cal-ag-item.starred { background: var(--sc-bg, #e3f6ee) !important; outline: 1.5px solid var(--sc-oc, #7fcdb0); outline-offset: -1.5px; }
 .cal-up-item.star .cal-up-d { background: var(--sc-chip, rgba(127,205,176,0.5)); color: var(--sc-tx, #0f5f46); border-color: transparent; }
 .cal-up-item .cal-up-btn.star.on, .cal-ag-item .cal-up-btn.star.on, .bd-card .bd-star.on { color: var(--sc-st, #1d9a73); }
+
+/* 완료한 메모: 둥근 초록 체크 + 흐린 글씨와 취소선 */
+.cal-ag-check { flex: 0 0 auto; width: 20px; height: 20px; border-radius: 50%; background: #2fa866; color: #fff; font-size: 12px; font-weight: 800; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
+.cal-ag-item.done .cal-ag-text { color: #9aa3af; text-decoration: line-through; text-decoration-color: #b9c0ca; }
+html[data-phone] .cal-ag-check { width: 22px; height: 22px; font-size: 13px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-ag-check { width: 16px; height: 16px; font-size: 10px; }

@@ -2548,18 +2548,19 @@
       p.order = ids; p.updatedAt = Date.now(); savePrefs();
     };
     if (calEventDays[calSelected]) items.push({ c: '#3d7fd6', k: '학사일정', t: calEventDays[calSelected], tab: 'memo' });
-    agOrdered(window.BOARD && window.BOARD.memosOn ? window.BOARD.memosOn(calSelected) : [], 'memo').forEach(function (mm) { items.push({ id: mm.id, g: 'memo', cid: mm.id, star: !!mm.star, c: '#2fa866', k: '메모', t: (mm.done ? '✓ ' : '') + mm.text + (mm.dateEnd && mm.dateEnd !== mm.date ? '  (' + Number(mm.date.slice(4, 6)) + '/' + Number(mm.date.slice(6)) + '~' + Number(mm.dateEnd.slice(4, 6)) + '/' + Number(mm.dateEnd.slice(6)) + ')' : ''), tab: 'memo' }); });
+    agOrdered(window.BOARD && window.BOARD.memosOn ? window.BOARD.memosOn(calSelected) : [], 'memo').forEach(function (mm) { items.push({ id: mm.id, g: 'memo', cid: mm.id, done: !!mm.done, star: !!mm.star, c: '#2fa866', k: '메모', t: mm.text + (mm.dateEnd && mm.dateEnd !== mm.date ? '  (' + Number(mm.date.slice(4, 6)) + '/' + Number(mm.date.slice(6)) + '~' + Number(mm.dateEnd.slice(4, 6)) + '/' + Number(mm.dateEnd.slice(6)) + ')' : ''), tab: 'memo' }); });
     agOrdered(attendanceRecordsForDate(calSelected).slice().sort(agNo), 'att').forEach(function (r) { items.push({ id: r.id, g: 'att', c: '#d6483f', k: '학급 출결', t: attendanceStudentLabel(r) + ' · ' + attendanceTypeLabel(r), d: r.memo ? r.memo : '', tab: 'attendance' }); });
     agOrdered(window.SUBJ ? window.SUBJ.listOn(calSelected) : [], 'subj').forEach(function (r) {
       items.push({ id: r.id, g: 'subj', c: '#8b7cf6', k: '교과 출결', t: r.period + '교시 ' + r.subject + ' ' + r.grade + '-' + r.ban + '-' + r.no + ' ' + r.studentName + ' · ' + (r.reason || '') + r.type, d: r.memo ? r.memo : '', tab: 'subject' });
     });
     if (!items.length) { var e = document.createElement('div'); e.className = 'cal-ag-empty'; e.textContent = '이 날짜에는 일정이 없어요.'; box.appendChild(e); return; }
     items.forEach(function (it) {
-      var row = document.createElement('div'); row.className = 'cal-ag-item' + (it.star ? ' starred' : '');
+      var row = document.createElement('div'); row.className = 'cal-ag-item' + (it.star ? ' starred' : '') + (it.done ? ' done' : '');
       var bar = document.createElement('i'); bar.style.background = it.c;
       var kind = document.createElement('span'); kind.className = 'cal-ag-kind'; kind.textContent = it.k; kind.style.color = it.c;
       var txt = document.createElement('span'); txt.className = 'cal-ag-text'; txt.textContent = it.t;
       row.appendChild(bar); row.appendChild(kind); row.appendChild(txt);
+      if (it.done) { var ck = document.createElement('span'); ck.className = 'cal-ag-check'; ck.textContent = '✓'; ck.setAttribute('aria-label', '완료'); row.insertBefore(ck, txt); }
       if (it.g) {
         row.dataset.g = it.g; row.dataset.rid = it.id;
         var grip = document.createElement('span'); grip.className = 'cal-ag-grip'; grip.textContent = '⋮⋮'; grip.title = '끌어서 순서 바꾸기';
