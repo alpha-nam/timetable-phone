@@ -717,7 +717,7 @@
         seg.appendChild(b);
       });
       g.appendChild(seg);
-      groups.push(function () { [].forEach.call(seg.children, function (b, i) { b.classList.toggle('active', cur(key) === options[i][0]); }); });
+      groups.push(function () { var v = cur(key), m = (v == null ? null : v); [].forEach.call(seg.children, function (b, i) { b.classList.toggle('active', m === options[i][0]); }); });
     }
 
     swatches(group(kind === 'section' ? '칸 색' : '메모 색'), BG_COLORS, 'bg');
@@ -747,7 +747,7 @@
     gf.appendChild(grid);
     groups.push(function () { [].forEach.call(grid.children, function (b, i) { b.classList.toggle('on', (cur('font') || '') === FONTS[i].key); }); });
 
-    segment(group('굵기'), 'bold', [[false, '보통'], [true, '굵게']]);
+    segment(group('굵기'), 'bold', [[false, '보통'], [null, '기본'], [true, '굵게']]);
     if (kind !== 'section') {
       var gsc = group('★ 중요 표시 색 (이 메모만 · 별표를 켰을 때 보여요)');
       var srow2 = el('div', 'board-style-sw');
