@@ -2554,7 +2554,7 @@
       if (!p) { p = { id: id }; prefs.push(p); }
       p.order = ids; p.updatedAt = Date.now(); savePrefs();
     };
-    if (calEventDays[calSelected]) items.push({ c: '#3d7fd6', k: '학사일정', t: calEventDays[calSelected], tab: 'memo' });
+    if (calEventDays[calSelected]) items.push({ ev: true, c: '#3d7fd6', k: '학사일정', t: calEventDays[calSelected], tab: 'memo' });
     agOrdered(window.BOARD && window.BOARD.memosOn ? window.BOARD.memosOn(calSelected) : [], 'memo').forEach(function (mm) { items.push({ id: mm.id, g: 'memo', cid: mm.id, done: !!mm.done, star: !!mm.star, c: '#2fa866', k: '메모', t: mm.text + (mm.dateEnd && mm.dateEnd !== mm.date ? '  (' + Number(mm.date.slice(4, 6)) + '/' + Number(mm.date.slice(6)) + '~' + Number(mm.dateEnd.slice(4, 6)) + '/' + Number(mm.dateEnd.slice(6)) + ')' : ''), tab: 'memo' }); });
     agOrdered(attendanceRecordsForDate(calSelected).slice().sort(agNo), 'att').forEach(function (r) { items.push({ id: r.id, g: 'att', c: '#d6483f', k: '학급 출결', t: attendanceStudentLabel(r) + ' · ' + attendanceTypeLabel(r), d: r.memo ? r.memo : '', tab: 'attendance' }); });
     agOrdered(window.SUBJ ? window.SUBJ.listOn(calSelected) : [], 'subj').forEach(function (r) {
@@ -2567,6 +2567,13 @@
       var kind = document.createElement('span'); kind.className = 'cal-ag-kind'; kind.textContent = it.k; kind.style.color = it.c;
       var txt = document.createElement('span'); txt.className = 'cal-ag-text'; txt.textContent = it.t;
       row.appendChild(bar); row.appendChild(kind); row.appendChild(txt);
+      if (it.ev) {   // 학사일정(읽기 전용): 손잡이 자리에 자물쇠를 둬서 글자 위치를 맞추고, 오른쪽에 "학사일정" 표시
+        row.classList.add('cal-ag-item--ev');
+        var lk = document.createElement('span'); lk.className = 'cal-ag-lock'; lk.title = '학교 학사일정(수정할 수 없어요)';
+        lk.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+        row.insertBefore(lk, kind);
+        var tg = document.createElement('span'); tg.className = 'cal-ag-evtag'; tg.textContent = '학사일정'; row.appendChild(tg);
+      }
       if (it.done) { var ck = document.createElement('span'); ck.className = 'cal-ag-check'; ck.textContent = '✓'; ck.setAttribute('aria-label', '완료'); row.insertBefore(ck, txt); }
       if (it.g) {
         row.dataset.g = it.g; row.dataset.rid = it.id;

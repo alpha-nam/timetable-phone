@@ -1906,3 +1906,12 @@ html[data-shell="tabs"]:not([data-phone]) .cal-ag-check { width: 16px; height: 1
 .cal-head-ic-wrap { display: inline-flex; }
 html[data-shell="tabs"]:not([data-phone]) .cal-head-ic { width: 16px; height: 16px; }
 html[data-shell="tabs"]:not([data-phone]) .cal-head-title { gap: 4px; }
+
+/* 학사일정 줄: 자물쇠 + 오른쪽 "학사일정" 표시 (손잡이 자리와 같은 폭이라 글자 시작 위치가 같다) */
+.cal-ag-lock { flex: 0 0 auto; align-self: center; width: 14px; display: inline-flex; justify-content: center; color: #8fb0dd; }
+.cal-ag-evtag { flex: 0 0 auto; font-size: 10.5px; font-weight: 700; padding: 1px 8px; border-radius: 99px; background: rgba(61,127,214,0.15); color: #2a64b0; }
+html[data-shell="tabs"]:not([data-phone]) .cal-ag-lock { width: 10px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-ag-lock svg { width: 10px; height: 10px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-ag-evtag { font-size: 9.5px; padding: 0 6px; }
+.cal-ag-item--ev .cal-ag-text { flex: 1; }
+.cal-ag-lock { margin: 0 -2px; }
