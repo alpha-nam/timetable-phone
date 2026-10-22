@@ -418,6 +418,7 @@
     var owner = sections.filter(function (x) { return x.id === c.sectionId; })[0];
     var cardBg = c.style && c.style.bg;
     if (cardBg) row.style.background = cardBg;
+    if (c.style && c.style.starColor) starVars(row, c.style.starColor);
     var eff = effText(c, owner);
     // 어두운 섹션 안의 메모는 따로 색을 안 줬으면 어두운 반투명 메모로 보여서 흰 글씨가 읽히게 한다.
     var darkOwnerBg = !cardBg && owner && owner.style && isDark(owner.style.bg) ? owner.style.bg : '';
@@ -550,7 +551,8 @@
     var c = cardById(id); if (!c) return;
     var owner = sections.filter(function (x) { return x.id === c.sectionId; })[0];
     var bg = c.style && c.style.bg;
-    if (bg) row.style.background = bg;
+    if (bg) row.style.setProperty('background', bg, 'important');
+    if (c.style && c.style.starColor) starVars(row, c.style.starColor);
     applyText(txt, effText(c, owner), bg);
   }
 
@@ -623,6 +625,20 @@
   var BG_COLORS = ['#eef2f8', '#fdecc8', '#dff3e3', '#e0ecff', '#fbe0ea', '#ece5fb', '#e3f3f3', '#ffffff', '#3a4660'];
   var TEXT_COLORS = ['#2a3140', '#8a5610', '#2e6b3c', '#2f5eb0', '#b3342a', '#7b3fa0', '#ffffff'];
   var SIZE_MIN = 10, SIZE_MAX = 34, SIZE_DEFAULT = 13;
+  // 중요(★) 표시 색: [테두리, 배경, 칩 배경, 칩 글씨, 별]. 기본은 민트이고, 메모마다 따로 고를 수 있다(style.starColor).
+  var STAR_PALETTE = {
+    mint: ['#7fcdb0', '#e3f6ee', 'rgba(127,205,176,0.5)', '#0f5f46', '#1d9a73'],
+    lime: ['#a8d05a', '#eef8d4', 'rgba(168,208,90,0.45)', '#3f6b08', '#5f9a14'],
+    yellow: ['#ecc04d', '#fff4d1', 'rgba(236,192,77,0.5)', '#7a5400', '#c8920c'],
+    pink: ['#f0a0b8', '#ffe4ec', 'rgba(240,160,184,0.5)', '#8a2346', '#d6456f'],
+    sky: ['#8ec1f0', '#e3f0fd', 'rgba(142,193,240,0.5)', '#1f4d80', '#2f7bd0'],
+    violet: ['#b9a6f0', '#eeeaff', 'rgba(185,166,240,0.5)', '#4a3a8a', '#6f55d6']
+  };
+  var STAR_NAMES = { mint: '민트', lime: '연두', yellow: '노랑', pink: '분홍', sky: '하늘', violet: '보라' };
+  function starVars(node, key) {
+    var p = STAR_PALETTE[key]; if (!p) return;
+    node.style.setProperty('--sc-oc', p[0]); node.style.setProperty('--sc-bg', p[1]); node.style.setProperty('--sc-chip', p[2]); node.style.setProperty('--sc-tx', p[3]); node.style.setProperty('--sc-st', p[4]);
+  }
 
   function fontCss(key) { var f = FONTS.filter(function (x) { return x.key === key; })[0]; return f && f.key ? f.css : ''; }
   function isDark(hex) {
@@ -640,6 +656,7 @@
     if (s.align === 'left' || s.align === 'center' || s.align === 'right') o.align = s.align;
     if (s.font) o.font = String(s.font);
     if (s.bold === true || s.bold === false) o.bold = s.bold;
+    if (s.starColor && STAR_PALETTE[s.starColor]) o.starColor = s.starColor;
     return Object.keys(o).length ? o : null;
   }
   function styleSig(s) { return JSON.stringify(normStyle(s)); }
@@ -731,6 +748,20 @@
     groups.push(function () { [].forEach.call(grid.children, function (b, i) { b.classList.toggle('on', (cur('font') || '') === FONTS[i].key); }); });
 
     segment(group('굵기'), 'bold', [[false, '보통'], [true, '굵게']]);
+    if (kind !== 'section') {
+      var gsc = group('★ 중요 표시 색 (이 메모만 · 별표를 켰을 때 보여요)');
+      var srow2 = el('div', 'board-style-sw');
+      var def2 = el('button', 'board-style-swatch none', '기본'); def2.type = 'button'; def2.title = '기본(민트)';
+      def2.addEventListener('click', function () { set('starColor', null); });
+      srow2.appendChild(def2);
+      Object.keys(STAR_PALETTE).forEach(function (key) {
+        var sb = el('button', 'board-style-swatch'); sb.type = 'button'; sb.title = STAR_NAMES[key]; sb.style.background = STAR_PALETTE[key][0];
+        sb.addEventListener('click', function () { set('starColor', key); });
+        srow2.appendChild(sb);
+      });
+      gsc.appendChild(srow2);
+      groups.push(function () { var cv = cur('starColor'); [].forEach.call(srow2.children, function (bn, i) { var key = i === 0 ? undefined : Object.keys(STAR_PALETTE)[i - 1]; bn.classList.toggle('on', cv === key); }); });
+    }
 
     var foot = el('div', 'board-style-foot');
     var clear = el('button', 'board-tool', '기본값으로'); clear.type = 'button';
