@@ -74,6 +74,14 @@
       document.head.appendChild(s);
     });
   }
+  // 로그인한 계정의 이메일을 기억해 두었다가 다음 로그인 때 힌트로 쓴다(실패해도 그냥 넘어간다).
+  function rememberEmail(accessToken) {
+    if (lsGet('tt_email')) return;
+    fetch('https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)', { headers: { Authorization: 'Bearer ' + accessToken } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j && j.user && j.user.emailAddress) lsSet('tt_email', j.user.emailAddress); })
+      .catch(function () { /* 무시 */ });
+  }
   // 반드시 사용자가 화면을 누른 그 순간에 불러야 한다(팝업 차단 방지).
   function requestToken(prompt) {
     return loadGis().then(function () {
@@ -83,10 +91,14 @@
           if (r.error) return reject(new Error('로그인이 취소되었거나 실패했습니다.'));
           token = { value: r.access_token, exp: Date.now() + (Number(r.expires_in) || 3600) * 1000 };
           lsSet('tt_token', token);
+          rememberEmail(token.value);
           resolve();
         };
         tokenClient.error_callback = function () { reject(new Error('로그인 창이 닫혔습니다.')); };
-        tokenClient.requestAccessToken({ prompt: prompt || '' });
+        var cfg = { prompt: prompt || '' };
+        var hint = lsGet('tt_email');
+        if (hint) cfg.hint = hint;   // 계정 고르는 화면 없이 바로 그 계정으로
+        tokenClient.requestAccessToken(cfg);
       });
     });
   }
@@ -154,7 +166,7 @@
       },
       disconnect: function () {
         if (token && window.google && google.accounts) { try { google.accounts.oauth2.revoke(token.value, function () {}); } catch (e) { /* 무시 */ } }
-        token = null; lsSet('tt_token', null); lsSet('tt_everLoggedIn', null); makeDrive();
+        token = null; lsSet('tt_token', null); lsSet('tt_everLoggedIn', null); lsSet('tt_email', null); makeDrive();
         return Promise.resolve({ ok: true });
       },
       sync: function (local) {
@@ -383,6 +395,7 @@
     registerWorker();
     initInstall();
     document.addEventListener('pointerdown', refreshOnGesture, true);
+    document.addEventListener('pointerup', refreshOnGesture, true);   // 터치는 손을 뗄 때 "사용자 동작"으로 인정돼서 팝업이 막히지 않는다
     $('gateLogin').addEventListener('click', function () {
       showGate('로그인 중…', '', false);
       requestToken('consent').then(function () { lsSet('tt_everLoggedIn', true); return enter(); })
