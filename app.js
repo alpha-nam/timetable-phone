@@ -3352,6 +3352,7 @@
   function renderAttendanceTab() {
     var d = attViewDate;
     $('attDateLabel').textContent = (d.getMonth() + 1) + '월 ' + d.getDate() + '일 (' + dayLabel(d.getDay()) + ')';
+    var an = document.querySelector('#attendanceCard .att-nav'); if (an) an.classList.toggle('is-today', ymd(d) === ymd(new Date()));
     fillAttClassSelect();
     updateAttConfirmBtn(ymd(d));
     var body = $('attTabBody');

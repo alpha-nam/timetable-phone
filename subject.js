@@ -82,15 +82,38 @@
   function lessonsOn(date) {
     var tt = timetable();
     var teacher = tt && (tt.teachers || []).filter(function (t) { return t.teacherName === teacherName; })[0];
-    var dow = date.getDay();
-    if (!teacher || dow < 1 || dow > 5) return [];
+    var dow = date.getDay(), ds = ymd(date);
     var out = [];
-    for (var pi = 0; pi < (tt.periodsPerDay || 7); pi++) {
-      groupsFor(tt, teacher, dow, pi).forEach(function (g) {
-        out.push({ key: (pi + 1) + '|' + g.label + '|' + g.subject, period: pi + 1, label: g.label, subject: g.subject, students: g.students });
-      });
+    if (teacher && dow >= 1 && dow <= 5) {
+      for (var pi = 0; pi < (tt.periodsPerDay || 7); pi++) {
+        groupsFor(tt, teacher, dow, pi).forEach(function (g) {
+          out.push({ key: (pi + 1) + '|' + g.label + '|' + g.subject, period: pi + 1, label: g.label, subject: g.subject, students: applyFixes(g.students, ds, dow, pi + 1, g.label) });
+        });
+      }
     }
+    // 교체·땜빵으로 들어온 수업(나이스 명단에서 가져온 임시 수업)
+    records.forEach(function (r) {
+      if (!r || r.kind !== 'extra' || r.date !== ds) return;
+      if (out.some(function (l) { return l.period === r.period && l.label === r.label; })) return;
+      out.push({ key: r.period + '|' + r.label + '|' + r.subject, period: r.period, label: r.label, subject: r.subject, extra: true, students: (r.students || []).slice().sort(byNo) });
+    });
+    out.sort(function (a, b) { return a.period - b.period; });
     return out;
+  }
+  // 나이스에 맞춘 명단 수정(전학·자퇴 등): 확인한 날짜(from)부터 그 수업(요일·교시·반)에 적용한다. 날짜 순서대로 쌓아서 적용.
+  function applyFixes(students, ds, dow, period, label) {
+    var fx = records.filter(function (r) { return r && r.kind === 'rosterfix' && r.dow === dow && r.period === period && r.label === label && r.from <= ds; })
+      .sort(function (a, b) { return a.from < b.from ? -1 : a.from > b.from ? 1 : 0; });
+    if (!fx.length) return students;
+    var list = students.slice();
+    fx.forEach(function (f) {
+      var rm = {}; (f.remove || []).forEach(function (k) { rm[k] = 1; });
+      list = list.filter(function (s) { return !rm[s.grade + '-' + s.ban + '-' + s.no]; });
+      (f.add || []).forEach(function (a) {
+        if (!list.some(function (s) { return Number(s.grade) === a.grade && Number(s.ban) === a.ban && Number(s.no) === a.no; })) list.push({ grade: a.grade, ban: a.ban, no: a.no, studentName: a.studentName });
+      });
+    });
+    return list.sort(byNo);
   }
 
   function recId(dateStr, lesson, s) { return dateStr + '|' + lesson.period + '|' + lesson.label + '|' + studentKey(s); }
@@ -131,7 +154,8 @@
 
   // "이 수업 확인 완료" 표시. 학생 기록과 같은 목록(subj)에 kind:'confirm' 으로 저장해서 PC·폰이 같이 쓴다.
   function isConfirm(r) { return !!r && r.kind === 'confirm'; }
-  function notConfirm(r) { return !isConfirm(r); }
+  // 학생 체크 기록 = kind 가 없는 기록. 마감('confirm')·임시 수업('extra')·명단 수정('rosterfix') 같은 표시 기록은 체크가 아니다.
+  function notConfirm(r) { return !!r && !r.kind; }
   function confirmId(dateStr, lesson) { return dateStr + '|' + lesson.period + '|' + lesson.label + '|__confirm'; }
   function toggleConfirm(dateStr, lesson) {
     var id = confirmId(dateStr, lesson), now = Date.now();
@@ -178,6 +202,7 @@
     var cfBtn = $('subjConfirmBtn'); if (cfBtn) cfBtn.hidden = true; curConfirm = null;   // 수업이 있을 때만 아래에서 다시 보인다
     var dl = $('subjDate');
     if (dl) dl.textContent = dateLabel(viewDate);
+    var sn = document.querySelector('#subjCard .subj-nav'); if (sn) sn.classList.toggle('is-today', ymd(viewDate) === ymd(new Date()));
     var tt = timetable();
     body.innerHTML = '';
     if (!tt) { body.appendChild(el('div', 'subj-empty', '시간표 자료를 불러오는 중이에요.')); return; }
@@ -472,6 +497,83 @@
       render();
     });
   }
+
+  // ───────── 나이스 입력 연동(PC 앱의 neis-bridge.js가 요청하면 부른다) ─────────
+  // "마감 완료"한 수업(교과출결)만, 그 수업에서 체크한 학생과 함께 돌려준다. 체크한 학생이 없으면 marks 가 비어 있다(전원 출석).
+  // 학급출결의 일일 마감(scope:'class-day')은 나이스 과목별출결과 상관없어서 넣지 않는다.
+  function exportForNeis(from, to) {
+    var lessons = records.filter(function (r) { return isConfirm(r) && r.scope !== 'class-day' && String(r.date) >= from && String(r.date) <= to; })
+      .sort(function (a, b) { return (a.date < b.date ? -1 : a.date > b.date ? 1 : 0) || (a.period - b.period); })
+      .map(function (c) {
+        var marks = records.filter(function (r) { return notConfirm(r) && r.date === c.date && r.period === c.period && r.label === c.label; })
+          .sort(byNo)
+          .map(function (r) { return { grade: Number(r.grade), ban: Number(r.ban), no: Number(r.no), name: r.studentName }; });
+        // 나이스 명단 확인용: 이 수업의 전체 명단(체크 여부와 상관없이). 수업을 못 찾으면 roster 를 생략한다.
+        var roster;
+        try {
+          var ds = String(c.date), day = new Date(+ds.slice(0, 4), +ds.slice(4, 6) - 1, +ds.slice(6, 8));
+          var ls = lessonsOn(day).filter(function (l) { return l.period === Number(c.period) && l.label === c.label; })[0];
+          if (ls) roster = ls.students.map(function (s) { return { grade: Number(s.grade), ban: Number(s.ban), no: Number(s.no), name: s.name || s.studentName || '' }; });
+        } catch (e) { roster = undefined; }
+        var out = { date: String(c.date), period: Number(c.period), label: c.label, subject: c.subject, confirmed: true, marks: marks };
+        if (roster) out.roster = roster;
+        return out;
+      });
+    return { version: 1, teacher: teacherName, lessons: lessons };
+  }
+  function neisSyncOk() { return document.documentElement.getAttribute('data-cloud-state') !== 'err'; }
+  window.TTNEIS = {
+    run: function (opts) {
+      opts = opts || {};
+      var wantSync = !!(opts.sync && window.TTAPP && window.TTAPP.syncNow);
+      var syncFailed = false;
+      // 폰에서 방금 체크한 기록이 구글 드라이브에 있을 수 있어서, 요청이 오면 먼저 한 번 동기화한다(15초까지만 기다린다).
+      // 시간이 지나도 안 끝났거나 실패하면 syncOk:false 로 알려서, 확장프로그램이 "최신이 아닐 수 있다"고 말할 수 있게 한다.
+      var done = wantSync ? new Promise(function (resolve) {
+        var timer = setTimeout(function () { syncFailed = true; resolve(); }, opts.syncTimeoutMs || 15000);
+        Promise.resolve().then(function () { return window.TTAPP.syncNow(); })
+          .then(function () { clearTimeout(timer); resolve(); }, function () { clearTimeout(timer); syncFailed = true; resolve(); });
+      }) : Promise.resolve();
+      return done.then(function () {
+        var data = exportForNeis(String(opts.from), String(opts.to));
+        data.syncOk = !syncFailed && neisSyncOk();
+        data.syncedAt = new Date().toISOString();
+        return data;
+      });
+    },
+    _export: exportForNeis,
+    // 확장프로그램의 "나이스 명단 확인"용: 기간(주중)의 모든 수업과 명단(마감 여부와 상관없이)
+    lessons: function (from, to) {
+      var out = [], a = new Date(+String(from).slice(0, 4), +String(from).slice(4, 6) - 1, +String(from).slice(6, 8)), b = new Date(+String(to).slice(0, 4), +String(to).slice(4, 6) - 1, +String(to).slice(6, 8));
+      for (var d = a; d <= b; d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) {
+        lessonsOn(d).forEach(function (l) {
+          out.push({ date: ymd(d), dow: d.getDay(), period: l.period, label: l.label, subject: l.subject, extra: !!l.extra,
+            roster: l.students.map(function (s) { return { grade: Number(s.grade), ban: Number(s.ban), no: Number(s.no), name: s.studentName || '' }; }) });
+        });
+      }
+      return { version: 1, teacher: teacherName, lessons: out };
+    },
+    // 확장프로그램이 나이스 기준으로 보낸 변경을 반영한다: 임시 수업 추가/갱신(extras), 명단 수정(fixes). 모양을 엄격히 검사한다.
+    apply: function (p) {
+      var okS = function (s) { return s && Number.isInteger(s.grade) && Number.isInteger(s.ban) && Number.isInteger(s.no) && s.grade > 0 && s.ban > 0 && s.no > 0 && s.grade < 10 && s.ban < 100 && s.no < 100 && typeof s.name === 'string' && s.name.length <= 20; };
+      var okD = function (d) { return /^\d{8}$/.test(String(d)); };
+      var okL = function (x) { return typeof x === 'string' && x.length > 0 && x.length <= 20; };
+      var ex = (p && p.extras) || [], fx = (p && p.fixes) || [];
+      if (!Array.isArray(ex) || !Array.isArray(fx) || ex.length > 60 || fx.length > 60) throw new Error('bad');
+      var now = Date.now(), n1 = 0, n2 = 0;
+      ex.forEach(function (e) {
+        if (!e || !okD(e.date) || !Number.isInteger(e.period) || e.period < 1 || e.period > 12 || !okL(e.label) || !okL(e.subject) || !Array.isArray(e.students) || e.students.length > 80 || !e.students.every(okS)) throw new Error('bad');
+      });
+      fx.forEach(function (f) {
+        if (!f || !okD(f.from) || !Number.isInteger(f.dow) || f.dow < 1 || f.dow > 5 || !Number.isInteger(f.period) || f.period < 1 || f.period > 12 || !okL(f.label) || !Array.isArray(f.add) || !Array.isArray(f.remove) || f.add.length > 80 || f.remove.length > 80 || !f.add.every(okS) || !f.remove.every(function (k) { return /^\d{1,2}-\d{1,2}-\d{1,2}$/.test(String(k)); })) throw new Error('bad');
+      });
+      var put = function (rec) { records = records.filter(function (x) { return x.id !== rec.id; }); records.push(rec); delete tombs[rec.id]; };
+      ex.forEach(function (e) { put({ id: e.date + '|' + e.period + '|' + e.label + '|__extra', kind: 'extra', date: e.date, period: e.period, label: e.label, subject: e.subject, students: e.students.map(function (s) { return { grade: s.grade, ban: s.ban, no: s.no, studentName: s.name }; }), updatedAt: now }); n1++; });
+      fx.forEach(function (f) { put({ id: 'fix|' + f.from + '|' + f.dow + '|' + f.period + '|' + f.label, kind: 'rosterfix', from: f.from, dow: f.dow, period: f.period, label: f.label, add: f.add.map(function (s) { return { grade: s.grade, ban: s.ban, no: s.no, studentName: s.name }; }), remove: f.remove, updatedAt: now }); n2++; });
+      if (n1 || n2) { save(); try { render(); } catch (e) { /* 화면이 없으면 건너뜀 */ } }
+      return { ok: true, extras: n1, fixes: n2 };
+    }
+  };
 
   window.SUBJ = {
     init: init,

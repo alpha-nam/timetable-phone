@@ -2014,3 +2014,14 @@ html[data-shell="tabs"] #attendanceCard .card-head, html[data-phone] #attendance
   html[data-phone] #attDateLabel, html[data-phone] #subjDate { white-space: nowrap; }
   html[data-phone] #attendanceCard #attClassSel, html[data-phone] #subjCard #subjTeacher { margin-left: 0; }
 }
+/* ───── 폰: 날짜·선택·마감·출결 종합을 한 줄로 (폭 360px 이상). 더 좁으면 위의 두 줄 배치 그대로 ───── */
+@media (max-width: 699px) and (min-width: 360px) {
+  html[data-phone] #attendanceCard .att-nav, html[data-phone] #subjCard .subj-nav { flex: 0 0 auto; gap: 2px; }
+  html[data-phone] #attendanceCard .att-nav button, html[data-phone] #subjCard .subj-nav button { min-width: 0; padding: 0 6px; }
+  html[data-phone] #attDateLabel, html[data-phone] #subjDate { font-size: 12.5px; padding: 3px 2px; }
+  html[data-phone] .att-nav.is-today #attTodayBtn, html[data-phone] .subj-nav.is-today #subjToday { display: none; }   /* 오늘을 보고 있으면 "오늘" 버튼은 숨긴다 */
+  html[data-phone] #attendanceCard, html[data-phone] #subjCard { --tb-mid: 62px; --tb-sum: 66px; --tb-h: 30px; }
+  html[data-phone] #attendanceCard #attClassSel, html[data-phone] #subjCard #subjTeacher { flex: 1 1 0; width: auto; min-width: 56px; margin-left: 0; font-size: 12.5px; }
+  html[data-phone] #attendanceCard .subj-confirm-top, html[data-phone] #subjCard .subj-confirm-top, html[data-phone] #attendanceCard #attTabSummaryBtn, html[data-phone] #subjCard #subjSummaryBtn { font-size: 12px; margin: 0; }
+  html[data-phone] #attendanceCard .card-head, html[data-phone] #subjCard .card-head { gap: 4px; row-gap: 6px; }
+}
