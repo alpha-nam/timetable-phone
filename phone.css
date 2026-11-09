@@ -195,14 +195,11 @@ html[data-phone] #subjSummaryBtn { margin-left: auto !important; }
 html[data-phone] input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),
 html[data-phone] textarea,
 html[data-phone] select { font-size: 16px !important; }
-/* 안드로이드(갤럭시)는 입력할 때 화면이 확대되지 않으므로, 출결 표 안의 드롭다운·입력칸을 표 글자 크기에 맞춘다. 아이폰은 위의 16px 그대로 둔다. */
+/* 출결 표의 드롭다운은 "보이는 글자 + 그 위에 투명한 16px select"라서 어느 폰에서나 표 글자 크기로 보이고 아이폰 확대도 없다.
+   메모 입력칸과 위쪽 선택 칸은 안드로이드(갤럭시)에서만 표 글자 크기로 줄이고, 아이폰은 위의 16px 그대로 둔다. */
 @supports not (-webkit-touch-callout: none) {
-  html[data-phone] .catt-sel, html[data-phone] .catt-input, html[data-phone] #attClassSel, html[data-phone] #subjTeacher { font-size: 13px !important; }
-}
-@media (max-width: 699px) {
-  @supports not (-webkit-touch-callout: none) {
-    html[data-phone] .catt-sel, html[data-phone] .catt-input { font-size: 12px !important; }
-  }
+  html[data-phone] input.catt-input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]) { font-size: var(--tbl-fs, 13px) !important; }
+  html[data-phone] #attClassSel, html[data-phone] #subjTeacher { font-size: 13px !important; }
 }
 
 /* 휴대폰: 날짜 팝업(메모·학급·교과)을 다른 탭처럼 화면 전체로 */

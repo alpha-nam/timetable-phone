@@ -3248,7 +3248,11 @@
 
     // 표 안의 드롭다운: 값을 고르면 바로 저장된다. 새 기록은 구분과 종류를 둘 다 골라야 만들어진다(말없이 기본값이 들어가지 않게).
     function makeSelect(parent, options, current, placeholder) {
-      var sel = add(parent, 'select', 'catt-sel' + (current ? ' set' : ''));
+      // 보이는 글자(catt-seltext)는 표 글자 크기로, 실제로 눌리는 select는 그 위에 투명하게 겹친다.
+      // select 글자를 16px로 둬야 아이폰이 선택할 때 화면을 확대하지 않는데, 보이는 글자는 작게 유지할 수 있다.
+      var wrap = add(parent, 'span', 'catt-selwrap' + (current ? ' set' : ''));
+      add(wrap, 'span', 'catt-seltext', current || placeholder);
+      var sel = add(wrap, 'select', 'catt-sel' + (current ? ' set' : ''));
       var blank = add(sel, 'option', '', placeholder); blank.value = '';
       var list = options.slice();
       if (current && list.indexOf(current) < 0) list.push(current);   // 예전 기록의 값이 목록에 없어도 그대로 보이게

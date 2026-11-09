@@ -1964,12 +1964,13 @@ html[data-shell="tabs"]:not([data-phone]) .cal-ag-evtag { font-size: 9.5px; padd
 .catt-kind, .catt-reason, .catt-memo { flex-direction: column; justify-content: center; align-items: center; gap: 2px; color: #c9302c; }
 .catt-memo { align-items: flex-start; color: var(--text); }
 .catt-kind span, .catt-reason span, .catt-memo span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; line-height: 22px; }
-.catt-sel { width: 100%; height: 100%; min-height: 28px; border: 0; background: transparent; font-family: inherit; font-size: 13px; font-weight: 700; color: var(--text-faint); text-align: center; text-align-last: center; cursor: pointer; outline: none; padding: 0 2px; }
-.catt-sel.set { color: #c9302c; }
-/* 드롭다운 목록(펼쳤을 때)도 표와 같은 글꼴·굵기·크기 */
-.catt-sel option, .subj-teacher option, #attClassSel option, .subj-sbar select option { font-family: inherit; font-size: 13px; font-weight: 700; color: var(--text); background: var(--card-bg, #fff); }
-.catt-sel option[value=""] { color: var(--text-faint); }
-.catt-sel:focus-visible, .catt-input:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.catt-selwrap { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; min-height: 28px; font-size: 13px; font-weight: 700; color: var(--text-faint); }
+.catt-selwrap.set { color: #c9302c; }
+.catt-seltext { pointer-events: none; white-space: nowrap; padding-right: 14px; }
+.catt-selwrap::after { content: ''; position: absolute; right: 9px; top: 50%; width: 5px; height: 5px; margin-top: -4px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); opacity: 0.55; pointer-events: none; }
+.catt-sel { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; padding: 0; font-family: inherit; font-size: 16px; cursor: pointer; }
+.catt-selwrap:focus-within { outline: 2px solid var(--accent); outline-offset: -2px; }
+.catt-input:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .catt-cell { padding: 0 !important; }
 .catt-memo { gap: 4px; padding: 0 4px 0 0 !important; align-items: center !important; flex-direction: row !important; }
 .catt-input { flex: 1; min-width: 0; height: 100%; min-height: 28px; font-family: inherit; font-size: 13px; font-weight: 700; padding: 0 8px; border: 0; background: transparent; color: var(--text); outline: none; box-sizing: border-box; text-align: left; }
@@ -1985,27 +1986,30 @@ html[data-shell="tabs"] #attendanceCard #attClassSel, html[data-shell="tabs"] #s
 html[data-phone] #attendanceCard #attClassSel, html[data-phone] #subjCard #subjTeacher { width: var(--tb-sel); max-width: none; height: var(--tb-h); box-sizing: border-box; margin-left: auto; padding: 0 6px; border-radius: 10px; flex-shrink: 0; }
 .subj-confirm-top[hidden] { display: none !important; }
 .catt.locked .catt-row { opacity: 0.8; }
-.catt-sel:disabled { cursor: default; opacity: 1; }
+.catt-sel:disabled { cursor: default; }
 .catt-input:read-only { cursor: default; }
 html[data-shell="tabs"] #subjCard .subj-confirm-top, html[data-phone] #subjCard .subj-confirm-top, html[data-shell="tabs"] #attendanceCard .subj-confirm-top, html[data-phone] #attendanceCard .subj-confirm-top { width: var(--tb-mid); height: var(--tb-h); }
 html[data-shell="tabs"] #attendanceCard #attTabSummaryBtn, html[data-shell="tabs"] #subjCard #subjSummaryBtn,
 html[data-phone] #attendanceCard #attTabSummaryBtn, html[data-phone] #subjCard #subjSummaryBtn { width: var(--tb-sum); height: var(--tb-h); padding: 0; margin: 0 4px 0 0; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
 html[data-shell="tabs"] #attendanceCard .card-head, html[data-phone] #attendanceCard .card-head { gap: 6px; }   /* 교과출결 줄과 같은 간격 */
 
-/* ───── 폰: 접은 화면(700px 미만)에서만 표를 화면 안에 맞춘다 — 연번 칸을 숨기고 칸 폭을 줄인다. 펼친 화면은 PC와 같은 칸 폭을 쓴다 ───── */
+/* ───── 폰(700px 미만): 화면 폭에 비례해서 칸·글자를 줄이고 늘린다 — 아이폰·갤럭시·접은 화면 어디서나 화면 안에 들어오게 ───── */
+/* 펼친 화면·태블릿(700px 이상)은 PC와 같은 고정 칸 폭을 쓴다 */
 @media (max-width: 699px) {
-  html[data-phone] #attendanceCard, html[data-phone] #subjCard { --tb-sel: 100px; --tb-mid: 80px; --tb-sum: 80px; }
-  html[data-phone] .catt-head, html[data-phone] .catt-line { grid-template-columns: 54px 50px 56px 46px minmax(0, 1fr); }
-  html[data-phone] .catt-sel { -webkit-appearance: none; appearance: none; padding: 0; }   /* 화살표를 빼서 칸을 줄인다("선택" 글자가 안내) */
-  html[data-phone] #attendanceCard .card-head { flex-wrap: wrap; row-gap: 6px; }
-  html[data-phone] .catt-seq, html[data-phone] .catt-head span:first-child { display: none; }
-  html[data-phone] .catt-id, html[data-phone] .subj-row .subj-id { font-size: 12px; }
-  html[data-phone] .catt-name, html[data-phone] .subj-row .subj-name { font-size: 12px; padding: 0 2px; }
-  html[data-phone] .catt-head span, html[data-phone] .subj-head span { padding: 5px 2px; font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+  html[data-phone] #attendanceCard, html[data-phone] #subjCard { --tb-sel: clamp(104px, 30vw, 128px); --tb-mid: clamp(72px, 22vw, 96px); --tb-sum: clamp(72px, 22vw, 88px); --tbl-fs: clamp(11.5px, 3.3vw, 13px); }
+  html[data-phone] .catt-head, html[data-phone] .catt-line { grid-template-columns: clamp(50px, 15vw, 66px) clamp(44px, 14vw, 62px) clamp(52px, 17vw, 74px) clamp(44px, 13vw, 58px) minmax(0, 1fr); }
+  html[data-phone] .subj-head, html[data-phone] .subj-row .subj-line { grid-template-columns: clamp(50px, 15vw, 66px) clamp(44px, 14vw, 62px) clamp(44px, 13vw, 58px) minmax(0, 1fr); }
+  html[data-phone] .catt-selwrap::after { display: none; }   /* 화살표를 빼서 칸을 줄인다("선택" 글자가 안내) */
+  html[data-phone] .catt-seltext { padding-right: 0; }
+  html[data-phone] .catt-selwrap, html[data-phone] .catt-id, html[data-phone] .subj-row .subj-id, html[data-phone] .catt-name, html[data-phone] .subj-row .subj-name { font-size: var(--tbl-fs); }
+  html[data-phone] .catt-name, html[data-phone] .subj-row .subj-name { padding: 0 2px; }
+  html[data-phone] .catt-head span, html[data-phone] .subj-head span { padding: 5px 2px; font-size: var(--tbl-fs); overflow: hidden; text-overflow: ellipsis; }
   html[data-phone] .catt-input { padding: 0 4px; }
-  html[data-phone] .subj-head, html[data-phone] .subj-row .subj-line { grid-template-columns: 54px 50px 44px minmax(0, 1fr); }
+  html[data-phone] .catt-line, html[data-phone] .subj-row .subj-line { min-height: 36px; }   /* 손가락으로 누르기 좋게 */
+  html[data-phone] .catt-seq, html[data-phone] .catt-head span:first-child { display: none; }
   html[data-phone] .subj-seq, html[data-phone] .subj-head span:first-child { display: none; }
   html[data-phone] .subj-head span:nth-child(4) { text-align: center; }
+  html[data-phone] #attendanceCard .card-head { flex-wrap: wrap; row-gap: 6px; }
   html[data-phone] #attendanceCard .att-nav, html[data-phone] #subjCard .subj-nav { flex: 0 0 100%; }
   html[data-phone] #attDateLabel, html[data-phone] #subjDate { white-space: nowrap; }
   html[data-phone] #attendanceCard #attClassSel, html[data-phone] #subjCard #subjTeacher { margin-left: 0; }
