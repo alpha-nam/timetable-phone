@@ -393,17 +393,19 @@
       });
       var list = Object.keys(by).map(function (k) { return by[k]; }).sort(function (a, c) { return a.group.localeCompare(c.group, 'ko') || byNo(a.r, c.r); });
       var cols = ['결석', '지각', '조퇴'].filter(function (t) { return list.some(function (g) { return g.c[t]; }); }).concat(['결과']);
-      var grid = 'minmax(112px, 2.2fr) minmax(64px, 1.3fr) repeat(' + cols.length + ', minmax(34px, 0.8fr)) minmax(30px, 0.7fr)';
+      var grid = 'minmax(64px, 1.3fr) minmax(112px, 2.2fr) repeat(' + cols.length + ', minmax(34px, 0.8fr)) minmax(30px, 0.7fr)';
       var table = el('div', 'att-summary-table');
       var head = el('div', 'att-summary-row att-summary-row--head'); head.style.gridTemplateColumns = grid;
-      ['학생', '수업'].concat(cols, ['합계']).forEach(function (h) { head.appendChild(el('div', '', h)); });
+      ['수업', '학생'].concat(cols, ['합계']).forEach(function (h, k) { var hc = el('div', '', h); if (k === 1) hc.style.textAlign = 'left'; head.appendChild(hc); });
       table.appendChild(head);
+      var prevGroup = null;
       list.forEach(function (g) {
         var item = el('div', 'att-summary-item');
         var r = el('div', 'att-summary-row att-summary-row--click'); r.style.gridTemplateColumns = grid;
+        r.appendChild(el('div', 'att-summary-type', g.group === prevGroup ? '' : g.group)); prevGroup = g.group;   // 같은 수업이 이어지면 첫 줄에만 이름을 보인다
         var nameCell = el('div'), nameLine = el('div', '', g.r.grade + '-' + g.r.ban + ' ' + g.r.no + '번 ' + g.r.studentName);
+        nameCell.style.textAlign = 'left'; nameCell.style.whiteSpace = 'nowrap';
         var caret = el('span', 'att-summary-caret', '▸'); nameLine.appendChild(caret); nameCell.appendChild(nameLine); r.appendChild(nameCell);
-        r.appendChild(el('div', 'att-summary-type', g.group));
         var total = 0;
         cols.forEach(function (t) { total += g.c[t] || 0; r.appendChild(el('div', '', String(g.c[t] || 0))); });
         r.appendChild(el('div', 'att-summary-total', String(total)));
@@ -436,12 +438,11 @@
       bt.addEventListener('click', function (ev) { ev.stopPropagation(); mode = p[0]; draw(); });
       tabRow.appendChild(bt);
     });
-    pickRow.appendChild(yearSel); pickRow.appendChild(monthSel);
+    pickRow.appendChild(yearSel); pickRow.appendChild(monthSel); pickRow.appendChild(cls); cls.classList.add('subj-sum-cls');
 
     var close = el('button', 'day-task-close day-task-close--bottom', '닫기'); close.type = 'button';
     close.addEventListener('click', function (ev) { ev.stopPropagation(); overlay.remove(); });
     box.appendChild(title); box.appendChild(pickRow);
-    var pickRow2 = el('div', 'att-pick-row'); pickRow2.appendChild(cls); box.appendChild(pickRow2);
     box.appendChild(tabRow); box.appendChild(wrap); box.appendChild(close);
     overlay.appendChild(box);
     overlay.addEventListener('click', function (ev) { if (ev.target === overlay) overlay.remove(); });

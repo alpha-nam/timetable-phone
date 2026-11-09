@@ -2032,3 +2032,8 @@ html[data-shell="tabs"] #attendanceCard .card-head, html[data-phone] #attendance
   html[data-phone] #attendanceCard .subj-confirm-top, html[data-phone] #subjCard .subj-confirm-top, html[data-phone] #attendanceCard #attTabSummaryBtn, html[data-phone] #subjCard #subjSummaryBtn { font-size: 12px; margin: 0; }
   html[data-phone] #attendanceCard .card-head, html[data-phone] #subjCard .card-head { gap: 4px; row-gap: 6px; }
 }
+
+/* 교과출결 종합: 학년도·월·수업 선택을 한 줄에(수업 선택은 오른쪽 끝). 좁으면 글자가 줄어들어 한 줄을 지킨다 */
+#subjSummaryOverlay .att-pick-row { align-items: center; flex-wrap: wrap; row-gap: 8px; }
+#subjSummaryOverlay .att-pick-row .att-summary-select { flex: none; padding: 7px 8px; font-size: 13px; }
+#subjSummaryOverlay .att-pick-row .subj-sum-cls { flex: 1 1 0; min-width: 96px; margin-left: auto; text-overflow: ellipsis; }
