@@ -13,8 +13,8 @@
 
   var KEY = 'dashboardSubjectAtt';
   var TOMB_KEY = 'dashboardSubjectAttTombs';
-  var TYPES = ['결석', '지각', '조퇴', '결과'];
-  var REASONS = ['질병', '미인정', '기타', '출석인정'];
+  var TYPES = ['결석', '지각', '조퇴', '결과'];   // 예전 기록(종합표)에 쓴다. 새 체크는 CHECK 하나만 쓴다.
+  var CHECK = '결과';
   var DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
   var TYPE_CLASS = { '결석': 'abs', '지각': 'late', '조퇴': 'early', '결과': 'out' };
 
@@ -24,6 +24,7 @@
   var teacherName = '';
   var lastFollow = '';   // 마지막으로 따라간 "시간표 탭의 선생님"
   var selKey = '';
+  var curConfirm = null;   // 지금 화면에 보이는 수업({ dateStr, lesson }) — 위쪽 "확인" 버튼이 쓴다
 
   function $(id) { return document.getElementById(id); }
   function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; }
@@ -95,18 +96,34 @@
   function recId(dateStr, lesson, s) { return dateStr + '|' + lesson.period + '|' + lesson.label + '|' + studentKey(s); }
   function recOf(id) { for (var i = 0; i < records.length; i++) if (records[i].id === id) return records[i]; return null; }
 
-  function setType(dateStr, lesson, s, type) {
+  // 이름을 누르면 체크가 켜지고, 다시 누르면 꺼진다. 새 체크는 나이스의 "결과 /" 와 같은 하나의 체크(CHECK)다.
+  // (예전 기록의 결석·지각·조퇴·사유는 지우지 않고 그대로 보여 준다.)
+  function toggleCheck(dateStr, lesson, s) {
     var id = recId(dateStr, lesson, s), r = recOf(id), now = Date.now();
-    if (r && r.type === type) {
+    if (r) {
       records = records.filter(function (x) { return x.id !== id; });
       tombs[id] = now;
-    } else if (r) {
-      r.type = type; r.updatedAt = now;
     } else {
       records.push({
         id: id, date: dateStr, period: lesson.period, label: lesson.label, subject: lesson.subject,
-        grade: s.grade, ban: s.ban, no: s.no, studentName: s.studentName, type: type, reason: '', memo: '', updatedAt: now
+        grade: s.grade, ban: s.ban, no: s.no, studentName: s.studentName, type: CHECK, reason: '', memo: '', updatedAt: now
       });
+      delete tombs[id];
+    }
+    save();
+  }
+
+  // "이 수업 확인 완료" 표시. 학생 기록과 같은 목록(subj)에 kind:'confirm' 으로 저장해서 PC·폰이 같이 쓴다.
+  function isConfirm(r) { return !!r && r.kind === 'confirm'; }
+  function notConfirm(r) { return !isConfirm(r); }
+  function confirmId(dateStr, lesson) { return dateStr + '|' + lesson.period + '|' + lesson.label + '|__confirm'; }
+  function toggleConfirm(dateStr, lesson) {
+    var id = confirmId(dateStr, lesson), now = Date.now();
+    if (recOf(id)) {
+      records = records.filter(function (x) { return x.id !== id; });
+      tombs[id] = now;
+    } else {
+      records.push({ id: id, kind: 'confirm', date: dateStr, period: lesson.period, label: lesson.label, subject: lesson.subject, type: '확인', updatedAt: now });
       delete tombs[id];
     }
     save();
@@ -142,6 +159,7 @@
   function render() {
     var body = $('subjBody');
     if (!body) return;
+    var cfBtn = $('subjConfirmBtn'); if (cfBtn) cfBtn.hidden = true; curConfirm = null;   // 수업이 있을 때만 아래에서 다시 보인다
     var dl = $('subjDate');
     if (dl) dl.textContent = dateLabel(viewDate);
     var tt = timetable();
@@ -158,33 +176,46 @@
     var lesson = lessons.filter(function (l) { return l.key === selKey; })[0];
     var dateStr = ymd(viewDate);
 
+    var confirmed = !!recOf(confirmId(dateStr, lesson));
     var chips = el('div', 'subj-chips');
     lessons.forEach(function (l) {
-      var c = el('button', 'subj-chip' + (l.key === selKey ? ' on' : ''), l.period + '교시 ' + (l.label ? l.label + ' ' : '') + l.subject);
+      var c = el('button', 'subj-chip' + (l.key === selKey ? ' on' : ''));
       c.type = 'button';
+      // 수업 앞의 점: 확인 전은 빨강, 확인 완료는 초록 — 확인 안 한 수업이 한눈에 보인다.
+      c.appendChild(el('i', 'subj-dot' + (recOf(confirmId(dateStr, l)) ? ' ok' : '')));
+      c.appendChild(document.createTextNode(l.period + '교시 ' + (l.label ? l.label + ' ' : '') + l.subject));
       c.addEventListener('click', function (ev) { ev.stopPropagation(); selKey = l.key; render(); });
       chips.appendChild(c);
     });
     body.appendChild(chips);
 
-    var info = el('div', 'subj-info', lesson.students.length + '명 · 이름 옆 버튼을 눌러 체크해요 (다시 누르면 취소 확인)');
-    body.appendChild(info);
-
+    var head = el('div', 'subj-head');
+    ['연번', '번호', '이름', '결과', document.documentElement.hasAttribute('data-phone') ? '사유·메모' : '사유·메모 (선택)'].forEach(function (h) { head.appendChild(el('span', '', h)); });
+    body.appendChild(head);
     var list = el('div', 'subj-list');
-    var counts = { total: lesson.students.length };
-    TYPES.forEach(function (t) { counts[t] = 0; });
-    lesson.students.forEach(function (s) {
+    var checked = 0;
+    lesson.students.forEach(function (s, i) {
       var r = recOf(recId(dateStr, lesson, s));
-      if (r) counts[r.type] = (counts[r.type] || 0) + 1;
-      list.appendChild(studentRow(dateStr, lesson, s, r));
+      if (r) checked++;
+      list.appendChild(studentRow(dateStr, lesson, s, r, confirmed, i + 1));
     });
     body.appendChild(list);
 
-    var sum = el('div', 'subj-sum');
-    var present = counts.total - TYPES.reduce(function (n, t) { return n + (counts[t] || 0); }, 0);
-    sum.appendChild(el('span', '', '출석 ' + present));
-    TYPES.forEach(function (t) { if (counts[t]) sum.appendChild(el('span', 'subj-sum-' + TYPE_CLASS[t], t + ' ' + counts[t])); });
-    body.appendChild(sum);
+    if (checked) {
+      var sum = el('div', 'subj-sum');
+      sum.appendChild(el('span', 'subj-sum-abs', '결과 ' + checked));
+      body.appendChild(sum);
+    }
+
+    // 나이스로 보낼 수업은 선생님이 위쪽 "확인 전" 버튼을 직접 눌러 확인한 것만이다. 확인한 수업은 잠기고, 다시 누르면 풀려서 고칠 수 있다.
+    var cf = $('subjConfirmBtn');
+    if (cf) {
+      cf.hidden = false;
+      cf.className = 'subj-confirm-top' + (confirmed ? ' ok' : '');
+      cf.textContent = confirmed ? '✓ 확인 완료' : '확인 전';
+      cf.title = confirmed ? '눌러서 다시 열면 고칠 수 있어요' : '이 수업의 출결 확인을 마쳤으면 눌러요 (나이스로 보낼 수업 표시)';
+      curConfirm = { dateStr: dateStr, lesson: lesson };
+    }
   }
 
   function defaultLesson(lessons) {
@@ -198,37 +229,34 @@
     return lessons[0];
   }
 
-  function studentRow(dateStr, lesson, s, r) {
-    var wrap = el('div', 'subj-row' + (r ? ' has' : ''));
+  // 한 줄: 번호 · 이름 · (체크하면) 사유·메모 칸. 이름 줄을 누르면 체크가 켜지고 꺼진다.
+  function studentRow(dateStr, lesson, s, r, locked, seq) {
+    var wrap = el('div', 'subj-row' + (r ? ' has' : '') + (locked ? ' locked' : ''));
     var line = el('div', 'subj-line');
+    line.appendChild(el('span', 'subj-seq', String(seq)));   // 연번: 번호순으로 1부터
     line.appendChild(el('span', 'subj-id', s.grade + '-' + s.ban + '-' + s.no));
     line.appendChild(el('span', 'subj-name', s.studentName));
-    TYPES.forEach(function (t) {
-      var b = el('button', 'subj-btn' + (r && r.type === t ? ' on ' + TYPE_CLASS[t] : ''), t);
-      b.type = 'button';
-      b.addEventListener('click', function (ev) {
-        ev.stopPropagation();
-        // 이미 체크된 같은 버튼을 다시 누르면 취소하는 것이라, 실수로 풀리지 않게 한 번 확인한다.
-        if (r && r.type === t && !window.confirm(s.studentName + ' 학생의 "' + t + '" 체크를 취소할까요?')) return;
-        setType(dateStr, lesson, s, t); render();
-      });
-      line.appendChild(b);
-    });
-    wrap.appendChild(line);
+    line.appendChild(el('span', 'subj-box', r ? '/' : ''));   // 나이스의 "결과" 칸: 체크하면 "/" 가 켜진다
+    var cell = el('div', 'subj-mcell');
     if (r) {
-      var more = el('div', 'subj-more');
-      REASONS.forEach(function (rs) {
-        var b = el('button', 'subj-reason' + (r.reason === rs ? ' on' : ''), rs);
-        b.type = 'button';
-        b.addEventListener('click', function (ev) { ev.stopPropagation(); patch(r.id, { reason: r.reason === rs ? '' : rs }); render(); });
-        more.appendChild(b);
-      });
-      var memo = el('input', 'subj-memo'); memo.type = 'text'; memo.placeholder = '메모'; memo.value = r.memo || '';
+      // 예전에 결석·지각·조퇴나 사유 버튼으로 남긴 기록은 지우지 않고 "결석 · 질병" 처럼 보여 준다.
+      var old = (r.type && r.type !== CHECK ? r.type : '') + (r.reason ? (r.type && r.type !== CHECK ? ' · ' : '') + r.reason : '');
+      if (old) cell.appendChild(el('span', 'subj-tag', old));
+      var memo = el('input', 'subj-memo'); memo.type = 'text'; memo.placeholder = '사유·메모'; memo.value = r.memo || '';
+      memo.readOnly = !!locked;
       memo.addEventListener('change', function () { patch(r.id, { memo: memo.value.trim() }); });
       memo.addEventListener('click', function (ev) { ev.stopPropagation(); });
-      more.appendChild(memo);
-      wrap.appendChild(more);
+      cell.appendChild(memo);
     }
+    line.appendChild(cell);
+    line.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      if (locked) return;
+      // 체크를 취소할 때는 실수로 풀리지 않게 한 번 확인한다.
+      if (r && !window.confirm(s.studentName + ' 학생의 체크를 취소할까요?')) return;
+      toggleCheck(dateStr, lesson, s); render();
+    });
+    wrap.appendChild(line);
     return wrap;
   }
 
@@ -286,22 +314,23 @@
       var tt = timetable(), names = [];
       var t = tt && (tt.teachers || []).filter(function (x) { return x.teacherName === teacherName; })[0];
       if (t) Object.keys(t.days || {}).forEach(function (d) { (t.days[d] || []).forEach(function (c) { if (c && c.subject && names.indexOf(c.subject) < 0) names.push(c.subject); }); });
-      records.forEach(function (r) { if (r.subject && names.indexOf(r.subject) < 0) names.push(r.subject); });
+      records.filter(notConfirm).forEach(function (r) { if (r.subject && names.indexOf(r.subject) < 0) names.push(r.subject); });
       return names.sort(function (a, b) { return a.localeCompare(b, 'ko'); });
     }
     function fillClasses() {
       var keep = cls.value;
       cls.innerHTML = '';
       var all = el('option', '', '전체 수업'); all.value = ''; cls.appendChild(all);
+      // 고를 항목이 없는 묶음 제목("수업별(반)" 등)은 눌러지지도 않아서 보여 주지 않는다.
       var gs = el('optgroup'); gs.label = '과목별';
       mySubjects().forEach(function (n) { var o = el('option', '', n); o.value = 's:' + n; gs.appendChild(o); });
-      cls.appendChild(gs);
+      if (gs.children.length) cls.appendChild(gs);
       var names = [];
-      records.forEach(function (r) { var g = groupName(r); if (names.indexOf(g) < 0) names.push(g); });
+      records.filter(notConfirm).forEach(function (r) { var g = groupName(r); if (names.indexOf(g) < 0) names.push(g); });
       names.sort(function (a, b) { return a.localeCompare(b, 'ko'); });
       var gc = el('optgroup'); gc.label = '수업별(반)';
       names.forEach(function (n) { var o = el('option', '', n); o.value = 'c:' + n; gc.appendChild(o); });
-      cls.appendChild(gc);
+      if (gc.children.length) cls.appendChild(gc);
       cls.value = [].some.call(cls.options, function (o) { return o.value === keep; }) ? keep : '';
     }
     function matchesClass(r) {
@@ -311,7 +340,7 @@
     }
     function draw() {
       out.innerHTML = '';
-      var rows = records.filter(inRange).filter(matchesClass);
+      var rows = records.filter(notConfirm).filter(inRange).filter(matchesClass);
       if (!rows.length) { out.appendChild(el('div', 'subj-empty', '기록이 없어요.')); return; }
       var groups = {};
       rows.forEach(function (r) {
@@ -391,7 +420,7 @@
 
   // 캘린더 배지·날짜 팝업이 쓴다.
   function listOn(dateStr) {
-    return records.filter(function (r) { return r.date === dateStr; })
+    return records.filter(function (r) { return r.date === dateStr && notConfirm(r); })
       .sort(function (a, b) { return (a.period - b.period) || byNo(a, b); });
   }
   function openDate(d) { viewDate = new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
@@ -406,6 +435,11 @@
     $('subjNext').addEventListener('click', function (ev) { ev.stopPropagation(); shiftDate(1); });
     $('subjToday').addEventListener('click', function (ev) { ev.stopPropagation(); viewDate = new Date(); render(); });
     $('subjSummaryBtn').addEventListener('click', function (ev) { ev.stopPropagation(); openSummary(); });
+    $('subjConfirmBtn').addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      if (!curConfirm) return;
+      toggleConfirm(curConfirm.dateStr, curConfirm.lesson); render();
+    });
     var pick = $('subjDatePick');
     $('subjDate').addEventListener('click', function (ev) {
       ev.stopPropagation();

@@ -1530,11 +1530,11 @@ html[data-shell="tabs"] #subjCard .card-title { display: none; }
 html[data-shell="tabs"] #subjCard .card-head { padding: 0 0 0 2px; gap: 6px; flex-wrap: wrap; row-gap: 6px; }
 html[data-shell="tabs"] #subjCard .att-nav { margin-left: 0; }
 .subj-datepick { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
-.subj-teacher { margin-left: auto; font-family: inherit; font-size: 13px; font-weight: 700; color: var(--text); background: var(--row-bg); border: none; border-radius: 8px; height: 28px; padding: 0 6px; max-width: 110px; }
+.subj-teacher { text-align: center; text-align-last: center; margin-left: auto; font-family: inherit; font-size: 13px; font-weight: 700; color: var(--text); background: var(--row-bg); border: none; border-radius: 8px; height: 30px; padding: 0 6px; max-width: 110px; }
 html[data-shell="tabs"] #subjSummaryBtn { background: var(--accent); color: #fff; font-weight: 700; font-size: 13px; height: 30px; padding: 0 12px; border-radius: 10px; flex-shrink: 0; margin-right: 4px; }
 .subj-body { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 4px 0 0; display: flex; flex-direction: column; gap: 6px; pointer-events: auto; }
 .subj-empty { font-size: 13px; color: var(--text-veryfaint); padding: 14px 4px; line-height: 1.6; }
-.subj-chips { display: flex; gap: 6px; flex-wrap: wrap; flex-shrink: 0; }
+.subj-chips { display: flex; gap: 6px; flex-wrap: wrap; flex-shrink: 0; align-items: center; margin-top: -8px; padding: 4px 0 8px; }   /* 위쪽 줄과 표 제목 사이의 가운데에 오도록(위·아래 여백 같게) */
 .subj-chip { font-family: inherit; font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 99px; border: 1px solid var(--panel-border); background: var(--row-bg); color: var(--text-sub); cursor: pointer; white-space: nowrap; }
 .subj-chip.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
 .subj-info { font-size: 12px; color: var(--text-faint); flex-shrink: 0; white-space: pre-line; word-break: keep-all; line-height: 1.5; }   /* 문장 단위로 두 줄(
@@ -1555,7 +1555,35 @@ html[data-shell="tabs"] #subjSummaryBtn { background: var(--accent); color: #fff
 .subj-reason { font-family: inherit; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 99px; border: 1px solid var(--panel-border); background: transparent; color: var(--text-faint); cursor: pointer; }
 .subj-reason.on { background: var(--accent); color: #fff; border-color: var(--accent); }
 .subj-memo { flex: 1; min-width: 90px; font-family: inherit; font-size: 12px; padding: 4px 8px; border: 1px solid var(--panel-border); border-radius: 8px; background: var(--row-bg); color: var(--text); outline: none; }
-.subj-sum { display: flex; gap: 6px; flex-wrap: wrap; font-size: 12px; font-weight: 700; padding: 6px 0 2px; flex-shrink: 0; color: var(--text-sub); }
+.subj-head, .subj-row .subj-line { display: grid; grid-template-columns: 46px 84px 88px 56px minmax(0, 1fr); align-items: stretch; gap: 0; }
+.subj-head { font-size: 13px; font-weight: 700; color: var(--text); background: var(--accent-soft); border: 1px solid rgba(110,125,150,0.4); margin-bottom: -6px; flex-shrink: 0; }
+.subj-head span { padding: 5px 8px; text-align: center; border-right: 1px solid rgba(110,125,150,0.4); white-space: nowrap; }
+.subj-head span:nth-child(1), .subj-head span:nth-child(4) { text-align: center; }
+.subj-head span:last-child { border-right: 0; }
+.subj-row { padding: 0; border: 1px solid rgba(110,125,150,0.4); border-top: 0; border-radius: 0; }
+.subj-row .subj-line { min-height: 28px; }
+.subj-row .subj-line > * { display: flex; align-items: center; min-width: 0; padding: 0 8px; border: 0; border-right: 1px solid rgba(110,125,150,0.4); border-radius: 0; background: none; box-sizing: border-box; }
+.subj-row .subj-line > :last-child { border-right: 0; }
+.subj-row .subj-seq { justify-content: center; font-size: 13px; font-weight: 700; color: var(--text); background: rgba(110,125,150,0.09); font-variant-numeric: tabular-nums; }
+.subj-list .subj-row:nth-child(even) { background: rgba(110,125,150,0.045); }
+.subj-list .subj-row.has { background: rgba(214,72,63,0.08); }
+.subj-row .subj-id { justify-content: flex-start; padding-left: calc((100% - 2.93em) / 2); white-space: nowrap; width: auto; height: auto; line-height: 1.4; font-size: 13px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.subj-row .subj-name { font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; line-height: 28px; text-align: center; }
+.subj-box { justify-content: center; font-size: 16px; font-weight: 700; color: #c9302c; line-height: 1; }
+.subj-row.has { background: rgba(214,72,63,0.08); border-radius: 0; }
+.subj-mcell { gap: 6px; padding: 0 4px !important; }
+.subj-row .subj-memo { flex: 1 1 0; min-width: 0; text-align: center; color: var(--text); font-weight: 700; height: 22px; box-sizing: border-box; font-size: 13px; padding: 0 6px; border: 1px solid rgba(110,125,150,0.4); border-radius: 4px; text-overflow: ellipsis; white-space: nowrap; }
+.subj-tag { flex-shrink: 0; font-size: 11px; font-weight: 700; color: #c9302c; white-space: nowrap; }
+.subj-row.locked { opacity: 0.75; }
+.subj-row.locked .subj-line { cursor: default; }
+.subj-row:not(.locked) .subj-line { cursor: pointer; }
+.subj-confirm-top { font-family: inherit; font-size: 13px; font-weight: 700; height: 30px; padding: 0 12px; border-radius: 10px; border: 1.5px solid #c9302c; background: #fdecea; color: #a32d2d; cursor: pointer; flex-shrink: 0; white-space: nowrap; }
+html[data-shell="tabs"] #subjCard #subjSummaryBtn { margin: 0; }   /* 세 버튼 사이 간격은 카드 줄의 gap(6px) 하나로 통일 */
+#subjCard .subj-confirm-top { width: 104px; padding: 0; text-align: center; box-sizing: border-box; display: flex; align-items: center; justify-content: center; }   /* 글자가 바뀌어도(확인 전/확인 완료) 폭이 그대로 */   /* 두 버튼의 가로 폭을 같게 */
+.subj-confirm-top.ok { background: #2e8b4f; color: #fff; border-color: #2e8b4f; }
+.subj-chip { display: inline-flex; align-items: center; gap: 6px; }
+.subj-dot { width: 8px; height: 8px; border-radius: 50%; background: #c9302c; display: inline-block; flex-shrink: 0; }
+.subj-dot.ok { background: #2e8b4f; }.subj-sum { display: flex; gap: 6px; flex-wrap: wrap; font-size: 13px; font-weight: 700; padding: 6px 0 2px; flex-shrink: 0; color: var(--text-sub); }
 .subj-sum span { background: var(--row-bg); border-radius: 8px; padding: 4px 8px; }
 .subj-sum .subj-sum-abs { color: #c9302c; } .subj-sum .subj-sum-late { color: #a86a00; } .subj-sum .subj-sum-early { color: #2a64b0; } .subj-sum .subj-sum-out { color: #5b4fd0; }
 .subj-overlay { position: fixed; inset: 0; z-index: 2400; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; pointer-events: auto; }
@@ -1915,3 +1943,54 @@ html[data-shell="tabs"]:not([data-phone]) .cal-ag-lock svg { width: 10px; height
 html[data-shell="tabs"]:not([data-phone]) .cal-ag-evtag { font-size: 9.5px; padding: 0 6px; }
 .cal-ag-item--ev .cal-ag-text { flex: 1; }
 .cal-ag-lock { margin: 0 -2px; }
+
+/* ───── 학급출결 탭: 담임 반 명렬표 표 (교과출결 표와 같은 모양) ───── */
+#attClassSel { height: 32px; max-width: 130px; }
+.catt { display: flex; flex-direction: column; padding: 0 4px 8px 0; }
+.catt-empty { font-size: 13px; color: var(--text-faint); padding: 24px 8px; text-align: center; }
+.catt-head, .catt-line { display: grid; grid-template-columns: 40px 72px 72px 124px 100px minmax(0, 1fr); align-items: stretch; }
+.catt-head { font-size: 13px; font-weight: 700; color: var(--text); background: var(--accent-soft); border: 1px solid rgba(110,125,150,0.4); }
+.catt-head span { padding: 5px 8px; text-align: center; border-right: 1px solid rgba(110,125,150,0.4); white-space: nowrap; }
+.catt-head span:last-child { border-right: 0; }
+.catt-row { border: 1px solid rgba(110,125,150,0.4); border-top: 0; }
+.catt-list .catt-row:nth-child(even) { background: rgba(110,125,150,0.045); }
+.catt-list .catt-row.has { background: rgba(214,72,63,0.08); }
+.catt-line { min-height: 28px; cursor: pointer; font-size: 13px; font-weight: 700; color: var(--text); }
+.catt-line > * { display: flex; align-items: center; min-width: 0; padding: 0 8px; border-right: 1px solid rgba(110,125,150,0.4); box-sizing: border-box; }
+.catt-line > :last-child { border-right: 0; }
+.catt-seq { justify-content: center; background: rgba(110,125,150,0.09); }
+.catt-id { justify-content: flex-start; padding-left: calc((100% - 2.93em) / 2) !important; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.catt-name { justify-content: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block !important; line-height: 28px; text-align: center; }
+.catt-kind, .catt-reason, .catt-memo { flex-direction: column; justify-content: center; align-items: center; gap: 2px; color: #c9302c; }
+.catt-memo { align-items: flex-start; color: var(--text); }
+.catt-kind span, .catt-reason span, .catt-memo span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; line-height: 22px; }
+.catt-sel { width: 100%; height: 100%; min-height: 28px; border: 0; background: transparent; font-family: inherit; font-size: 13px; font-weight: 700; color: var(--text-faint); text-align: center; text-align-last: center; cursor: pointer; outline: none; padding: 0 2px; }
+.catt-sel.set { color: #c9302c; }
+/* 드롭다운 목록(펼쳤을 때)도 표와 같은 글꼴·굵기·크기 */
+.catt-sel option, .subj-teacher option, #attClassSel option, .subj-sbar select option { font-family: inherit; font-size: 13px; font-weight: 700; color: var(--text); background: var(--card-bg, #fff); }
+.catt-sel option[value=""] { color: var(--text-faint); }
+.catt-sel:focus-visible, .catt-input:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.catt-cell { padding: 0 !important; }
+.catt-memo { gap: 4px; padding: 0 4px 0 0 !important; align-items: center !important; flex-direction: row !important; }
+.catt-input { flex: 1; min-width: 0; height: 100%; min-height: 28px; font-family: inherit; font-size: 13px; font-weight: 700; padding: 0 8px; border: 0; background: transparent; color: var(--text); outline: none; box-sizing: border-box; text-align: left; }
+.catt-input::placeholder { color: transparent; }
+.catt-sub .catt-line { min-height: 28px; }.catt-others-title { font-size: 12px; font-weight: 700; color: var(--text-sub); margin: 12px 2px 6px; }
+.catt-other { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid var(--card-border); border-radius: 8px; background: var(--row-bg); margin-bottom: 4px; font-size: 13px; color: var(--text); }
+.catt-other-text { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.catt-other-del { font-family: inherit; font-size: 12px; font-weight: 700; height: 24px; padding: 0 10px; border-radius: 8px; border: 1px solid #c9302c; background: transparent; color: #c9302c; cursor: pointer; flex-shrink: 0; }
+/* ───── 폰(약 360px 폭): 표를 화면 안에 맞춘다 — 연번 칸을 숨기고 칸 폭을 줄인다 ───── */
+html[data-phone] .catt-head, html[data-phone] .catt-line { grid-template-columns: 54px 50px 66px 52px minmax(0, 1fr); }
+html[data-phone] #attendanceCard .card-head { flex-wrap: wrap; row-gap: 6px; }
+html[data-phone] .catt-seq, html[data-phone] .catt-head span:first-child { display: none; }
+html[data-phone] .catt-id, html[data-phone] .subj-row .subj-id { font-size: 12px; }
+html[data-phone] .catt-name, html[data-phone] .subj-row .subj-name { font-size: 12px; padding: 0 2px; }
+html[data-phone] .catt-sel { font-size: 12px; padding: 0; }
+html[data-phone] .catt-head span, html[data-phone] .subj-head span { padding: 5px 2px; font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+html[data-phone] .catt-input { padding: 0 4px; font-size: 12px; }
+html[data-phone] .subj-head, html[data-phone] .subj-row .subj-line { grid-template-columns: 54px 54px 44px minmax(0, 1fr); }
+html[data-phone] .subj-seq, html[data-phone] .subj-head span:first-child { display: none; }
+html[data-phone] .subj-head span:nth-child(4) { text-align: center; }
+html[data-phone] #attendanceCard .att-nav, html[data-phone] #subjCard .subj-nav { flex: 0 0 100%; }
+html[data-phone] #attDateLabel, html[data-phone] #subjDate { white-space: nowrap; }
+html[data-phone] #attClassSel, html[data-phone] #subjCard .subj-teacher { margin-left: 0; max-width: 96px; }
+html[data-phone] #subjCard .subj-confirm-top { width: 84px; }

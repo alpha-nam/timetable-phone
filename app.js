@@ -3185,12 +3185,157 @@
   // 메모 탭 화면은 board.js가 그린다.
   function renderMemo() { if (window.BOARD) window.BOARD.render(); }
 
+  // ───────── 학급출결 탭: 담임 반 명렬표 표 ─────────
+  // 기록(attendanceRecords)의 모양과 저장·수정·삭제 방식은 예전 입력 패널(buildAttendancePanel)과 똑같다. 화면만 표로 바꿨다.
+  // 기존 기록은 어떤 경우에도 지우지 않는다: 삭제는 "삭제"를 누르고 확인했을 때만, 예전처럼 휴지통에 보관하면서 한다.
+  // 선택한 반 학생이 아닌 기록(다른 반·명단에 없는 학생)도 표 아래에 따로 보여 줘서, 기록이 사라진 것처럼 보이지 않게 한다.
+  var HOMEROOM_KEY = 'dashboardHomeroom';
+  var attDraft = {};   // 아직 구분·종류를 다 안 고른 새 기록의 임시 값
+
+  function allClassStudents() { return ((timetableData && timetableData.students) || []).concat(classRoster); }
+  function classChoices() {
+    var seen = {}, out = [];
+    allClassStudents().forEach(function (s) {
+      var k = s.grade + '-' + s.ban;
+      if (!seen[k]) { seen[k] = true; out.push({ grade: s.grade, ban: s.ban }); }
+    });
+    return out.sort(function (a, b) { return (+a.grade - +b.grade) || (+a.ban - +b.ban); });
+  }
+  function loadHomeroom() {
+    // 처음 한 번은 직접 고른다(추측하면 다른 반이 열릴 수 있어서). 고르면 이 기기에 기억한다.
+    try { var v = JSON.parse(localStorage.getItem(HOMEROOM_KEY) || 'null'); if (v && v.grade != null && v.ban != null) return v; } catch (e) { /* 고르지 않은 것으로 본다 */ }
+    return null;
+  }
+  function saveHomeroom(h) { try { localStorage.setItem(HOMEROOM_KEY, JSON.stringify(h)); } catch (e) { /* 저장 공간 문제는 넘어간다 */ } }
+  function sameStudentRec(r, s) {
+    if (r.studentId && s.studentId) return String(r.studentId) === String(s.studentId);
+    return String(r.grade) === String(s.grade) && String(r.ban) === String(s.ban) && String(r.no) === String(s.no);
+  }
+
+  function fillAttClassSelect() {
+    var sel = $('attClassSel');
+    if (!sel) return;
+    var home = loadHomeroom(), choices = classChoices();
+    sel.innerHTML = '';
+    var blank = document.createElement('option'); blank.value = ''; blank.textContent = '담임 반'; sel.appendChild(blank);
+    choices.forEach(function (c) {
+      var o = document.createElement('option'); o.value = c.grade + '-' + c.ban; o.textContent = c.grade + '학년 ' + c.ban + '반'; sel.appendChild(o);
+    });
+    sel.value = home ? home.grade + '-' + home.ban : '';
+  }
+
+  function deleteAttRecord(r) {
+    // 실수로 지워지지 않게 한 번 확인한다(휴지통에서 되살릴 수 있다).
+    if (!window.confirm(attendanceStudentLabel(r) + ' ' + attendanceTypeLabel(r) + ' 기록을 삭제할까요?\n(삭제해도 휴지통에서 되살릴 수 있어요.)')) return false;
+    if (window.BOARD) window.BOARD.trash('attendance', r);
+    attendanceRecords = attendanceRecords.filter(function (x) { return x.id !== r.id; });
+    attendanceTombstones[r.id] = Date.now();
+    saveTombstones();
+    saveAttendanceRecords();
+    return true;
+  }
+
+  function buildClassAttendance(dateKey) {
+    var wrap = document.createElement('div');
+    wrap.className = 'catt';
+    function add(parent, tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; parent.appendChild(n); return n; }
+    var home = loadHomeroom();
+    var mine = home ? allClassStudents().filter(function (s) { return String(s.grade) === String(home.grade) && String(s.ban) === String(home.ban); }).sort(function (a, b) { return a.no - b.no; }) : [];
+    var recs = attendanceRecordsForDate(dateKey);
+    var shown = {};
+
+    // 표 안의 드롭다운: 값을 고르면 바로 저장된다. 새 기록은 구분과 종류를 둘 다 골라야 만들어진다(말없이 기본값이 들어가지 않게).
+    function makeSelect(parent, options, current, placeholder) {
+      var sel = add(parent, 'select', 'catt-sel' + (current ? ' set' : ''));
+      var blank = add(sel, 'option', '', placeholder); blank.value = '';
+      var list = options.slice();
+      if (current && list.indexOf(current) < 0) list.push(current);   // 예전 기록의 값이 목록에 없어도 그대로 보이게
+      list.forEach(function (o) { var op = add(sel, 'option', '', o); op.value = o; });
+      sel.value = current || '';
+      sel.addEventListener('click', function (ev) { ev.stopPropagation(); });
+      return sel;
+    }
+
+    if (!home) add(wrap, 'div', 'catt-empty', '위쪽에서 담임 반을 골라 주세요.');
+    else if (!mine.length) add(wrap, 'div', 'catt-empty', home.grade + '학년 ' + home.ban + '반 명단을 아직 못 불러왔어요. 잠시 뒤에 다시 열어 주세요.');
+    else {
+      var head = add(wrap, 'div', 'catt-head');
+      ['연번', '번호', '이름', '구분', '종류', document.documentElement.hasAttribute('data-phone') ? '메모' : '사유·메모·교시 (선택)'].forEach(function (h) { add(head, 'span', '', h); });
+      var list = add(wrap, 'div', 'catt-list');
+      mine.forEach(function (s, i) {
+        var rs = recs.filter(function (r) { return sameStudentRec(r, s); });
+        rs.forEach(function (r) { shown[r.id] = true; });
+        var key = s.grade + '-' + s.ban + '-' + s.no;
+        // 기록이 있으면 기록마다 한 줄(같은 학생에게 기록이 여럿이면 여러 줄), 하나도 없으면 새 기록을 적을 빈 줄 하나.
+        var lines = rs.map(function (r) { return { rec: r }; });
+        if (!rs.length) lines.push({ rec: null, dk: key + '#0' });
+        lines.forEach(function (ln, li) {
+          var rec = ln.rec;
+          var d = rec ? null : (attDraft[ln.dk] = attDraft[ln.dk] || { reason: '', type: '', memo: '' });
+          var row = add(list, 'div', 'catt-row' + (rec ? ' has' : '') + (li ? ' catt-sub' : ''));
+          var line = add(row, 'div', 'catt-line');
+          add(line, 'span', 'catt-seq', li ? '' : String(i + 1));
+          add(line, 'span', 'catt-id', li ? '' : key);
+          add(line, 'span', 'catt-name', li ? '' : s.studentName);
+          var rc = add(line, 'span', 'catt-cell'), kc = add(line, 'span', 'catt-cell'), mc = add(line, 'span', 'catt-memo');
+          var rsel = makeSelect(rc, ATTENDANCE_REASONS, rec ? rec.reason : d.reason, '선택');
+          var ksel = makeSelect(kc, ATTENDANCE_TYPES, rec ? rec.type : d.type, '선택');
+          var memo = add(mc, 'input', 'catt-input'); memo.type = 'text'; memo.autocomplete = 'off'; memo.value = rec ? (rec.memo || '') : d.memo;
+          memo.addEventListener('click', function (ev) { ev.stopPropagation(); });
+
+          function changed(field, sel) {
+            var v = sel.value;
+            if (rec) {
+              if (!v) {   // 비우면 기록을 지우는 것이라, 확인(휴지통에 보관)을 거친다. 취소하면 원래 값으로 되돌린다.
+                if (deleteAttRecord(rec)) { renderAttendanceTab(); renderCalendar(); } else renderAttendanceTab();
+                return;
+              }
+              rec[field] = v; rec.updatedAt = Date.now();
+              saveAttendanceRecords(); renderAttendanceTab(); renderCalendar();
+              return;
+            }
+            d[field] = v;
+            if (d.reason && d.type) {
+              attendanceRecords.push({
+                id: dateKey + '-' + Math.random().toString(36).slice(2, 9), date: dateKey,
+                grade: s.grade, ban: s.ban, no: s.no, studentName: s.studentName, studentId: s.studentId,
+                type: d.type, reason: d.reason, memo: (memo.value || '').trim(), category: '학급', updatedAt: Date.now()
+              });
+              delete attDraft[ln.dk];
+              saveAttendanceRecords();
+            }
+            renderAttendanceTab(); renderCalendar();
+          }
+          rsel.addEventListener('change', function () { changed('reason', rsel); });
+          ksel.addEventListener('change', function () { changed('type', ksel); });
+          memo.addEventListener('change', function () {
+            if (rec) { rec.memo = memo.value.trim(); rec.updatedAt = Date.now(); saveAttendanceRecords(); }
+            else d.memo = memo.value;
+          });
+        });
+      });
+    }
+
+    // 선택한 반 명단에 없는 기록(다른 반, 예전에 입력한 학생 등) — 지워지지 않고 여기에 그대로 보인다.
+    var others = recs.filter(function (r) { return !shown[r.id]; });
+    if (others.length) {
+      add(wrap, 'div', 'catt-others-title', '다른 반·명단에 없는 기록 ' + others.length + '건');
+      others.forEach(function (r) {
+        var o = add(wrap, 'div', 'catt-other');
+        add(o, 'span', 'catt-other-text', attendanceStudentLabel(r) + ' · ' + attendanceTypeLabel(r) + (r.memo ? ' · ' + r.memo : ''));
+        var del = add(o, 'button', 'catt-other-del', '삭제'); del.type = 'button';
+        del.addEventListener('click', function (ev) { ev.stopPropagation(); if (deleteAttRecord(r)) { renderAttendanceTab(); renderCalendar(); } });
+      });
+    }
+    return wrap;
+  }
   function renderAttendanceTab() {
     var d = attViewDate;
     $('attDateLabel').textContent = (d.getMonth() + 1) + '월 ' + d.getDate() + '일 (' + dayLabel(d.getDay()) + ')';
+    fillAttClassSelect();
     var body = $('attTabBody');
     body.innerHTML = '';
-    body.appendChild(buildAttendancePanel(ymd(d)));
+    body.appendChild(buildClassAttendance(ymd(d)));
   }
 
   // 출결 탭의 날짜(예: "10월 16일 (금)")를 누르면 작은 달력이 떠서 원하는 날로 바로 이동한다(‹ › 로 하루씩 넘기기 불편해서).
@@ -3397,6 +3542,11 @@
     $('attTodayBtn').addEventListener('click', function (ev) { ev.stopPropagation(); attViewDate = new Date(); renderAttendanceTab(); });
     initAttDatePicker();
     $('attTabSummaryBtn').addEventListener('click', function (ev) { ev.stopPropagation(); openAttendanceSummary(); });
+    $('attClassSel').addEventListener('change', function () {
+      var p = this.value.split('-');
+      if (p.length === 2) saveHomeroom({ grade: p[0], ban: p[1] });
+      renderAttendanceTab();
+    });
     // 시간표 카드: 제목 줄(아이콘·"주간 시간표"·이름 선택)을 없애고, 이름 선택 버튼을 교사/학급/학생 버튼 줄의 오른쪽 끝으로 옮긴다.
     var vt = $('viewTabs'), es = $('entitySelect');
     if (vt && es) vt.appendChild(es);    if (vt && es) initViewTypeCombo(vt, es);
