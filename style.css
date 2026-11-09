@@ -1555,7 +1555,7 @@ html[data-shell="tabs"] #subjSummaryBtn { background: var(--accent); color: #fff
 .subj-reason { font-family: inherit; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 99px; border: 1px solid var(--panel-border); background: transparent; color: var(--text-faint); cursor: pointer; }
 .subj-reason.on { background: var(--accent); color: #fff; border-color: var(--accent); }
 .subj-memo { flex: 1; min-width: 90px; font-family: inherit; font-size: 12px; padding: 4px 8px; border: 1px solid var(--panel-border); border-radius: 8px; background: var(--row-bg); color: var(--text); outline: none; }
-.subj-head, .subj-row .subj-line { display: grid; grid-template-columns: 46px 84px 88px 56px minmax(0, 1fr); align-items: stretch; gap: 0; }
+.subj-head, .subj-row .subj-line { display: grid; grid-template-columns: 44px 80px 80px 56px minmax(0, 1fr); align-items: stretch; gap: 0; }
 .subj-head { font-size: 13px; font-weight: 700; color: var(--text); background: var(--accent-soft); border: 1px solid rgba(110,125,150,0.4); margin-bottom: -6px; flex-shrink: 0; }
 .subj-head span { padding: 5px 8px; text-align: center; border-right: 1px solid rgba(110,125,150,0.4); white-space: nowrap; }
 .subj-head span:nth-child(1), .subj-head span:nth-child(4) { text-align: center; }
@@ -1948,7 +1948,7 @@ html[data-shell="tabs"]:not([data-phone]) .cal-ag-evtag { font-size: 9.5px; padd
 #attClassSel { height: 32px; max-width: 130px; }
 .catt { display: flex; flex-direction: column; padding: 0 4px 8px 0; }
 .catt-empty { font-size: 13px; color: var(--text-faint); padding: 24px 8px; text-align: center; }
-.catt-head, .catt-line { display: grid; grid-template-columns: 40px 72px 72px 124px 100px minmax(0, 1fr); align-items: stretch; }
+.catt-head, .catt-line { display: grid; grid-template-columns: 44px 80px 80px 80px 80px minmax(0, 1fr); align-items: stretch; }
 .catt-head { font-size: 13px; font-weight: 700; color: var(--text); background: var(--accent-soft); border: 1px solid rgba(110,125,150,0.4); }
 .catt-head span { padding: 5px 8px; text-align: center; border-right: 1px solid rgba(110,125,150,0.4); white-space: nowrap; }
 .catt-head span:last-child { border-right: 0; }
@@ -1979,7 +1979,7 @@ html[data-shell="tabs"]:not([data-phone]) .cal-ag-evtag { font-size: 9.5px; padd
 .catt-other-text { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .catt-other-del { font-family: inherit; font-size: 12px; font-weight: 700; height: 24px; padding: 0 10px; border-radius: 8px; border: 1px solid #c9302c; background: transparent; color: #c9302c; cursor: pointer; flex-shrink: 0; }
 /* ───── 폰(약 360px 폭): 표를 화면 안에 맞춘다 — 연번 칸을 숨기고 칸 폭을 줄인다 ───── */
-html[data-phone] .catt-head, html[data-phone] .catt-line { grid-template-columns: 54px 50px 66px 52px minmax(0, 1fr); }
+html[data-phone] .catt-head, html[data-phone] .catt-line { grid-template-columns: 52px 52px 62px 62px minmax(0, 1fr); }
 html[data-phone] #attendanceCard .card-head { flex-wrap: wrap; row-gap: 6px; }
 html[data-phone] .catt-seq, html[data-phone] .catt-head span:first-child { display: none; }
 html[data-phone] .catt-id, html[data-phone] .subj-row .subj-id { font-size: 12px; }
@@ -1987,7 +1987,7 @@ html[data-phone] .catt-name, html[data-phone] .subj-row .subj-name { font-size: 
 html[data-phone] .catt-sel { font-size: 12px; padding: 0; }
 html[data-phone] .catt-head span, html[data-phone] .subj-head span { padding: 5px 2px; font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
 html[data-phone] .catt-input { padding: 0 4px; font-size: 12px; }
-html[data-phone] .subj-head, html[data-phone] .subj-row .subj-line { grid-template-columns: 54px 54px 44px minmax(0, 1fr); }
+html[data-phone] .subj-head, html[data-phone] .subj-row .subj-line { grid-template-columns: 52px 52px 44px minmax(0, 1fr); }
 html[data-phone] .subj-seq, html[data-phone] .subj-head span:first-child { display: none; }
 html[data-phone] .subj-head span:nth-child(4) { text-align: center; }
 html[data-phone] #attendanceCard .att-nav, html[data-phone] #subjCard .subj-nav { flex: 0 0 100%; }
