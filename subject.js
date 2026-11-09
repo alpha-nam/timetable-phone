@@ -113,6 +113,22 @@
     save();
   }
 
+  // 학급출결의 "일일 마감": 반(예: 3-6) 하나의 하루를 마감한다. 같은 목록(subj)에 kind:'confirm' 으로 저장해서 PC·폰이 같이 쓴다.
+  // 마감해도 출결 기록은 그대로이고, 학급출결 표가 잠길 뿐이다(다시 누르면 풀린다).
+  function classDayId(dateStr, classKey) { return dateStr + '|class|' + classKey + '|__confirm'; }
+  function dayClosed(dateStr, classKey) { return !!recOf(classDayId(dateStr, classKey)); }
+  function toggleDayClosed(dateStr, classKey) {
+    var id = classDayId(dateStr, classKey), now = Date.now();
+    if (recOf(id)) {
+      records = records.filter(function (x) { return x.id !== id; });
+      tombs[id] = now;
+    } else {
+      records.push({ id: id, kind: 'confirm', scope: 'class-day', date: dateStr, label: classKey, type: '마감', updatedAt: now });
+      delete tombs[id];
+    }
+    save();
+  }
+
   // "이 수업 확인 완료" 표시. 학생 기록과 같은 목록(subj)에 kind:'confirm' 으로 저장해서 PC·폰이 같이 쓴다.
   function isConfirm(r) { return !!r && r.kind === 'confirm'; }
   function notConfirm(r) { return !isConfirm(r); }
@@ -462,6 +478,8 @@
     show: function () { if (timetable() && !$('subjTeacher').options.length) fillTeachers(); render(); },
     render: render,
     listOn: listOn,
+    dayClosed: dayClosed,
+    toggleDayClosed: toggleDayClosed,
     openDate: openDate,
     mergeRestore: mergeRestore,
     replaceRestore: replaceRestore,

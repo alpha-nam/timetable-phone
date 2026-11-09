@@ -3243,6 +3243,8 @@
     var mine = home ? allClassStudents().filter(function (s) { return String(s.grade) === String(home.grade) && String(s.ban) === String(home.ban); }).sort(function (a, b) { return a.no - b.no; }) : [];
     var recs = attendanceRecordsForDate(dateKey);
     var shown = {};
+    var closed = !!(home && window.SUBJ && window.SUBJ.dayClosed(dateKey, home.grade + '-' + home.ban));   // 일일 마감이면 표를 잠근다(기록은 그대로)
+    if (closed) wrap.className += ' locked';
 
     // 표 안의 드롭다운: 값을 고르면 바로 저장된다. 새 기록은 구분과 종류를 둘 다 골라야 만들어진다(말없이 기본값이 들어가지 않게).
     function makeSelect(parent, options, current, placeholder) {
@@ -3252,6 +3254,7 @@
       if (current && list.indexOf(current) < 0) list.push(current);   // 예전 기록의 값이 목록에 없어도 그대로 보이게
       list.forEach(function (o) { var op = add(sel, 'option', '', o); op.value = o; });
       sel.value = current || '';
+      sel.disabled = closed;
       sel.addEventListener('click', function (ev) { ev.stopPropagation(); });
       return sel;
     }
@@ -3281,6 +3284,7 @@
           var rsel = makeSelect(rc, ATTENDANCE_REASONS, rec ? rec.reason : d.reason, '선택');
           var ksel = makeSelect(kc, ATTENDANCE_TYPES, rec ? rec.type : d.type, '선택');
           var memo = add(mc, 'input', 'catt-input'); memo.type = 'text'; memo.autocomplete = 'off'; memo.value = rec ? (rec.memo || '') : d.memo;
+          memo.readOnly = closed;
           memo.addEventListener('click', function (ev) { ev.stopPropagation(); });
 
           function changed(field, sel) {
@@ -3329,10 +3333,23 @@
     }
     return wrap;
   }
+  // 위쪽 "마감 전 / 마감 완료" 버튼 — 담임 반의 그날 학급출결을 하루 단위로 마감한다(나이스 마감은 아님).
+  function updateAttConfirmBtn(dateKey) {
+    var btn = $('attConfirmBtn'), home = loadHomeroom();
+    if (!btn) return;
+    btn.hidden = !(home && window.SUBJ && window.SUBJ.dayClosed);
+    if (btn.hidden) return;
+    var closed = window.SUBJ.dayClosed(dateKey, home.grade + '-' + home.ban);
+    btn.className = 'subj-confirm-top' + (closed ? ' ok' : '');
+    btn.textContent = closed ? '마감 완료' : '마감 전';
+    btn.title = closed ? '눌러서 마감을 풀면 다시 고칠 수 있어요' : '이 날의 학급 출결을 다 입력했으면 눌러요 (일일 마감 · 나이스 마감은 아니에요)';
+  }
+
   function renderAttendanceTab() {
     var d = attViewDate;
     $('attDateLabel').textContent = (d.getMonth() + 1) + '월 ' + d.getDate() + '일 (' + dayLabel(d.getDay()) + ')';
     fillAttClassSelect();
+    updateAttConfirmBtn(ymd(d));
     var body = $('attTabBody');
     body.innerHTML = '';
     body.appendChild(buildClassAttendance(ymd(d)));
@@ -3542,6 +3559,13 @@
     $('attTodayBtn').addEventListener('click', function (ev) { ev.stopPropagation(); attViewDate = new Date(); renderAttendanceTab(); });
     initAttDatePicker();
     $('attTabSummaryBtn').addEventListener('click', function (ev) { ev.stopPropagation(); openAttendanceSummary(); });
+    $('attConfirmBtn').addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      var home = loadHomeroom();
+      if (!home || !window.SUBJ) return;
+      window.SUBJ.toggleDayClosed(ymd(attViewDate), home.grade + '-' + home.ban);
+      renderAttendanceTab();
+    });
     $('attClassSel').addEventListener('change', function () {
       var p = this.value.split('-');
       if (p.length === 2) saveHomeroom({ grade: p[0], ban: p[1] });
