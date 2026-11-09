@@ -225,10 +225,12 @@
       // 수업 앞의 점: 확인 전은 빨강, 확인 완료는 초록 — 확인 안 한 수업이 한눈에 보인다.
       c.appendChild(el('i', 'subj-dot' + (recOf(confirmId(dateStr, l)) ? ' ok' : '')));
       c.appendChild(document.createTextNode(l.period + '교시 ' + (l.label ? l.label + ' ' : '') + l.subject));
+      if (l.extra) c.appendChild(el('span', 'subj-extra-tag', '대신 수업'));
       c.addEventListener('click', function (ev) { ev.stopPropagation(); selKey = l.key; render(); });
       chips.appendChild(c);
     });
     body.appendChild(chips);
+    if (lesson.extra && !confirmed) body.appendChild(el('div', 'subj-extra-note', '나이스에서 가져온 수업이에요. 체크하고 마감 완료를 눌러 주세요.'));
 
     var head = el('div', 'subj-head');
     ['연번', '번호', '이름', '결과', document.documentElement.hasAttribute('data-phone') ? '사유·메모' : '사유·메모 (선택)'].forEach(function (h) { head.appendChild(el('span', '', h)); });
@@ -572,7 +574,7 @@
       var out = [], a = new Date(+String(from).slice(0, 4), +String(from).slice(4, 6) - 1, +String(from).slice(6, 8)), b = new Date(+String(to).slice(0, 4), +String(to).slice(4, 6) - 1, +String(to).slice(6, 8));
       for (var d = a; d <= b; d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) {
         lessonsOn(d).forEach(function (l) {
-          out.push({ date: ymd(d), dow: d.getDay(), period: l.period, label: l.label, subject: l.subject, extra: !!l.extra,
+          out.push({ date: ymd(d), dow: d.getDay(), period: l.period, label: l.label, subject: l.subject, extra: !!l.extra, confirmed: !!recOf(confirmId(ymd(d), l)),
             roster: l.students.map(function (s) { return { grade: Number(s.grade), ban: Number(s.ban), no: Number(s.no), name: s.studentName || '' }; }) });
         });
       }
