@@ -1994,3 +1994,15 @@ html[data-phone] #attendanceCard .att-nav, html[data-phone] #subjCard .subj-nav 
 html[data-phone] #attDateLabel, html[data-phone] #subjDate { white-space: nowrap; }
 html[data-phone] #attClassSel, html[data-phone] #subjCard .subj-teacher { margin-left: 0; max-width: 96px; }
 html[data-phone] #subjCard .subj-confirm-top { width: 84px; }
+
+/* ───── 위쪽 줄 3개(선생님·반 선택 / 마감 / 출결 종합): 학급출결·교과출결에서 같은 위치·크기 ───── */
+html[data-shell="tabs"] #attendanceCard, html[data-shell="tabs"] #subjCard, html[data-phone] #attendanceCard, html[data-phone] #subjCard { --tb-sel: 108px; --tb-mid: 96px; --tb-sum: 88px; --tb-h: 32px; }
+html[data-phone] #attendanceCard, html[data-phone] #subjCard { --tb-sel: 88px; --tb-mid: 80px; --tb-sum: 80px; }
+html[data-shell="tabs"] #attendanceCard #attClassSel, html[data-shell="tabs"] #subjCard #subjTeacher,
+html[data-phone] #attendanceCard #attClassSel, html[data-phone] #subjCard #subjTeacher { width: var(--tb-sel); max-width: none; height: var(--tb-h); box-sizing: border-box; margin-left: auto; padding: 0 6px; border-radius: 10px; flex-shrink: 0; }
+html[data-shell="tabs"] #attendanceCard #attClassSel, html[data-phone] #attendanceCard #attClassSel { margin-right: calc(var(--tb-mid) + 6px); }   /* 학급출결에는 마감 버튼이 없으니 그 자리를 비워 둔다 */
+html[data-shell="tabs"] #subjCard .subj-confirm-top, html[data-phone] #subjCard .subj-confirm-top { width: var(--tb-mid); height: var(--tb-h); }
+html[data-shell="tabs"] #attendanceCard #attTabSummaryBtn, html[data-shell="tabs"] #subjCard #subjSummaryBtn,
+html[data-phone] #attendanceCard #attTabSummaryBtn, html[data-phone] #subjCard #subjSummaryBtn { width: var(--tb-sum); height: var(--tb-h); padding: 0; margin: 0 4px 0 0; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+html[data-phone] #attendanceCard #attClassSel, html[data-phone] #subjCard #subjTeacher { margin-left: 0; }
+html[data-shell="tabs"] #attendanceCard .card-head, html[data-phone] #attendanceCard .card-head { gap: 6px; }   /* 교과출결 줄과 같은 간격 */

@@ -212,8 +212,8 @@
     if (cf) {
       cf.hidden = false;
       cf.className = 'subj-confirm-top' + (confirmed ? ' ok' : '');
-      cf.textContent = confirmed ? '✓ 확인 완료' : '확인 전';
-      cf.title = confirmed ? '눌러서 다시 열면 고칠 수 있어요' : '이 수업의 출결 확인을 마쳤으면 눌러요 (나이스로 보낼 수업 표시)';
+      cf.textContent = confirmed ? '마감 완료' : '마감 전';
+      cf.title = confirmed ? '눌러서 마감을 풀면 다시 고칠 수 있어요' : '이 수업의 출결을 다 입력했으면 눌러요 (나이스로 보낼 수업 표시 · 나이스 마감은 아니에요)';
       curConfirm = { dateStr: dateStr, lesson: lesson };
     }
   }
