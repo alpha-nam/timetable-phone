@@ -2393,11 +2393,14 @@
     btn.classList.toggle('open', open);
     btn.innerHTML = '';
     var pk = document.createElement('span'); pk.className = 'cal-month-pick' + (monthPopOpen ? ' on' : ''); pk.setAttribute('role', 'button'); pk.tabIndex = 0; pk.title = '월 고르기';
-    pk.textContent = (calViewYear === new Date().getFullYear() ? '' : calViewYear + '년 ') + (calViewMonth + 1) + '월';
-    var t = document.createElement('b'); t.textContent = '학사일정';
+    var yr0 = document.createElement('small'); yr0.textContent = String(calViewYear); pk.appendChild(yr0);
+    pk.appendChild(document.createTextNode((calViewMonth + 1) + '월'));
+    var pill = document.createElement('span'); pill.className = 'cal-events-pill'; pill.setAttribute('role', 'button'); pill.tabIndex = 0;
+    var t = document.createElement('span'); t.textContent = '학사일정';
     var n = document.createElement('span'); n.className = 'cal-events-cnt'; n.textContent = ranges.length;
-    var ar = document.createElement('span'); ar.className = 'cal-events-arrow'; ar.textContent = open ? '▲' : '▼';
-    btn.appendChild(pk); btn.appendChild(t); btn.appendChild(n); btn.appendChild(ar);
+    var ar = document.createElement('i'); ar.className = 'cal-events-chev';
+    pill.appendChild(t); pill.appendChild(n); pill.appendChild(ar);
+    btn.appendChild(pk); btn.appendChild(pill);
     list.hidden = !open;
     $('calWeekdays').hidden = open; $('calGrid').hidden = open;
     if (open) { $('calAgenda').hidden = true; if ($('calUpcoming')) $('calUpcoming').hidden = true; } else { renderAgenda(); renderUpcoming(); }
@@ -2425,7 +2428,7 @@
     var pick = ev.target.closest ? ev.target.closest('.cal-month-pick') : null;
     if (pick) { if (monthPopOpen) closeMonthPop(); else openMonthPop(); return; }   // "11월 ▾" → 월 고르기 창
     if (monthPopOpen && !(ev.target.closest && ev.target.closest('.cal-month-pop'))) closeMonthPop();   // 바깥을 누르면 닫는다
-    var b = ev.target.closest ? ev.target.closest('#calEventsBtn') : null;
+    var b = ev.target.closest ? ev.target.closest('.cal-events-pill') : null;
     if (b) { eventsOpen = !eventsOpen; applyEventsView(); }
   });
   document.addEventListener('keydown', function (ev) {
