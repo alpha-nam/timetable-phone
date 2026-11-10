@@ -1979,10 +1979,10 @@ html[data-shell="tabs"]:not([data-phone]) .cal-ag-evtag { font-size: 9.5px; padd
 .catt-selwrap:focus-within { outline: 2px solid var(--accent); outline-offset: -2px; }
 .catt-input:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .catt-cell { padding: 0 !important; }
-/* 교과 선생님이 체크한 결석·지각이 있는 교시만 초록색으로 칠한다(참고용, 담임이 입력한 기록과는 별개) */
+/* 교과 선생님이 체크한 결석·지각이 있는 교시만 빨간색으로 칠한다(참고용, 담임이 입력한 기록과는 별개) */
 .catt-per { gap: 3px; justify-content: center; padding: 0 4px !important; }
 .catt-per i { font-style: normal; flex: 0 0 22px; height: 20px; border-radius: 5px; background: rgba(110,125,150,0.07); border: 1px solid rgba(110,125,150,0.28); color: var(--text-faint); font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; box-sizing: border-box; cursor: default; }
-.catt-per i.x { background: #2f9e5b; border-color: #2f9e5b; color: #fff; font-weight: 700; }
+.catt-per i.x { background: #d6483f; border-color: #d6483f; color: #fff; font-weight: 700; }
 .catt-per i.x.bad { background: #d6483f; border-color: #d6483f; }
 .catt-mline { grid-column: 1 / -1; padding: 0 4px 3px 34px; }
 .catt-mline .catt-input::placeholder { color: var(--text-faint); font-weight: 500; }
