@@ -248,4 +248,6 @@ html[data-phone] .cal-ag-head, html[data-phone] .cal-up-head { font-size: 15px; 
 /* 폴드를 폈을 때: 반 선택 · 마감 · 출결 종합 버튼을 한데 붙인다(위쪽 규칙보다 뒤에 있어야 이긴다) */
 @media (min-width: 700px) {
   html[data-phone] #attendanceCard #attTabSummaryBtn { margin-left: 0 !important; }
+  html[data-phone] #subjSummaryBtn { margin-left: 0 !important; }
+  html[data-phone] #subjCard #subjTeacher { margin-left: auto !important; }
 }
