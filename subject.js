@@ -548,7 +548,7 @@
     var m = {};
     listOn(dateStr).forEach(function (r) {
       var k = r.grade + '-' + r.ban + '-' + r.no;
-      (m[k] = m[k] || []).push({ period: Number(r.period), subject: r.subject || '', type: r.type || '', teacher: teacherName || '' });
+      (m[k] = m[k] || []).push({ period: Number(r.period), subject: r.subject || '', type: r.type || '', teacher: teacherName || '', memo: String(r.memo || '').trim() });
     });
     if (window.TTSHARE) {   // 다른 선생님이 올린 체크(공유 서버)도 합친다
       var pm = window.TTSHARE.peerPeriods(dateStr);
@@ -562,7 +562,7 @@
     records.forEach(function (r) {
       if (!notConfirm(r) || !r.grade || !r.ban || !r.no || !r.date || String(r.date) < lo || String(r.date) > hi) return;
       if (ex[exclKey(r.grade, r.ban, r.no)] !== undefined) return;
-      out.push({ id: r.id, date: String(r.date), period: Number(r.period), grade: Number(r.grade), ban: Number(r.ban), no: Number(r.no), subject: String(r.subject || '').slice(0, 20), type: (r.type === '결석' || r.type === '지각' || r.type === '조퇴') ? r.type : '결과' });
+      out.push({ id: r.id, date: String(r.date), period: Number(r.period), grade: Number(r.grade), ban: Number(r.ban), no: Number(r.no), subject: String(r.subject || '').slice(0, 20), type: (r.type === '결석' || r.type === '지각' || r.type === '조퇴') ? r.type : '결과', memo: String(r.memo || '').replace(/\s+/g, ' ').trim().slice(0, 60) });
     });
     return out;
   }
@@ -878,7 +878,7 @@
       var m = peers[k];
       if (!m || m.date !== dateStr || m.teacher === me) return;   // 내 체크는 내 앱에 이미 있다
       var key = h.grade + '-' + h.ban + '-' + m.no;
-      (out[key] = out[key] || []).push({ period: Number(m.period), subject: m.subject, type: m.type, teacher: m.teacher });
+      (out[key] = out[key] || []).push({ period: Number(m.period), subject: m.subject, type: m.type, teacher: m.teacher, memo: m.memo || '' });
     });
     return out;
   }
