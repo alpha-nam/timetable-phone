@@ -3268,7 +3268,7 @@
     else {
       var head = add(wrap, 'div', 'catt-head');
       var phone = document.documentElement.hasAttribute('data-phone');
-      (phone ? ['번', '이름', '구분', '종류', '교과출결'] : ['번호', '이름', '구분', '종류', '비고', '교과별 출결마감']).forEach(function (h) { add(head, 'span', '', h); });
+      (phone ? ['번', '이름', '구분', '종류', '비고', '교과출결'] : ['번호', '이름', '구분', '종류', '비고', '교과별 출결마감']).forEach(function (h) { add(head, 'span', '', h); });
       var perMap = (window.SUBJ && window.SUBJ.periodsOn) ? window.SUBJ.periodsOn(dateKey) : {};   // 교과 선생님이 체크한 결석·지각 → 학생별 교시 칸
       var list = add(wrap, 'div', 'catt-list');
       mine.forEach(function (s, i) {
@@ -3285,7 +3285,7 @@
           var line = add(row, 'div', 'catt-line');
           add(line, 'span', 'catt-id', li ? '' : String(s.no));
           add(line, 'span', 'catt-name', li ? '' : s.studentName);
-          var rc = add(line, 'span', 'catt-cell'), kc = add(line, 'span', 'catt-cell'), mc = phone ? null : add(line, 'span', 'catt-memo');
+          var rc = add(line, 'span', 'catt-cell'), kc = add(line, 'span', 'catt-cell'), mc = add(line, 'span', 'catt-memo');
           var pc = add(line, 'span', 'catt-per');
           if (!li) {
             var hits = perMap[key] || [];
@@ -3298,8 +3298,7 @@
           }
           var rsel = makeSelect(rc, ATTENDANCE_REASONS, rec ? rec.reason : d.reason, '선택');
           var ksel = makeSelect(kc, ATTENDANCE_TYPES, rec ? rec.type : d.type, '선택');
-          var memoHost = mc || (rec ? add(row, 'div', 'catt-mline') : null);   // 폰은 한 줄에 못 넣어서 메모를 줄 밑에(기록이 있는 학생만)
-          var memo = memoHost ? add(memoHost, 'input', 'catt-input') : document.createElement('input'); memo.type = 'text'; if (!mc) memo.placeholder = '비고'; memo.autocomplete = 'off'; memo.value = rec ? (rec.memo || '') : d.memo;
+          var memo = add(mc, 'input', 'catt-input'); memo.type = 'text'; memo.autocomplete = 'off'; memo.value = rec ? (rec.memo || '') : d.memo;
           memo.readOnly = closed;
           memo.addEventListener('click', function (ev) { ev.stopPropagation(); });
 

@@ -2012,9 +2012,12 @@ html[data-shell="tabs"] #attendanceCard .card-head, html[data-phone] #attendance
 /* 펼친 화면·태블릿(700px 이상)은 PC와 같은 고정 칸 폭을 쓴다 */
 @media (max-width: 699px) {
   html[data-phone] #attendanceCard, html[data-phone] #subjCard { --tb-sel: clamp(104px, 30vw, 128px); --tb-mid: clamp(72px, 22vw, 96px); --tb-sum: clamp(72px, 22vw, 88px); --tbl-fs: clamp(11.5px, 3.3vw, 13px); }
-  html[data-phone] .catt-head, html[data-phone] .catt-line { grid-template-columns: clamp(26px, 8vw, 34px) clamp(44px, 14vw, 58px) clamp(38px, 12vw, 50px) clamp(46px, 14vw, 58px) minmax(0, 1fr); }
+  html[data-phone] .catt-head, html[data-phone] .catt-line { grid-template-columns: clamp(22px, 6.4vw, 28px) clamp(42px, 12.6vw, 50px) clamp(36px, 10.8vw, 44px) clamp(36px, 10.8vw, 44px) minmax(0, 1fr) clamp(112px, 32vw, 126px); }
   html[data-phone] .catt-per { gap: 2px; padding: 0 2px !important; }
-  html[data-phone] .catt-per i { flex: 1 1 0; min-width: 0; height: 22px; font-size: 10px; border-radius: 3px; }
+  html[data-phone] .catt-per i { flex: 1 1 0; min-width: 0; height: 20px; font-size: 10px; border-radius: 3px; }
+  html[data-phone] .catt-input { font-size: 12px; padding: 0 3px; text-overflow: ellipsis; }
+  html[data-phone] .catt-memo { padding: 0 !important; }
+  html[data-phone] .catt-head span { padding: 5px 1px; }
   html[data-phone] .catt-mline { display: block; padding: 0 4px 3px 4px; }
   html[data-phone] .subj-head, html[data-phone] .subj-row .subj-line { grid-template-columns: clamp(50px, 15vw, 66px) clamp(44px, 14vw, 62px) clamp(44px, 13vw, 58px) minmax(0, 1fr); }
   html[data-phone] .catt-selwrap::after { display: none; }   /* 화살표를 빼서 칸을 줄인다("선택" 글자가 안내) */
