@@ -1818,7 +1818,7 @@ html[data-shell="tabs"]:not([data-phone]) .cal-ag-item { letter-spacing: -0.35px
 .cal-ag-item--more::after { content: '▾' !important; }
 .cal-ag-item--more.open::after { content: '▴' !important; }
 /* 목록 항목은 한 줄로만(넘치면 …로 줄임. 전체 내용은 눌러서 수정 팝업에서 확인) */
-.cal-ag-item .cal-ag-text { white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; }
+.cal-ag-item .cal-ag-text { white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; flex: 1 1 0; min-width: 0; }
 html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calendarCard { column-gap: 6px; }
 html[data-shell="tabs"]:not([data-phone]) #calAgenda { padding: 6px; }
 html[data-shell="tabs"]:not([data-phone]) .cal-ag-item { padding: 5px 4px; gap: 4px; }
