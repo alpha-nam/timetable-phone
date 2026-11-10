@@ -1396,7 +1396,9 @@
   // 규칙과 항상 같은 결과가 나오도록 — 교과를 고르면 "결과"만, 학급을 고르면 나머지 셋만 뜬다).
   var ATTENDANCE_TYPES_BY_CATEGORY = { '학급': ['결석', '지각', '조퇴'], '교과': ['결과'] };
 
+  var dayEditorRestore = null;   // 입력·수정 창에 옮겨 온 학급출결·교과출결 화면을 원래 자리로 되돌리는 함수
   function closeDayTaskEditor() {
+    if (dayEditorRestore) { var rs = dayEditorRestore; dayEditorRestore = null; rs(); }
     var existing = document.getElementById('dayTaskOverlay');
     if (existing) existing.remove();
   }
@@ -1491,7 +1493,11 @@
           if (!window.confirm('"' + m.text.split('\n')[0].slice(0, 20) + '" 메모를 삭제할까요?\n(삭제해도 휴지통에서 되살릴 수 있어요.)')) return;
           window.BOARD.removeById(m.id); paintMemos();
         });
-        row.appendChild(chk); row.appendChild(txt); row.appendChild(del);
+        var star = document.createElement('button'); star.type = 'button'; star.className = 'cal-up-btn star' + (m.star ? ' on' : ''); star.textContent = m.star ? '★' : '☆'; star.title = '중요 표시';
+        star.addEventListener('click', function (ev) { ev.stopPropagation(); window.BOARD.toggleStarById(m.id); paintMemos(); });
+        var aa = document.createElement('button'); aa.type = 'button'; aa.className = 'cal-up-btn'; aa.textContent = 'Aa'; aa.title = '색·글꼴·크기';
+        aa.addEventListener('click', function (ev) { ev.stopPropagation(); window.BOARD.openStyleById(aa, m.id); });
+        row.appendChild(chk); row.appendChild(txt); row.appendChild(star); row.appendChild(aa); row.appendChild(del);
         memoList.appendChild(row);
       });
     }
@@ -1513,45 +1519,24 @@
     taskPanel.appendChild(memoList);
     paintMemos();
 
-    // ── 출석 패널 ──
+    // ── 학급·교과 탭: 진짜 학급출결·교과출결 화면을 이 창 안으로 옮겨 쓴다(창을 닫으면 원래 자리로 돌아간다) ──
+    var homes = [];
+    function mountCard(card, panel) {
+      if (!card) return;
+      var ph = document.createComment('card-home');
+      card.parentNode.insertBefore(ph, card);
+      panel.appendChild(card);
+      homes.push(function () { if (ph.parentNode) { ph.parentNode.insertBefore(card, ph); ph.parentNode.removeChild(ph); } });
+    }
+    dayEditorRestore = function () { homes.forEach(function (f) { f(); }); homes = []; };
     var attPanel = document.createElement('div');
-    attPanel.className = 'day-editor-panel att-panel att-panel--table';
-    function paintAtt() {   // 학급출결 탭과 같은 표(구분·종류·비고·교과별 출결마감)를 이 날짜로 보여 준다
-      attPanel.innerHTML = '';
-      attPanel.appendChild(buildClassAttendance(key, { refresh: paintAtt, compact: true, hint: '학급출결 탭에서 담임 반을 먼저 골라 주세요.' }));
-    }
-    paintAtt();
-
-    // ── 교과 출결 패널(그날 체크된 것을 보여 준다. 입력은 "교과출결" 탭에서) ──
+    attPanel.className = 'day-editor-panel day-editor-panel--card';
+    mountCard($('attendanceCard'), attPanel);
     var subjPanel = document.createElement('div');
-    subjPanel.className = 'day-editor-panel';
-    var subjRows = window.SUBJ ? window.SUBJ.listOn(key) : [];
-    if (!subjRows.length) {
-      var se = document.createElement('div'); se.className = 'att-list-empty'; se.textContent = '이 날짜에 체크된 교과 출결이 없습니다.'; subjPanel.appendChild(se);
-    } else {   // 수업(교시·반·과목)마다 묶어서, 체크한 학생을 "번호 이름 · 비고"로 보여 준다
-      var byLesson = {}, order = [];
-      subjRows.forEach(function (r) {
-        var k = r.period + '|' + (r.label || '') + '|' + r.subject;
-        if (!byLesson[k]) { byLesson[k] = []; order.push(k); }
-        byLesson[k].push(r);
-      });
-      order.forEach(function (k) {
-        var rs = byLesson[k], f = rs[0];
-        var head = document.createElement('div'); head.className = 'dm-lesson';
-        head.textContent = f.period + '교시 ' + (f.label ? f.label + ' ' : '') + f.subject + ' · ' + rs.length + '명';
-        subjPanel.appendChild(head);
-        rs.sort(function (a, b) { return (a.grade - b.grade) || (a.ban - b.ban) || (a.no - b.no); }).forEach(function (r) {
-          var row = document.createElement('div'); row.className = 'dm-lrow';
-          var no = document.createElement('span'); no.className = 'dm-lno'; no.textContent = r.grade + '-' + r.ban + '-' + r.no;
-          var nm = document.createElement('span'); nm.className = 'dm-lname'; nm.textContent = r.studentName;
-          var memo = document.createElement('span'); memo.className = 'dm-lmemo'; memo.textContent = (r.type && r.type !== '결과' ? r.type + (r.reason ? ' · ' + r.reason : '') + (r.memo ? ' · ' : '') : (r.reason ? r.reason + (r.memo ? ' · ' : '') : '')) + (r.memo || '');
-          row.appendChild(no); row.appendChild(nm); row.appendChild(memo); subjPanel.appendChild(row);
-        });
-      });
-    }
-    var subjGo = document.createElement('button'); subjGo.type = 'button'; subjGo.className = 'day-task-save'; subjGo.textContent = '이 날짜의 교과 출결 열기';
-    subjGo.addEventListener('click', function (ev) { ev.stopPropagation(); closeDayTaskEditor(); if (window.SUBJ) window.SUBJ.openDate(cellDate); setTab('subject', true); });
-    var subjBtnRow = document.createElement('div'); subjBtnRow.className = 'day-task-btns'; subjBtnRow.appendChild(subjGo); subjPanel.appendChild(subjBtnRow);
+    subjPanel.className = 'day-editor-panel day-editor-panel--card';
+    mountCard($('subjCard'), subjPanel);
+    attViewDate = new Date(cellDate.getFullYear(), cellDate.getMonth(), cellDate.getDate());
+    if (window.SUBJ && window.SUBJ.openDate) window.SUBJ.openDate(cellDate);
 
     var closeBtn = document.createElement('button');
     closeBtn.type = 'button';
@@ -1568,6 +1553,8 @@
       attTabBtn.classList.toggle('active', tab === 'attendance');
       subjTabBtn.classList.toggle('active', tab === 'subject');
       if (tab === 'memo') input.focus();
+      else if (tab === 'attendance') renderAttendanceTab();
+      else if (tab === 'subject' && window.SUBJ) window.SUBJ.render();
     }
     taskTabBtn.addEventListener('click', function (ev) { ev.stopPropagation(); switchTab('memo'); });
     attTabBtn.addEventListener('click', function (ev) { ev.stopPropagation(); switchTab('attendance'); });
@@ -2687,7 +2674,7 @@
       var tabOf = { '학급 출결': 'attendance', '교과 출결': 'subject', '메모': 'memo' }[it.k], tabSvg = tabOf && document.querySelector('.tabbtn[data-tab="' + tabOf + '"] svg');
       if (tabSvg) {
         var ic = tabSvg.cloneNode(true); ic.removeAttribute('class'); ic.setAttribute('width', '20'); ic.setAttribute('height', '20'); ic.setAttribute('aria-hidden', 'true');
-        kind.textContent = ''; kind.appendChild(ic); kind.classList.add('cal-ag-kind--icon');
+        kind.textContent = ''; kind.appendChild(ic); kind.classList.add('cal-ag-kind--icon'); kind.style.setProperty('--kc', { attendance: '#2f9e5b', subject: '#8b7cf6', memo: '#e0793a' }[tabOf]);   // 칸 테두리 색 = 아이콘 색
         kind.title = { attendance: '학급출결', subject: '교과출결', memo: '메모' }[tabOf];
       }
       var txt = document.createElement('span'); txt.className = 'cal-ag-text'; txt.textContent = it.t;

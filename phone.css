@@ -259,3 +259,8 @@ html[data-phone] .cal-head-title { gap: 8px; }
 html[data-phone] #calUpcoming { padding-left: 12px; }
 html[data-phone] .cal-ag-item, html[data-phone] .cal-ag-item[data-g], html[data-phone] .cal-up-item { margin-left: 0; padding-left: 6px !important; }
 html[data-phone] .cal-ag-item[data-g] > .cal-ag-grip { width: 34px; }
+html[data-phone] .cal-ag-item .cal-ag-kind.cal-ag-kind--icon { width: 24px; height: 24px; min-width: 24px !important; margin-left: 9px; margin-right: 9px; }
+html[data-phone] .cal-ag-kind--icon svg { width: 24px; height: 24px; }
+html[data-phone] .cal-up-item .cal-up-d { width: 42px; min-width: 42px !important; height: 32px; font-size: 12px !important; }
+html[data-phone] .cal-ag-item[data-g] > .cal-ag-grip { width: 50px; }
+html[data-phone] .cal-ag-item, html[data-phone] .cal-up-item { min-height: 49px; }

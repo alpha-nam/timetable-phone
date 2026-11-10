@@ -2107,14 +2107,11 @@ html[data-phone] .cal-ag-item .cal-ag-kind { font-size: 12px !important; height:
 .cal-ag-item[data-g] > .cal-ag-grip { width: 46px; }
 
 /* 입력·수정 창: 학급 탭(학급출결 표)·교과 탭(수업별 체크 목록) */
-.day-task-box--wide:has(.att-panel--table:not([hidden])) { width: min(760px, calc(100% - 24px)); max-width: none; }
-.att-panel--table .catt { max-height: 52vh; overflow: auto; }
 .dm-lesson { font-size: 13px; font-weight: 800; margin: 10px 0 4px; color: var(--text); }
 .dm-lrow { display: flex; align-items: center; gap: 10px; background: var(--row-bg); border-radius: 8px; padding: 6px 10px; margin-bottom: 4px; font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; }
 .dm-lno { flex: 0 0 64px; color: var(--text-sub); font-variant-numeric: tabular-nums; }
 .dm-lname { flex: 0 0 auto; }
 .dm-lmemo { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--text-sub); font-weight: 500; }
-.day-task-box--wide:has(.att-panel--table:not([hidden])) { overflow-y: hidden; }
 .cal-ag-item .cal-ag-kind.cal-ag-kind--icon { min-width: 0 !important; width: 20px; height: 20px; padding: 0 !important; background: none; border-radius: 0; }
 .cal-ag-kind--icon svg { display: block; width: 20px; height: 20px; }
 html[data-phone] .cal-ag-item .cal-ag-kind.cal-ag-kind--icon { width: 22px; height: 22px; min-width: 0 !important; }
@@ -2128,3 +2125,32 @@ html[data-shell="tabs"]:not([data-phone]) #calUpcoming { padding-left: 10px; }  
 /* 줄 칸은 제목과 같은 왼쪽 끝에서 시작하고, 아이콘은 아주 조금만 띄운다 */
 .cal-ag-item, .cal-ag-item[data-g], .cal-up-item { margin-left: 0; padding-left: 5px !important; }
 .cal-ag-item[data-g] > .cal-ag-grip { width: 30px; }
+/* 맨 앞 칸(위쪽: 종류 아이콘, 아래: D-day 칩)을 같은 크기의 테두리 칸으로 맞춘다 → 글 시작 위치와 줄 높이가 위아래 같다 */
+.cal-ag-item .cal-ag-kind.cal-ag-kind--icon { box-sizing: content-box; width: 22px; height: 22px; min-width: 22px !important; margin-right: 18px; padding: 0 !important; border: none; border-radius: 0; background: none; display: inline-flex !important; align-items: center; justify-content: center; }   /* 테두리는 아이콘 모양 바로 바깥에 붙는다(흰 칸 없음). 칩 폭(40px)만큼 자리를 남겨 글 시작을 맞춘다 */
+.cal-ag-kind--icon svg { width: 22px; height: 22px; overflow: visible; filter: drop-shadow(1.2px 0 0 var(--kc)) drop-shadow(-1.2px 0 0 var(--kc)) drop-shadow(0 1.2px 0 var(--kc)) drop-shadow(0 -1.2px 0 var(--kc)); }
+.cal-up-item .cal-up-d { box-sizing: border-box; width: 40px; min-width: 40px !important; height: 30px; padding: 0 !important; display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid var(--border-strong, #b8c0cc); border-radius: 9px; font-size: 11px !important; }
+.cal-up-item .cal-up-d.star, .cal-up-item.star .cal-up-d { border-color: transparent; }
+.cal-ag-item, .cal-up-item { box-sizing: border-box; min-height: 45px; }
+.cal-ag-item[data-g] > .cal-ag-grip { width: 46px; }
+.cal-ag-item, .cal-up-item { gap: 8px; }
+/* PC 위젯(글자가 작은 화면)에서는 맨 앞 칸도 그만큼 작게: 아이콘 18px, D-day 칩 32×22px, 줄 최소 높이 32px */
+html[data-shell="tabs"]:not([data-phone]) .cal-ag-item .cal-ag-kind.cal-ag-kind--icon { width: 18px; height: 18px; min-width: 18px !important; margin-left: 6px; margin-right: 8px; }   /* 아이콘 중심을 줄 왼쪽 끝과 글 시작의 가운데(D-day 칩 중심 위치)로 */
+html[data-shell="tabs"]:not([data-phone]) .cal-ag-kind--icon svg { width: 18px; height: 18px; filter: drop-shadow(1px 0 0 var(--kc)) drop-shadow(-1px 0 0 var(--kc)) drop-shadow(0 1px 0 var(--kc)) drop-shadow(0 -1px 0 var(--kc)); }
+html[data-shell="tabs"]:not([data-phone]) .cal-up-item .cal-up-d { width: 32px; min-width: 32px !important; height: 22px; font-size: 10px !important; border-radius: 7px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-ag-item, html[data-shell="tabs"]:not([data-phone]) .cal-up-item { min-height: 32px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-ag-item[data-g] > .cal-ag-grip { width: 36px; }
+
+/* 입력·수정 창: 화면의 85~90%를 쓰고, 학급·교과 탭은 진짜 탭 화면을 그대로 담는다 */
+.day-task-box--wide { width: 94%; max-width: none; height: 90%; max-height: none; display: flex; flex-direction: column; overflow: hidden; padding: 8px 10px; }
+.day-task-box--wide .day-editor-panel { flex: 1 1 auto; min-height: 0; overflow: auto; }
+.day-task-box--wide .day-editor-panel[hidden] { display: none; }
+.day-task-box--wide .day-task-title { flex: 0 0 auto; }
+.day-task-box--wide .day-task-tabs { flex: 0 0 auto; }
+.day-task-box--wide .day-task-close--bottom { flex: 0 0 auto; margin-top: 10px; }
+html[data-shell] .day-editor-panel--card > .card { display: flex !important; position: static !important; grid-area: auto !important; width: 100% !important; height: auto !important; min-height: 0 !important; margin: 0 !important; background: transparent !important; box-shadow: none !important; border: none !important; padding: 0 !important; overflow: visible !important; flex-direction: column; }
+/* 창 안의 도구 막대(날짜 · 반/선생님 · 마감 · 출결 종합)가 한 줄에 들어가도록 조금 줄인다 */
+html[data-shell]:not([data-phone]) .day-editor-panel--card > #attendanceCard, html[data-shell]:not([data-phone]) .day-editor-panel--card > #subjCard { --tb-sel: 98px; --tb-mid: 84px; --tb-sum: 78px; }
+html:not([data-phone]) .day-editor-panel--card .card-head { gap: 4px !important; flex-wrap: nowrap !important; }
+html:not([data-phone]) .day-editor-panel--card .card-head * { white-space: nowrap; }
+.day-task-box--wide .day-task-title { margin-bottom: 6px; }
+.day-task-box--wide .day-task-tabs { margin-bottom: 6px; }
