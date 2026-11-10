@@ -2101,6 +2101,7 @@ html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calEventsBtn.cal
 .cal-ag-item--ev .cal-ag-kind { display: none !important; }   /* 학사일정 줄은 오른쪽에 이미 꼬리표가 있다 */
 html[data-phone] .cal-ag-item .cal-ag-kind { font-size: 12px !important; height: 22px; min-width: 38px !important; }
 .cal-ag-item > i { display: none !important; }   /* 앞쪽 색 띠는 종류 칩이 대신한다 */
-/* ⋮⋮ 표시는 모두 숨기고, 끌기 자리(왼쪽 가장자리 14px)만 남긴다. 칩·글이 그만큼 왼쪽으로 붙는다 */
-.cal-ag-item[data-g], .cal-up-item { position: relative; padding-left: 14px !important; }
-.cal-ag-item[data-g] > .cal-ag-grip, .cal-up-item > .cal-ag-grip { position: absolute; left: 0; top: 0; bottom: 0; width: 14px; margin: 0; align-self: auto; color: transparent !important; cursor: grab; }
+/* ⋮⋮ 표시는 모두 숨기고 칩을 왼쪽 끝에 붙인다. 끌기 자리는 눈에 안 보이게 남긴다(위쪽 목록은 종류 칩 위, 아래 목록은 왼쪽 가장자리 8px) */
+.cal-ag-item[data-g], .cal-up-item { position: relative; padding-left: 6px !important; }
+.cal-ag-item[data-g] > .cal-ag-grip, .cal-up-item > .cal-ag-grip { position: absolute; left: 0; top: 0; bottom: 0; width: 8px; margin: 0; align-self: auto; color: transparent !important; cursor: grab; z-index: 1; }
+.cal-ag-item[data-g] > .cal-ag-grip { width: 46px; }

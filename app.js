@@ -2383,6 +2383,22 @@
     });
     return out;
   }
+  // 일정 줄 사이를 20% 넓힌다(줄 안 위아래 여백·줄 사이 간격·줄 높이). 화면 크기마다 CSS 값이 달라서, 줄을 그린 뒤 실제 값에 1.2를 곱해 넣는다.
+  var ROW_SPACE = 1.2;
+  function spaceRow(row) {
+    ['padding-top', 'padding-bottom', 'margin-bottom', 'line-height'].forEach(function (k) { row.style.removeProperty(k); });
+    var c = getComputedStyle(row), fs = parseFloat(c.fontSize) || 12;
+    var lh = parseFloat(c.lineHeight); if (!isFinite(lh)) lh = fs * 1.4;
+    row.style.setProperty('padding-top', (parseFloat(c.paddingTop) * ROW_SPACE) + 'px', 'important');
+    row.style.setProperty('padding-bottom', (parseFloat(c.paddingBottom) * ROW_SPACE) + 'px', 'important');
+    row.style.setProperty('margin-bottom', (parseFloat(c.marginBottom) * ROW_SPACE) + 'px', 'important');
+    row.style.setProperty('line-height', (lh * ROW_SPACE) + 'px', 'important');
+  }
+  var spaceT = null;
+  window.addEventListener('resize', function () {   // 창 크기가 바뀌면 CSS 값도 바뀌니 다시 계산한다
+    clearTimeout(spaceT);
+    spaceT = setTimeout(function () { Array.prototype.forEach.call(document.querySelectorAll('.cal-ag-item, .cal-up-item'), spaceRow); }, 150);
+  });
   function applyEventsView() {
     var btn = $('calEventsBtn'), list = $('calEventsList');
     if (!btn || !list) return;
@@ -2579,7 +2595,7 @@
           };
           grip.addEventListener('pointermove', move); grip.addEventListener('pointerup', up); grip.addEventListener('pointercancel', up);
         });
-        list.appendChild(row);
+        list.appendChild(row); spaceRow(row);
       });
       var more = document.createElement('button'); more.type = 'button'; more.className = 'cal-up-more'; more.hidden = true;
       more.addEventListener('click', function () { upExpanded = !upExpanded; renderUpcoming(); });
@@ -2706,7 +2722,7 @@
       } else {
         row.addEventListener('click', function (ev) { ev.stopPropagation(); openEditor(); });
       }
-      box.appendChild(row);
+      box.appendChild(row); spaceRow(row);
     });
   }
 
