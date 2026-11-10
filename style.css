@@ -1955,7 +1955,7 @@ html[data-shell="tabs"]:not([data-phone]) .cal-ag-evtag { font-size: 9.5px; padd
 #attClassSel { height: 32px; max-width: 130px; }
 .catt { display: flex; flex-direction: column; padding: 0 4px 8px 0; }
 .catt-empty { font-size: 13px; color: var(--text-faint); padding: 24px 8px; text-align: center; }
-.catt-head, .catt-line { display: grid; grid-template-columns: 44px 80px 80px 80px 80px minmax(0, 1fr); align-items: stretch; }
+.catt-head, .catt-line { display: grid; grid-template-columns: 80px 80px 80px 80px minmax(0, 1fr); align-items: stretch; }
 .catt-head { font-size: 13px; font-weight: 700; color: var(--text); background: var(--accent-soft); border: 1px solid rgba(110,125,150,0.4); }
 .catt-head span { padding: 5px 8px; text-align: center; border-right: 1px solid rgba(110,125,150,0.4); white-space: nowrap; }
 .catt-head span:last-child { border-right: 0; }
@@ -2013,7 +2013,6 @@ html[data-shell="tabs"] #attendanceCard .card-head, html[data-phone] #attendance
   html[data-phone] .catt-head span, html[data-phone] .subj-head span { padding: 5px 2px; font-size: var(--tbl-fs); overflow: hidden; text-overflow: ellipsis; }
   html[data-phone] .catt-input { padding: 0 4px; }
   html[data-phone] .catt-line, html[data-phone] .subj-row .subj-line { min-height: 36px; }   /* 손가락으로 누르기 좋게 */
-  html[data-phone] .catt-seq, html[data-phone] .catt-head span:first-child { display: none; }
   html[data-phone] .subj-seq, html[data-phone] .subj-head span:first-child { display: none; }
   html[data-phone] .subj-head span:nth-child(4) { text-align: center; }
   html[data-phone] #attendanceCard .card-head { flex-wrap: wrap; row-gap: 6px; }

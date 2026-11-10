@@ -3267,7 +3267,7 @@
     else if (!mine.length) add(wrap, 'div', 'catt-empty', home.grade + '학년 ' + home.ban + '반 명단을 아직 못 불러왔어요. 잠시 뒤에 다시 열어 주세요.');
     else {
       var head = add(wrap, 'div', 'catt-head');
-      ['연번', '번호', '이름', '구분', '종류', document.documentElement.hasAttribute('data-phone') ? '메모' : '사유·메모·교시 (선택)'].forEach(function (h) { add(head, 'span', '', h); });
+      ['학번', '이름', '구분', '종류', document.documentElement.hasAttribute('data-phone') ? '메모' : '사유·메모·교시 (선택)'].forEach(function (h) { add(head, 'span', '', h); });
       var list = add(wrap, 'div', 'catt-list');
       mine.forEach(function (s, i) {
         var rs = recs.filter(function (r) { return sameStudentRec(r, s); });
@@ -3281,7 +3281,6 @@
           var d = rec ? null : (attDraft[ln.dk] = attDraft[ln.dk] || { reason: '', type: '', memo: '' });
           var row = add(list, 'div', 'catt-row' + (rec ? ' has' : '') + (li ? ' catt-sub' : ''));
           var line = add(row, 'div', 'catt-line');
-          add(line, 'span', 'catt-seq', li ? '' : String(i + 1));
           add(line, 'span', 'catt-id', li ? '' : key);
           add(line, 'span', 'catt-name', li ? '' : s.studentName);
           var rc = add(line, 'span', 'catt-cell'), kc = add(line, 'span', 'catt-cell'), mc = add(line, 'span', 'catt-memo');
