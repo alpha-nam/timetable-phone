@@ -2553,7 +2553,7 @@
       var hg = document.createElement('span'); hg.className = 'cal-head-ic-wrap';
       hg.innerHTML = '<svg class="cal-head-ic" viewBox="0 0 32 32" aria-hidden="true"><path d="M9 6h14c0 5-3.2 7.6-5 10 1.8 2.4 5 5 5 10H9c0-5 3.2-7.6 5-10-1.8-2.4-5-5-5-10Z" fill="#D6EAF8"/><path d="M11 6.5h10c-.4 3-2.6 5-5 6.8-2.4-1.8-4.6-3.8-5-6.8Z" fill="#FFC83D"/><rect x="15.35" y="13" width="1.3" height="6" rx=".6" fill="#FFC83D"/><path d="M10.4 25.5h11.2c-.5-3-2.7-4.6-5.6-6.3-2.9 1.7-5.1 3.3-5.6 6.3Z" fill="#FFB020"/><rect x="6" y="2.5" width="20" height="3.6" rx="1.8" fill="#A56A43"/><rect x="6" y="25.9" width="20" height="3.6" rx="1.8" fill="#A56A43"/></svg>';
       t.appendChild(hg); t.appendChild(document.createTextNode('다가오는 일'));
-      var sm = document.createElement('small'); sm.textContent = '앞으로 30일 · 선택한 날 제외';
+      var sm = document.createElement('small'); sm.textContent = '앞으로 30일';
       head.appendChild(t); head.appendChild(sm); box.appendChild(head);
       if (!items.length) { var em = document.createElement('div'); em.className = 'cal-ag-empty'; em.textContent = '이 밖에 30일 안에 예정된 일이 없어요.'; box.appendChild(em); return; }
       var shown = items;   // 일단 전부 그린 뒤, 화면에 들어가는 만큼만 남기고 나머지는 "더 보기"로 접는다(아래 fit)
