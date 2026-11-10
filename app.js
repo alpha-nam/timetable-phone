@@ -1514,7 +1514,13 @@
     paintMemos();
 
     // ── 출석 패널 ──
-    var attPanel = buildAttendancePanel(key);
+    var attPanel = document.createElement('div');
+    attPanel.className = 'day-editor-panel att-panel att-panel--table';
+    function paintAtt() {   // 학급출결 탭과 같은 표(구분·종류·비고·교과별 출결마감)를 이 날짜로 보여 준다
+      attPanel.innerHTML = '';
+      attPanel.appendChild(buildClassAttendance(key, { refresh: paintAtt, compact: true, hint: '학급출결 탭에서 담임 반을 먼저 골라 주세요.' }));
+    }
+    paintAtt();
 
     // ── 교과 출결 패널(그날 체크된 것을 보여 준다. 입력은 "교과출결" 탭에서) ──
     var subjPanel = document.createElement('div');
@@ -1522,14 +1528,25 @@
     var subjRows = window.SUBJ ? window.SUBJ.listOn(key) : [];
     if (!subjRows.length) {
       var se = document.createElement('div'); se.className = 'att-list-empty'; se.textContent = '이 날짜에 체크된 교과 출결이 없습니다.'; subjPanel.appendChild(se);
-    } else {
+    } else {   // 수업(교시·반·과목)마다 묶어서, 체크한 학생을 "번호 이름 · 비고"로 보여 준다
+      var byLesson = {}, order = [];
       subjRows.forEach(function (r) {
-        var row = document.createElement('div'); row.className = 'att-record-row';
-        var info = document.createElement('div'); info.className = 'att-record-info';
-        var nm = document.createElement('div'); nm.className = 'att-record-name'; nm.textContent = r.period + '교시 ' + (r.label ? r.label + ' ' : '') + r.subject;
-        var meta = document.createElement('div'); meta.className = 'att-record-meta';
-        meta.textContent = r.grade + '-' + r.ban + '-' + r.no + ' ' + r.studentName + ' · ' + r.type + (r.reason ? ' · ' + r.reason : '') + (r.memo ? ' · ' + r.memo : '');
-        info.appendChild(nm); info.appendChild(meta); row.appendChild(info); subjPanel.appendChild(row);
+        var k = r.period + '|' + (r.label || '') + '|' + r.subject;
+        if (!byLesson[k]) { byLesson[k] = []; order.push(k); }
+        byLesson[k].push(r);
+      });
+      order.forEach(function (k) {
+        var rs = byLesson[k], f = rs[0];
+        var head = document.createElement('div'); head.className = 'dm-lesson';
+        head.textContent = f.period + '교시 ' + (f.label ? f.label + ' ' : '') + f.subject + ' · ' + rs.length + '명';
+        subjPanel.appendChild(head);
+        rs.sort(function (a, b) { return (a.grade - b.grade) || (a.ban - b.ban) || (a.no - b.no); }).forEach(function (r) {
+          var row = document.createElement('div'); row.className = 'dm-lrow';
+          var no = document.createElement('span'); no.className = 'dm-lno'; no.textContent = r.grade + '-' + r.ban + '-' + r.no;
+          var nm = document.createElement('span'); nm.className = 'dm-lname'; nm.textContent = r.studentName;
+          var memo = document.createElement('span'); memo.className = 'dm-lmemo'; memo.textContent = (r.type && r.type !== '결과' ? r.type + (r.reason ? ' · ' + r.reason : '') + (r.memo ? ' · ' : '') : (r.reason ? r.reason + (r.memo ? ' · ' : '') : '')) + (r.memo || '');
+          row.appendChild(no); row.appendChild(nm); row.appendChild(memo); subjPanel.appendChild(row);
+        });
       });
     }
     var subjGo = document.createElement('button'); subjGo.type = 'button'; subjGo.className = 'day-task-save'; subjGo.textContent = '이 날짜의 교과 출결 열기';
@@ -2659,13 +2676,20 @@
     agOrdered(window.BOARD && window.BOARD.memosOn ? window.BOARD.memosOn(calSelected) : [], 'memo').forEach(function (mm) { items.push({ id: mm.id, g: 'memo', cid: mm.id, done: !!mm.done, star: !!mm.star, c: '#2fa866', k: '메모', t: mm.text + (mm.dateEnd && mm.dateEnd !== mm.date ? '  (' + Number(mm.date.slice(4, 6)) + '/' + Number(mm.date.slice(6)) + '~' + Number(mm.dateEnd.slice(4, 6)) + '/' + Number(mm.dateEnd.slice(6)) + ')' : ''), tab: 'memo' }); });
     agOrdered(attendanceRecordsForDate(calSelected).slice().sort(agNo), 'att').forEach(function (r) { items.push({ id: r.id, g: 'att', c: '#d6483f', k: '학급 출결', t: attendanceStudentLabel(r) + ' · ' + attendanceTypeLabel(r) + (r.memo ? ' · ' + String(r.memo).replace(/\s+/g, ' ') : ''), d: r.memo ? r.memo : '', tab: 'attendance' }); });
     agOrdered(window.SUBJ ? window.SUBJ.listOn(calSelected) : [], 'subj').forEach(function (r) {
-      items.push({ id: r.id, g: 'subj', c: '#8b7cf6', k: '교과 출결', t: r.period + '교시 ' + r.subject + ' ' + r.grade + '-' + r.ban + '-' + r.no + ' ' + r.studentName + ' · ' + (r.reason || '') + r.type, d: r.memo ? r.memo : '', tab: 'subject' });
+      items.push({ id: r.id, g: 'subj', c: '#8b7cf6', k: '교과 출결', t: r.subject + ' ' + r.period + '교시 ' + r.grade + '-' + r.ban + '-' + r.no + ' ' + r.studentName + ' · ' + (r.reason || '') + r.type, d: r.memo ? r.memo : '', tab: 'subject' });
     });
     if (!items.length) { var e = document.createElement('div'); e.className = 'cal-ag-empty'; e.textContent = '이 날짜에는 일정이 없어요.'; box.appendChild(e); return; }
     items.forEach(function (it) {
       var row = document.createElement('div'); row.className = 'cal-ag-item' + (it.star ? ' starred' : '') + (it.done ? ' done' : '');
       var bar = document.createElement('i'); bar.style.background = it.c;
-      var kind = document.createElement('span'); kind.className = 'cal-ag-kind'; kind.textContent = String(it.k || '').replace(' 출결', ''); kind.style.setProperty('--kc', it.c);   // 학급·교과·메모 칩: 앞쪽 색 띠와 같은 색
+      var kind = document.createElement('span'); kind.className = 'cal-ag-kind'; kind.textContent = String(it.k || '').replace(' 출결', ''); kind.style.setProperty('--kc', it.c);
+      // 학급·교과·메모는 글자 칩 대신 위쪽 탭과 같은 아이콘을 쓴다(마우스를 올리면 이름이 나온다)
+      var tabOf = { '학급 출결': 'attendance', '교과 출결': 'subject', '메모': 'memo' }[it.k], tabSvg = tabOf && document.querySelector('.tabbtn[data-tab="' + tabOf + '"] svg');
+      if (tabSvg) {
+        var ic = tabSvg.cloneNode(true); ic.removeAttribute('class'); ic.setAttribute('width', '20'); ic.setAttribute('height', '20'); ic.setAttribute('aria-hidden', 'true');
+        kind.textContent = ''; kind.appendChild(ic); kind.classList.add('cal-ag-kind--icon');
+        kind.title = { attendance: '학급출결', subject: '교과출결', memo: '메모' }[tabOf];
+      }
       var txt = document.createElement('span'); txt.className = 'cal-ag-text'; txt.textContent = it.t;
       row.appendChild(bar); row.appendChild(kind); row.appendChild(txt);
       if (it.ev) {   // 학사일정(읽기 전용): 손잡이 자리에 자물쇠를 둬서 글자 위치를 맞추고, 오른쪽에 "학사일정" 표시
@@ -3368,7 +3392,9 @@
     return box;
   }
 
-  function buildClassAttendance(dateKey) {
+  function buildClassAttendance(dateKey, opts) {
+    opts = opts || {};
+    var again = opts.refresh || renderAttendanceTab;   // 기록을 바꾸면 이 표를 다시 그린다(탭 화면은 탭을, 입력·수정 창은 창 안을)
     var wrap = document.createElement('div');
     wrap.className = 'catt';
     function add(parent, tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; parent.appendChild(n); return n; }
@@ -3396,7 +3422,7 @@
       return sel;
     }
 
-    if (!home) add(wrap, 'div', 'catt-empty', '위쪽에서 담임 반을 골라 주세요.');
+    if (!home) add(wrap, 'div', 'catt-empty', opts.hint || '위쪽에서 담임 반을 골라 주세요.');
     else if (!mine.length) add(wrap, 'div', 'catt-empty', home.grade + '학년 ' + home.ban + '반 명단을 아직 못 불러왔어요. 잠시 뒤에 다시 열어 주세요.');
     else {
       var head = add(wrap, 'div', 'catt-head');
@@ -3439,11 +3465,11 @@
             var v = sel.value;
             if (rec) {
               if (!v) {   // 비우면 기록을 지우는 것이라, 확인(휴지통에 보관)을 거친다. 취소하면 원래 값으로 되돌린다.
-                if (deleteAttRecord(rec)) { renderAttendanceTab(); renderCalendar(); } else renderAttendanceTab();
+                if (deleteAttRecord(rec)) { again(); renderCalendar(); } else again();
                 return;
               }
               rec[field] = v; rec.updatedAt = Date.now();
-              saveAttendanceRecords(); renderAttendanceTab(); renderCalendar();
+              saveAttendanceRecords(); again(); renderCalendar();
               return;
             }
             d[field] = v;
@@ -3456,7 +3482,7 @@
               delete attDraft[ln.dk];
               saveAttendanceRecords();
             }
-            renderAttendanceTab(); renderCalendar();
+            again(); renderCalendar();
           }
           rsel.addEventListener('change', function () { changed('reason', rsel); });
           ksel.addEventListener('change', function () { changed('type', ksel); });
@@ -3468,7 +3494,7 @@
       });
     }
 
-    wrap.appendChild(buildSharePanel());
+    if (!opts.compact) wrap.appendChild(buildSharePanel());
     // 선택한 반 명단에 없는 기록(다른 반, 예전에 입력한 학생 등) — 지워지지 않고 여기에 그대로 보인다.
     var others = recs.filter(function (r) { return !shown[r.id]; });
     if (others.length) {
@@ -3477,7 +3503,7 @@
         var o = add(wrap, 'div', 'catt-other');
         add(o, 'span', 'catt-other-text', attendanceStudentLabel(r) + ' · ' + attendanceTypeLabel(r) + (r.memo ? ' · ' + r.memo : ''));
         var del = add(o, 'button', 'catt-other-del', '삭제'); del.type = 'button';
-        del.addEventListener('click', function (ev) { ev.stopPropagation(); if (deleteAttRecord(r)) { renderAttendanceTab(); renderCalendar(); } });
+        del.addEventListener('click', function (ev) { ev.stopPropagation(); if (deleteAttRecord(r)) { again(); renderCalendar(); } });
       });
     }
     return wrap;

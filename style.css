@@ -2105,3 +2105,26 @@ html[data-phone] .cal-ag-item .cal-ag-kind { font-size: 12px !important; height:
 .cal-ag-item[data-g], .cal-up-item { position: relative; padding-left: 6px !important; }
 .cal-ag-item[data-g] > .cal-ag-grip, .cal-up-item > .cal-ag-grip { position: absolute; left: 0; top: 0; bottom: 0; width: 8px; margin: 0; align-self: auto; color: transparent !important; cursor: grab; z-index: 1; }
 .cal-ag-item[data-g] > .cal-ag-grip { width: 46px; }
+
+/* 입력·수정 창: 학급 탭(학급출결 표)·교과 탭(수업별 체크 목록) */
+.day-task-box--wide:has(.att-panel--table:not([hidden])) { width: min(760px, calc(100% - 24px)); max-width: none; }
+.att-panel--table .catt { max-height: 52vh; overflow: auto; }
+.dm-lesson { font-size: 13px; font-weight: 800; margin: 10px 0 4px; color: var(--text); }
+.dm-lrow { display: flex; align-items: center; gap: 10px; background: var(--row-bg); border-radius: 8px; padding: 6px 10px; margin-bottom: 4px; font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; }
+.dm-lno { flex: 0 0 64px; color: var(--text-sub); font-variant-numeric: tabular-nums; }
+.dm-lname { flex: 0 0 auto; }
+.dm-lmemo { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--text-sub); font-weight: 500; }
+.day-task-box--wide:has(.att-panel--table:not([hidden])) { overflow-y: hidden; }
+.cal-ag-item .cal-ag-kind.cal-ag-kind--icon { min-width: 0 !important; width: 20px; height: 20px; padding: 0 !important; background: none; border-radius: 0; }
+.cal-ag-kind--icon svg { display: block; width: 20px; height: 20px; }
+html[data-phone] .cal-ag-item .cal-ag-kind.cal-ag-kind--icon { width: 22px; height: 22px; min-width: 0 !important; }
+html[data-phone] .cal-ag-kind--icon svg { width: 22px; height: 22px; }
+.cal-ag-item[data-g] > .cal-ag-grip { width: 30px; }
+/* 날짜 제목·"다가오는 일" 제목: 글자·아이콘 30% 키우고, 제목은 왼쪽 끝에 두고 그 아래 줄들을 안쪽으로 들인다(문서의 상위 항목 / 하위 항목처럼) */
+html[data-shell="tabs"]:not([data-phone]) .cal-ag-head, html[data-shell="tabs"]:not([data-phone]) .cal-up-head { font-size: 15.6px; padding-left: 0; margin-bottom: 6px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-head-ic { width: 21px; height: 21px; }
+html[data-shell="tabs"]:not([data-phone]) .cal-head-title { gap: 6px; }
+html[data-shell="tabs"]:not([data-phone]) #calUpcoming { padding-left: 10px; }   /* 위쪽 목록과 아이콘 시작 위치를 맞춘다 */
+/* 줄 칸은 제목과 같은 왼쪽 끝에서 시작하고, 아이콘은 아주 조금만 띄운다 */
+.cal-ag-item, .cal-ag-item[data-g], .cal-up-item { margin-left: 0; padding-left: 5px !important; }
+.cal-ag-item[data-g] > .cal-ag-grip { width: 30px; }

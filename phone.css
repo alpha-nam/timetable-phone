@@ -251,3 +251,11 @@ html[data-phone] .cal-ag-head, html[data-phone] .cal-up-head { font-size: 15px; 
   html[data-phone] #subjSummaryBtn { margin-left: 0 !important; }
   html[data-phone] #subjCard #subjTeacher { margin-left: auto !important; }
 }
+
+/* 날짜 제목·"다가오는 일" 제목: 30% 크게, 줄 안 아이콘과 같은 자리에서 시작 */
+html[data-phone] .cal-ag-head, html[data-phone] .cal-up-head { font-size: 19.5px; padding-left: 0; }
+html[data-phone] .cal-head-ic { width: 29px; height: 29px; }
+html[data-phone] .cal-head-title { gap: 8px; }
+html[data-phone] #calUpcoming { padding-left: 12px; }
+html[data-phone] .cal-ag-item, html[data-phone] .cal-ag-item[data-g], html[data-phone] .cal-up-item { margin-left: 0; padding-left: 6px !important; }
+html[data-phone] .cal-ag-item[data-g] > .cal-ag-grip { width: 34px; }
