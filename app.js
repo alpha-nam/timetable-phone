@@ -1174,6 +1174,12 @@
     renderCalendar();
   }
   var attRepaintT = null;
+  (function () {   // 폴드를 접고 펼 때(폭 700px 경계) 학급출결 표를 그 모양에 맞게 다시 그린다
+    if (!window.matchMedia) return;
+    var mq = window.matchMedia('(min-width: 700px)');
+    var h = function () { var b = $('attTabBody'); if (b && b.offsetParent !== null) renderAttendanceTab(); };
+    if (mq.addEventListener) mq.addEventListener('change', h);
+  })();
   window.TTAPP = {
     scheduleSync: function () { scheduleCloudSync(); },
     refreshCalendar: function () { renderCalendar(); },
@@ -3316,7 +3322,7 @@
     else if (!mine.length) add(wrap, 'div', 'catt-empty', home.grade + '학년 ' + home.ban + '반 명단을 아직 못 불러왔어요. 잠시 뒤에 다시 열어 주세요.');
     else {
       var head = add(wrap, 'div', 'catt-head');
-      var phone = document.documentElement.hasAttribute('data-phone');
+      var phone = document.documentElement.hasAttribute('data-phone') && !(window.matchMedia && window.matchMedia('(min-width: 700px)').matches);   // 폴드를 폈을 때처럼 넓은 화면은 PC 모양
       (phone ? ['번', '이름', '구분', '종류', '비고', '교과출결'] : ['번호', '이름', '구분', '종류', '비고', '교과별 출결마감']).forEach(function (h) { add(head, 'span', '', h); });
       var perMap = (window.SUBJ && window.SUBJ.periodsOn) ? window.SUBJ.periodsOn(dateKey) : {};   // 교과 선생님이 체크한 결석·지각 → 학생별 교시 칸
       var list = add(wrap, 'div', 'catt-list');
