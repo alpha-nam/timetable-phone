@@ -1485,7 +1485,7 @@ html[data-shell="tabs"] #memoCard .card-head { flex-wrap: wrap; row-gap: 6px; }
 .bd-sec.dark .bd-add { color: #fff; background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.35); }
 .bd-sec.dark .bd-sec-more, .bd-sec.dark .bd-sec-grip { color: rgba(255,255,255,0.7); }
 /* 섹션 없이 쓰는 메모: 그냥 한 줄 목록 */
-.bd-sec.bd-none-only { background: transparent; padding: 0; flex: 1 1 auto; width: auto; max-width: 640px; }
+.bd-sec.bd-none-only { background: transparent; padding: 0; flex: 1 1 auto; width: auto; }   /* 위쪽 도구 막대와 오른쪽 끝을 맞춘다 */
 .board--h .bd-sec.bd-none-only { flex: 1 1 auto; width: auto; max-height: 100%; }
 .bd-plain-hint { margin-top: 10px; padding: 0 4px; color: var(--text-veryfaint); }
 /* 출결·메모 탭: 탭 이름과 같은 제목("출결", "메모")은 지우고 나머지를 왼쪽/오른쪽으로 붙인다 */
