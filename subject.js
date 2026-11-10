@@ -548,7 +548,7 @@
     var m = {};
     listOn(dateStr).forEach(function (r) {
       var k = r.grade + '-' + r.ban + '-' + r.no;
-      (m[k] = m[k] || []).push({ period: Number(r.period), subject: r.subject || '', type: r.type || '' });
+      (m[k] = m[k] || []).push({ period: Number(r.period), subject: r.subject || '', type: r.type || '', teacher: teacherName || '' });
     });
     if (window.TTSHARE) {   // 다른 선생님이 올린 체크(공유 서버)도 합친다
       var pm = window.TTSHARE.peerPeriods(dateStr);
