@@ -1607,7 +1607,7 @@ html[data-shell="tabs"] #subjCard #subjSummaryBtn { margin: 0; }   /* 세 버튼
 .subj-table td.tot { font-weight: 800; color: var(--accent); }
 .subj-sclose { align-self: flex-end; font-family: inherit; font-size: 13px; font-weight: 700; padding: 6px 16px; border: none; border-radius: 10px; background: var(--row-bg); color: var(--text-sub); cursor: pointer; }
 /* 탭이 7개가 되어 폭이 좁아져서 간격을 줄인다 */
-html[data-shell="tabs"] .tabbtn { padding-left: 7px; padding-right: 7px; font-size: 13px; white-space: nowrap; gap: 4px; }
+html[data-shell="tabs"] .tabbtn { padding-left: 7px; padding-right: 7px; font-size: 14px; white-space: nowrap; gap: 4px; }
 html[data-shell="tabs"] #tabBar { gap: 2px; }
 html[data-shell="tabs"] .tabbtn svg.fl { width: 18px; height: 18px; }
 .subj-cls { font-size: 12px; font-weight: 700; color: var(--text-sub); background: var(--row-bg); border-radius: 6px; padding: 1px 6px; flex-shrink: 0; }

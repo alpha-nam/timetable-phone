@@ -13,7 +13,7 @@ html[data-phone][data-shell="tabs"] #tabBar {
   justify-content: space-around; gap: 0; padding: calc(6px + env(safe-area-inset-top)) 4px 6px;
   background: var(--card-bg); border-bottom: 1px solid var(--card-border);
 }
-html[data-phone] .tabbtn { flex: 1; flex-direction: column; gap: 2px; padding: 6px 2px; font-size: 11px; justify-content: center; min-width: 0; }
+html[data-phone] .tabbtn { flex: 1; flex-direction: column; gap: 2px; padding: 6px 2px; font-size: 12px; justify-content: center; min-width: 0; }
 html[data-phone] .tabbtn svg.fl { width: 24px; height: 24px; }
 
 /* 카드 영역: 탭 줄 아래를 가득 */
@@ -66,7 +66,7 @@ html[data-phone][data-shell="tabs"] .bento {
     top: calc(76px + env(safe-area-inset-top)) !important; bottom: calc(16px + env(safe-area-inset-bottom)) !important;
   }
   html[data-phone][data-shell="tabs"] #tabBar { padding-left: max(8px, calc((100vw - 760px) / 2)); padding-right: max(8px, calc((100vw - 760px) / 2)); }
-  html[data-phone] .tabbtn { font-size: 13px; }
+  html[data-phone] .tabbtn { font-size: 14px; }
   html[data-phone] .tabbtn svg.fl { width: 28px; height: 28px; }
   html[data-phone] .phone-note { left: 50%; right: auto; transform: translateX(-50%); width: min(520px, calc(100vw - 24px)); }
 }
