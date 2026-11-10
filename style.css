@@ -1767,7 +1767,7 @@ html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calendarCard .ca
 html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calWeekdays { grid-column: 1; grid-row: 2; gap: 3px; margin-bottom: 4px; font-size: 12px; }
 html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calGrid { grid-column: 1; grid-row: 3; gap: 3px; min-height: 0; }
 html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calEventsList { grid-column: 1 / -1; grid-row: 2 / 4; overflow-y: auto; min-height: 0; }
-html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calAgenda { grid-column: 2; grid-row: 2 / 4; overflow-y: auto; min-height: 0; margin: 0; padding: 10px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; }
+html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calAgenda { grid-column: 2; grid-row: 1 / 4; overflow-y: auto; min-height: 0; margin: 0; padding: 10px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; }
 html[data-shell="tabs"]:not([data-phone]) #calGrid .cal-cell { padding: 3px 4px 2px; min-height: 0; border-radius: 8px; align-items: center; }
 html[data-shell="tabs"]:not([data-phone]) #calGrid .cal-num { font-size: 13px; line-height: 16px; }
 html[data-shell="tabs"]:not([data-phone]) #calGrid .cal-event-label { display: none !important; }
@@ -2071,3 +2071,18 @@ html[data-shell="tabs"] #attendanceCard .card-head, html[data-phone] #attendance
 .catt-share-in { font-family: inherit; font-size: 16px; height: 34px; padding: 0 10px; border-radius: 8px; border: 1px solid rgba(110,125,150,0.5); background: var(--row-bg); color: var(--text); box-sizing: border-box; }
 .catt-share-msg { min-height: 16px; font-weight: 700; }
 .catt-share-row { display: flex; gap: 6px; }
+
+/* 캘린더 탭: 월 이동 줄(‹ 11월 ›)은 없애고, 학사일정 막대의 "11월 ▾"을 눌러 월을 고른다 */
+html[data-shell="tabs"] #calendarCard > .card-head { display: none !important; }
+#calendarCard { position: relative; }
+.cal-month-pick { display: inline-flex; align-items: center; background: var(--card-bg); border: 1px solid var(--accent); border-radius: 9px; padding: 1px 9px; color: var(--accent); font-weight: 800; cursor: pointer; white-space: nowrap; flex: 0 0 auto; }
+.cal-month-pick.on { background: var(--accent); color: #fff; }
+.cal-events-btn b { flex: 1; }
+.cal-month-pop { position: absolute; z-index: 20; width: 236px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.16); }
+.cal-month-yr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 14px; font-weight: 800; color: var(--text); }
+.cal-month-yr button { width: 28px; height: 28px; border: none; border-radius: 8px; background: var(--row-bg); color: var(--text-sub); font-size: 16px; font-family: inherit; cursor: pointer; }
+.cal-month-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.cal-month-grid button { font-family: inherit; font-size: 13px; font-weight: 700; padding: 8px 0; border: none; border-radius: 8px; background: var(--row-bg); color: var(--text); cursor: pointer; }
+.cal-month-grid button.now { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.cal-month-grid button.cur { background: var(--accent); color: #fff; }
+.cal-month-today { margin-top: 8px; width: 100%; font-family: inherit; font-size: 12px; font-weight: 700; padding: 7px; border: 1px solid var(--card-border); border-radius: 8px; background: transparent; color: var(--text); cursor: pointer; }

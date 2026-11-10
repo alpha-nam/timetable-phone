@@ -2025,6 +2025,17 @@
       calViewMonth = t.getMonth();
       renderCalendar();
     };
+    var g = $('calGrid'), sx = 0, sy = 0, st = 0;   // 달력 칸을 좌우로 밀면 이전·다음 달(월 이동 줄이 없어서)
+    if (g) {
+      g.addEventListener('touchstart', function (e) { var t0 = e.touches[0]; sx = t0.clientX; sy = t0.clientY; st = Date.now(); }, { passive: true });
+      g.addEventListener('touchend', function (e) {
+        var t1 = e.changedTouches[0], dx = t1.clientX - sx, dy = t1.clientY - sy;
+        if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.6 || Date.now() - st > 700) return;
+        calViewMonth += dx < 0 ? 1 : -1;
+        if (calViewMonth > 11) { calViewMonth = 0; calViewYear += 1; } else if (calViewMonth < 0) { calViewMonth = 11; calViewYear -= 1; }
+        eventsOpen = false; renderCalendar();
+      }, { passive: true });
+    }
   }
 
   // ── 출결 종합(월간/학년도 전체) — 학생×종류(결석/지각/조퇴/결과)별로 한 줄씩, 그 안에서
@@ -2381,10 +2392,12 @@
     var open = eventsOpen;
     btn.classList.toggle('open', open);
     btn.innerHTML = '';
-    var t = document.createElement('b'); t.textContent = (calViewMonth + 1) + '월 학사일정';
+    var pk = document.createElement('span'); pk.className = 'cal-month-pick' + (monthPopOpen ? ' on' : ''); pk.setAttribute('role', 'button'); pk.tabIndex = 0; pk.title = '월 고르기';
+    pk.textContent = (calViewYear === new Date().getFullYear() ? '' : calViewYear + '년 ') + (calViewMonth + 1) + '월 ▾';
+    var t = document.createElement('b'); t.textContent = '학사일정';
     var n = document.createElement('span'); n.className = 'cal-events-cnt'; n.textContent = ranges.length;
     var ar = document.createElement('span'); ar.className = 'cal-events-arrow'; ar.textContent = open ? '▲' : '▼';
-    btn.appendChild(t); btn.appendChild(n); btn.appendChild(ar);
+    btn.appendChild(pk); btn.appendChild(t); btn.appendChild(n); btn.appendChild(ar);
     list.hidden = !open;
     $('calWeekdays').hidden = open; $('calGrid').hidden = open;
     if (open) { $('calAgenda').hidden = true; if ($('calUpcoming')) $('calUpcoming').hidden = true; } else { renderAgenda(); renderUpcoming(); }
@@ -2409,9 +2422,55 @@
     }
   }
   document.addEventListener('click', function (ev) {
+    var pick = ev.target.closest ? ev.target.closest('.cal-month-pick') : null;
+    if (pick) { if (monthPopOpen) closeMonthPop(); else openMonthPop(); return; }   // "11월 ▾" → 월 고르기 창
+    if (monthPopOpen && !(ev.target.closest && ev.target.closest('.cal-month-pop'))) closeMonthPop();   // 바깥을 누르면 닫는다
     var b = ev.target.closest ? ev.target.closest('#calEventsBtn') : null;
     if (b) { eventsOpen = !eventsOpen; applyEventsView(); }
   });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape' && monthPopOpen) closeMonthPop();
+    else if ((ev.key === 'Enter' || ev.key === ' ') && ev.target && ev.target.classList && ev.target.classList.contains('cal-month-pick')) { ev.preventDefault(); if (monthPopOpen) closeMonthPop(); else openMonthPop(); }
+  });
+
+  // ── 월 고르기 창: 위에 해 이동, 1~12월 버튼, 이번 달로 돌아가기 ──
+  var monthPopOpen = false;
+  function closeMonthPop() {
+    var p = $('calMonthPop'); if (p) p.remove();
+    monthPopOpen = false;
+    var pk = document.querySelector('.cal-month-pick'); if (pk) pk.classList.remove('on');
+  }
+  function openMonthPop() {
+    closeMonthPop();
+    var card = $('calendarCard'), btn = $('calEventsBtn');
+    if (!card || !btn) return;
+    var year = calViewYear, now = new Date();
+    var pop = document.createElement('div'); pop.id = 'calMonthPop'; pop.className = 'cal-month-pop';
+    function mk(parent, tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; parent.appendChild(n); return n; }
+    var yr = mk(pop, 'div', 'cal-month-yr');
+    var yp = mk(yr, 'button', '', '‹'); yp.type = 'button'; yp.title = '이전 해';
+    var yt = mk(yr, 'span', ''), yn = mk(yr, 'button', '', '›'); yn.type = 'button'; yn.title = '다음 해';
+    var grid = mk(pop, 'div', 'cal-month-grid'), cells = [];
+    function go(y, m) { calViewYear = y; calViewMonth = m; eventsOpen = false; closeMonthPop(); renderCalendar(); }
+    for (var i = 0; i < 12; i++) (function (m) {
+      var c = mk(grid, 'button', '', (m + 1) + '월'); c.type = 'button';
+      c.addEventListener('click', function () { go(year, m); });
+      cells.push(c);
+    })(i);
+    function paint() {
+      yt.textContent = year + '년';
+      cells.forEach(function (c, m) { c.classList.toggle('cur', year === calViewYear && m === calViewMonth); c.classList.toggle('now', year === now.getFullYear() && m === now.getMonth()); });
+    }
+    yp.addEventListener('click', function () { year -= 1; paint(); });
+    yn.addEventListener('click', function () { year += 1; paint(); });
+    var td = mk(pop, 'button', 'cal-month-today', '이번 달로 돌아가기'); td.type = 'button';
+    td.addEventListener('click', function () { go(now.getFullYear(), now.getMonth()); });
+    paint();
+    pop.style.left = (btn.offsetLeft) + 'px'; pop.style.top = (btn.offsetTop + btn.offsetHeight + 4) + 'px';
+    card.appendChild(pop);
+    monthPopOpen = true;
+    var pk = document.querySelector('.cal-month-pick'); if (pk) pk.classList.add('on');
+  }
 
   // ── "다가오는 일정": 오늘부터 30일 안의 학사일정·메모를 D-day와 함께 모은다 ──
   // 중요(★) 메모가 맨 위, 그다음 가까운 날짜순. 줄 왼쪽 손잡이(⋮⋮)를 끌어 순서를 바꿀 수 있고(저장·동기화),
