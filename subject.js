@@ -474,8 +474,9 @@
     var changed = JSON.stringify(m.records) !== JSON.stringify(records);
     records = m.records;
     tombs = m.tombstones;
+    var purged = purgeTestRecords();
     persist();
-    return changed;
+    return changed || purged > 0;
   }
 
   // 백업에서 되살리기(app.js의 복원 화면이 부른다). 없는 것만 더하기 / 백업 상태로 통째로 되돌리기.
@@ -506,8 +507,21 @@
 
   function shiftDate(n) { var d = new Date(viewDate); d.setDate(d.getDate() + n); viewDate = d; render(); }
 
+  // 개발 중 시험(11/9 가짜 나이스)으로 잘못 들어온 임시 수업·명단 수정·수업 빼기 기록을 한 번 지운다(삭제 표시를 남겨 구글 드라이브·폰에서도 지워진다).
+  // 지운 뒤 "나이스 읽고 시간표 맞추기"를 다시 하면 진짜 나이스 기준으로 다시 만들어진다.
+  var TEST_RECORD_IDS = ['20261109|4|3-7|__extra', '20261109|4|3-7강의실|__extra', '20261109|2|3-3강의실|__extra', '20261109|2|3-3|__skip', 'fix|20261109|1|6|3-2', 'fix|20261109|1|2|3-3', '20261110|5|3-9|__extra', '20261110|3|3-9|__extra', 'fix|20261110|2|2|3-2'];
+  function purgeTestRecords() {
+    var removed = 0, now = Date.now();
+    records = records.filter(function (r) {
+      if (r && TEST_RECORD_IDS.indexOf(r.id) >= 0 && (r.kind === 'extra' || r.kind === 'skip' || r.kind === 'rosterfix')) { tombs[r.id] = now; removed++; return false; }
+      return true;
+    });
+    if (removed) save();
+    return removed;
+  }
   function init() {
     load();
+    purgeTestRecords();
     var card = $('subjCard');
     if (!card) return;
     $('subjPrev').addEventListener('click', function (ev) { ev.stopPropagation(); shiftDate(-1); });
