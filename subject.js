@@ -43,6 +43,7 @@
   }
   function save() {
     persist();
+    if (window.TTSHARE) { try { window.TTSHARE.changed(); } catch (e) { /* 공유가 안 돼도 저장은 그대로 */ } }
     if (window.TTAPP && window.TTAPP.refreshCalendar) window.TTAPP.refreshCalendar();   // 캘린더 배지 갱신
     if (window.TTAPP && window.TTAPP.scheduleSync) window.TTAPP.scheduleSync();
   }
@@ -549,8 +550,23 @@
       var k = r.grade + '-' + r.ban + '-' + r.no;
       (m[k] = m[k] || []).push({ period: Number(r.period), subject: r.subject || '', type: r.type || '' });
     });
+    if (window.TTSHARE) {   // 다른 선생님이 올린 체크(공유 서버)도 합친다
+      var pm = window.TTSHARE.peerPeriods(dateStr);
+      Object.keys(pm).forEach(function (k) { (m[k] = m[k] || []).push.apply(m[k], pm[k]); });
+    }
     return m;
   }
+  // 교과출결 공유용: 오늘 앞뒤(최근 3일~내일)에 내가 체크한 학생들 {id,date,period,grade,ban,no,subject,type}
+  function shareMarks() {
+    var lo = ymd(new Date(Date.now() - 3 * 86400000)), hi = ymd(new Date(Date.now() + 86400000)), out = [], ex = exclSet();
+    records.forEach(function (r) {
+      if (!notConfirm(r) || !r.grade || !r.ban || !r.no || !r.date || String(r.date) < lo || String(r.date) > hi) return;
+      if (ex[exclKey(r.grade, r.ban, r.no)] !== undefined) return;
+      out.push({ id: r.id, date: String(r.date), period: Number(r.period), grade: Number(r.grade), ban: Number(r.ban), no: Number(r.no), subject: String(r.subject || '').slice(0, 20), type: (r.type === '결석' || r.type === '지각' || r.type === '조퇴') ? r.type : '결과' });
+    });
+    return out;
+  }
+  function shareTeacher() { ensureTeacher(); return teacherName; }
   function openDate(d) { viewDate = new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
 
   function shiftDate(n) { var d = new Date(viewDate); d.setDate(d.getDate() + n); viewDate = d; render(); }
@@ -750,6 +766,8 @@
     render: render,
     listOn: listOn,
     periodsOn: periodsOn,
+    shareMarks: shareMarks,
+    shareTeacher: shareTeacher,
     dayClosed: dayClosed,
     toggleDayClosed: toggleDayClosed,
     openDate: openDate,
@@ -761,4 +779,137 @@
   };
 
   document.addEventListener('DOMContentLoaded', init);
+})();
+
+/* ───────── 교과출결 공유 (Cloudflare 서버) ─────────
+   · 내가 체크한 학생을 서버에 올리고(학년·반·번호·교시·과목·내 이름만, 학생 이름은 올리지 않음),
+   · 담임 반 학생에 대한 다른 선생님의 체크를 실시간으로 받아 학급출결 표의 "교과출결" 칸에 보여 준다.
+   설정(주소·학교 코드)이 없으면 아무 일도 하지 않는다. */
+(function () {
+  var CFG_KEY = 'ttShareCfgV1', SENT_KEY = 'ttShareSentV1';
+  var cfg = null, sent = {}, peers = {}, ws = null, wsFor = '', pingT = null, retryT = null, flushT = null, flushing = false;
+  var state = { text: '꺼짐', ok: false };
+  var URL_OK = /^(https:\/\/[A-Za-z0-9.-]+|http:\/\/127\.0\.0\.1:\d+)$/;
+  var source = '';   // 'manual'(직접 입력) | 'auto'(배포·동기화로 들어온 설정) | ''
+  function okCfg(v) { return v && typeof v.url === 'string' && URL_OK.test(v.url) && typeof v.code === 'string' && v.code.length >= 8 ? { url: v.url.replace(/\/+$/, ''), code: v.code } : null; }
+  function bakedCfg() { try { var c = window.DASHBOARD_CONFIG && window.DASHBOARD_CONFIG.share; return okCfg(c); } catch (e) { return null; } }
+  function prefCfg() { try { return okCfg(window.TTAPP && window.TTAPP.getPref ? window.TTAPP.getPref('share-cfg') : null); } catch (e) { return null; } }
+  function readCfg() {
+    var m = null; try { m = okCfg(JSON.parse(localStorage.getItem(CFG_KEY) || 'null')); } catch (e) { m = null; }
+    if (m) { source = 'manual'; return m; }
+    var b = bakedCfg();
+    if (b) {   // 배포에 들어 있는 설정이면, 폰도 입력 없이 쓰도록 드라이브 동기화 목록(prefs)에 한 번 적어 둔다
+      source = 'auto';
+      var p = prefCfg();
+      if (!p || p.url !== b.url || p.code !== b.code) { try { if (window.TTAPP && window.TTAPP.setPref) window.TTAPP.setPref({ id: 'share-cfg', url: b.url, code: b.code }); } catch (e) { /* 다음에 다시 */ } }
+      return b;
+    }
+    var q = prefCfg();
+    if (q) { source = 'auto'; return q; }
+    source = ''; return null;
+  }
+  function readSent() { try { var v = JSON.parse(localStorage.getItem(SENT_KEY) || '{}'); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } }
+  function saveSent() { try { localStorage.setItem(SENT_KEY, JSON.stringify(sent)); } catch (e) { /* 저장 공간 문제는 넘어간다 */ } }
+  function setState(text, ok) { state = { text: text, ok: !!ok }; try { if (window.TTAPP && window.TTAPP.refreshShareStatus) window.TTAPP.refreshShareStatus(); } catch (e) { /* 화면이 없으면 건너뜀 */ } }
+  function configured() { return !!cfg; }
+  function hdr() { return { 'Content-Type': 'application/json', 'X-TT-Code': cfg.code }; }
+  function api(path, opt) { return fetch(cfg.url + path, Object.assign({ headers: hdr() }, opt || {})); }
+
+  function changed() { if (!configured()) return; clearTimeout(flushT); flushT = setTimeout(flush, 700); }
+
+  // 내 체크 올리기: 지난번에 올린 것과 비교해서 달라진 것만 보낸다. 실패하면 다음에 다시 시도한다.
+  async function flush() {
+    if (!configured() || flushing || !window.SUBJ || !window.SUBJ.shareMarks) return;
+    var teacher = window.SUBJ.shareTeacher();
+    if (!teacher || !/^[가-힣A-Za-z0-9 ._-]{1,30}$/.test(teacher)) return;
+    flushing = true;
+    try {
+      var own = {}; window.SUBJ.shareMarks().forEach(function (m) { own[m.id] = m; });
+      var items = [];
+      Object.keys(own).forEach(function (id) { var m = own[id], h = JSON.stringify(m); if (!sent[id] || sent[id].h !== h) items.push(Object.assign({ op: 'set' }, m)); });
+      Object.keys(sent).forEach(function (id) { if (!own[id] && sent[id].m) items.push(Object.assign({}, sent[id].m, { op: 'del' })); });
+      if (!items.length) return;
+      for (var i = 0; i < items.length; i += 150) {
+        var chunk = items.slice(i, i + 150);
+        var r = await api('/v1/marks', { method: 'POST', body: JSON.stringify({ teacher: teacher, items: chunk }) });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        chunk.forEach(function (it) { if (it.op === 'set') sent[it.id] = { h: JSON.stringify(own[it.id]), m: own[it.id] }; else delete sent[it.id]; });
+        saveSent();
+      }
+      setState('연결됨', true);
+    } catch (e) {
+      setState('보내지 못했어요(곧 다시 시도)', false);
+      clearTimeout(retryT); retryT = setTimeout(flush, 30000);
+    } finally { flushing = false; }
+  }
+
+  // 담임 반 학생에 대한 다른 선생님의 체크 받기(실시간 연결)
+  function homeroom() { try { return window.TTAPP && window.TTAPP.homeroom ? window.TTAPP.homeroom() : null; } catch (e) { return null; } }
+  function repaint() { try { if (window.TTAPP && window.TTAPP.refreshAttendance) window.TTAPP.refreshAttendance(); } catch (e) { /* 화면이 없으면 건너뜀 */ } }
+  function applySnap(marks) { peers = {}; (marks || []).forEach(function (m) { peers[m.k] = m; }); repaint(); }
+  function closeWs() { if (ws) { try { ws.onclose = null; ws.close(); } catch (e) { /* 이미 닫힘 */ } } ws = null; wsFor = ''; clearInterval(pingT); }
+  function connect() {
+    var h = homeroom();
+    if (!configured() || !h) { closeWs(); return; }
+    var key = h.grade + '-' + h.ban;
+    if (ws && wsFor === key) return;
+    closeWs(); wsFor = key;
+    try {
+      var w = new WebSocket(cfg.url.replace(/^http/, 'ws') + '/v1/live?grade=' + encodeURIComponent(h.grade) + '&ban=' + encodeURIComponent(h.ban), ['tt.' + cfg.code]);
+      ws = w;
+      w.onopen = function () { setState('연결됨', true); clearInterval(pingT); pingT = setInterval(function () { try { w.send('ping'); } catch (e) { /* 끊김 */ } }, 25000); };
+      w.onmessage = function (e) {
+        if (e.data === 'pong') return;
+        var d; try { d = JSON.parse(e.data); } catch (x) { return; }
+        if (d.t === 'snap') applySnap(d.marks);
+        else if (d.t === 'set' && d.m) { peers[d.m.k] = d.m; repaint(); }
+        else if (d.t === 'del' && d.k) { delete peers[d.k]; repaint(); }
+      };
+      w.onclose = function () { if (ws !== w) return; ws = null; wsFor = ''; clearInterval(pingT); setState('다시 연결하는 중…', false); clearTimeout(retryT); retryT = setTimeout(connect, 5000); };
+      w.onerror = function () { /* onclose에서 다시 시도 */ };
+    } catch (e) { setState('연결하지 못했어요', false); }
+  }
+
+  // 학급출결 표용: 날짜별로 "학년-반-번호" → [{period, subject, type, teacher}]
+  function peerPeriods(dateStr) {
+    var out = {}, h = homeroom(), me = (window.SUBJ && window.SUBJ.shareTeacher) ? window.SUBJ.shareTeacher() : '';
+    if (!configured() || !h) return out;
+    Object.keys(peers).forEach(function (k) {
+      var m = peers[k];
+      if (!m || m.date !== dateStr || m.teacher === me) return;   // 내 체크는 내 앱에 이미 있다
+      var key = h.grade + '-' + h.ban + '-' + m.no;
+      (out[key] = out[key] || []).push({ period: Number(m.period), subject: m.subject, type: m.type, teacher: m.teacher });
+    });
+    return out;
+  }
+
+  function start() {
+    cfg = readCfg(); sent = readSent();
+    if (!configured()) { closeWs(); setState('꺼짐', false); return; }
+    setState('연결하는 중…', false);
+    flush(); connect();
+  }
+  async function test(url, code) {
+    var u = String(url || '').trim().replace(/\/+$/, '');
+    if (!URL_OK.test(u)) return { ok: false, msg: '주소가 https:// 로 시작해야 해요' };
+    try {
+      var r = await fetch(u + '/v1/ping', { headers: { 'X-TT-Code': String(code || '').trim() } });
+      if (r.status === 401) return { ok: false, msg: '학교 코드가 맞지 않아요' };
+      if (r.status === 503) return { ok: false, msg: '서버에 학교 코드가 아직 없어요' };
+      return r.ok ? { ok: true, msg: '연결됐어요' } : { ok: false, msg: '서버가 응답하지 않아요(' + r.status + ')' };
+    } catch (e) { return { ok: false, msg: '서버에 닿지 않아요(주소·인터넷을 확인해 주세요)' }; }
+  }
+  function setConfig(url, code) {
+    try {
+      if (!url && !code) { localStorage.removeItem(CFG_KEY); localStorage.removeItem(SENT_KEY); }
+      else localStorage.setItem(CFG_KEY, JSON.stringify({ url: String(url).trim().replace(/\/+$/, ''), code: String(code).trim() }));
+    } catch (e) { /* 저장 못 하면 그대로 */ }
+    closeWs(); peers = {}; start(); repaint();
+  }
+
+  window.TTSHARE = {
+    changed: changed, peerPeriods: peerPeriods, start: start, test: test, setConfig: setConfig, connect: connect,
+    configured: configured, status: function () { return state; }, url: function () { return cfg ? cfg.url : ''; }, source: function () { return source; }
+  };
+  document.addEventListener('DOMContentLoaded', function () { setTimeout(start, 1500); });
 })();

@@ -1152,6 +1152,7 @@
     }
     if (window.BOARD && (res.memo || res.sections || res.trash)) { if (window.BOARD.applySync(res)) changed = true; }
     if (window.SUBJ && res.subj) { if (window.SUBJ.applySync(res)) changed = true; }
+    var shareBefore = JSON.stringify(prefs.filter(function (x) { return x.id === 'share-cfg'; }));
     if (res.prefs) { var np = (window.TTMERGE ? window.TTMERGE(prefs, {}, res.prefs.records, {}).records : (res.prefs.records || [])); if (JSON.stringify(np) !== JSON.stringify(prefs)) { prefs = np; try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (e) {} changed = true; } }
     if (res.dayTasks) {
       var nextDay = {}, nextStamps = {};
@@ -1162,6 +1163,7 @@
       daySig = Object.assign({}, dayTasks);
     }
     saveNoteMeta();
+    if (window.TTSHARE && JSON.stringify(prefs.filter(function (x) { return x.id === 'share-cfg'; })) !== shareBefore) { try { window.TTSHARE.start(); } catch (e) { /* 공유 설정이 잘못돼도 동기화는 그대로 */ } }
     return changed;
   }
 
@@ -1171,9 +1173,24 @@
     if (tab === 'attendance') renderAttendanceTab();
     renderCalendar();
   }
+  var attRepaintT = null;
   window.TTAPP = {
     scheduleSync: function () { scheduleCloudSync(); },
     refreshCalendar: function () { renderCalendar(); },
+    homeroom: function () { return loadHomeroom(); },
+    getPref: function (id) { return prefs.filter(function (x) { return x.id === id; })[0] || null; },
+    setPref: function (rec) {   // 설정 한 줄을 동기화 목록(prefs)에 적는다(같은 id는 덮어씀)
+      prefs = prefs.filter(function (x) { return x.id !== rec.id; }); prefs.push(Object.assign({}, rec, { updatedAt: Date.now() })); savePrefs();
+    },
+    refreshAttendance: function () {   // 다른 선생님 체크가 도착하면 학급출결 표를 다시 그린다(설정 칸을 열어 둔 동안은 건드리지 않는다)
+      clearTimeout(attRepaintT);
+      attRepaintT = setTimeout(function () { var b = $('attTabBody'); if (b && b.offsetParent !== null && !shareFormOpen) renderAttendanceTab(); }, 150);
+    },
+    refreshShareStatus: function () {
+      var d = document.querySelector('.catt-share-dot'), t = document.querySelector('.catt-share-st'), S = window.TTSHARE;
+      if (!d || !t || !S) return;
+      var s0 = S.status(); d.className = 'catt-share-dot' + (s0.ok ? ' ok' : (S.configured() ? ' bad' : '')); t.textContent = '다른 선생님 교과 출결 ' + (S.configured() ? s0.text : '연결 안 됨');
+    },
     jumpToDate: function (dateStr, which) { jumpToDate(dateStr, which); },
     syncNow: function () { cloudState.error = ''; return cloudSyncNow(); },
     restoreAttendance: function (rec) {
@@ -3235,6 +3252,38 @@
     return true;
   }
 
+  // 교과출결 공유(Cloudflare 서버) 연결 상태와 설정: 표 아래 작은 줄. 설정(주소·학교 코드)은 이 기기에만 저장된다.
+  var shareFormOpen = false;
+  function buildSharePanel() {
+    var S = window.TTSHARE, box = document.createElement('div');
+    box.className = 'catt-share';
+    if (!S) return box;
+    function mk(parent, tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; parent.appendChild(n); return n; }
+    var line = mk(box, 'div', 'catt-share-line');
+    var dot = mk(line, 'span', 'catt-share-dot'), st = mk(line, 'span', 'catt-share-st');
+    var auto = S.source() === 'auto';
+    var btn = mk(line, 'button', 'catt-share-btn', S.configured() ? '설정' : '연결하기'); btn.type = 'button'; if (auto) btn.hidden = true;
+    function paint() { var s0 = S.status(); dot.className = 'catt-share-dot' + (s0.ok ? ' ok' : (S.configured() ? ' bad' : '')); st.textContent = '다른 선생님 교과 출결 ' + (S.configured() ? s0.text : '연결 안 됨'); }
+    paint();
+    var form = mk(box, 'div', 'catt-share-form'); form.hidden = !shareFormOpen;
+    var u = mk(form, 'input', 'catt-share-in'); u.type = 'text'; u.placeholder = '서버 주소 (https://…)'; u.autocomplete = 'off'; u.value = S.url();
+    var c = mk(form, 'input', 'catt-share-in'); c.type = 'password'; c.placeholder = '학교 코드'; c.autocomplete = 'off';
+    var msg = mk(form, 'div', 'catt-share-msg');
+    var row = mk(form, 'div', 'catt-share-row');
+    var save = mk(row, 'button', 'catt-share-btn main', '확인하고 저장'); save.type = 'button';
+    var off = mk(row, 'button', 'catt-share-btn', '연결 끊기'); off.type = 'button';
+    btn.addEventListener('click', function () { shareFormOpen = !shareFormOpen; form.hidden = !shareFormOpen; });
+    save.addEventListener('click', function () {
+      msg.textContent = '확인하는 중…';
+      S.test(u.value, c.value).then(function (r) {
+        msg.textContent = r.msg;
+        if (r.ok) { S.setConfig(u.value, c.value); c.value = ''; shareFormOpen = false; renderAttendanceTab(); }
+      });
+    });
+    off.addEventListener('click', function () { S.setConfig('', ''); shareFormOpen = false; renderAttendanceTab(); });
+    return box;
+  }
+
   function buildClassAttendance(dateKey) {
     var wrap = document.createElement('div');
     wrap.className = 'catt';
@@ -3293,7 +3342,7 @@
               var ph = hits.filter(function (h) { return h.period === pn; });
               var old = ph.some(function (h) { return h.type && h.type !== '결과'; });   // 예전 기록(결석·지각·조퇴)이 섞여 있으면 빨강, 새 체크(결과)는 초록
               var cell = add(pc, 'i', ph.length ? (old ? 'x bad' : 'x') : '', String(pn));
-              if (ph.length) cell.title = ph.map(function (h) { return pn + '교시 ' + h.subject + ' · ' + (h.type === '결과' ? '체크' : h.type); }).join('\n');
+              if (ph.length) cell.title = ph.map(function (h) { return pn + '교시 ' + h.subject + ' · ' + (h.teacher || (h.type === '결과' ? '체크' : h.type)); }).join('\n');
             }
           }
           var rsel = makeSelect(rc, ATTENDANCE_REASONS, rec ? rec.reason : d.reason, '선택');
@@ -3335,6 +3384,7 @@
       });
     }
 
+    wrap.appendChild(buildSharePanel());
     // 선택한 반 명단에 없는 기록(다른 반, 예전에 입력한 학생 등) — 지워지지 않고 여기에 그대로 보인다.
     var others = recs.filter(function (r) { return !shown[r.id]; });
     if (others.length) {
