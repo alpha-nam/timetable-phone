@@ -49,6 +49,16 @@
 
   // ───────── 수업·명단 ─────────
   function studentKey(s) { return s.studentId ? String(s.studentId) : s.grade + '-' + s.ban + '-' + s.no; }
+  // 위탁 학생(시간표 자료의 excludedStudents): 나이스 명단에 보이더라도 교과출결 수업 명단·임시 수업·명단 수정에 넣지 않는다.
+  // 동명이인 보호: 학년·반·번호가 같고 이름까지 같을 때만 제외한다(이름이 같아도 반·번호가 다르면 정상 학생).
+  function exclKey(g, b, n) { return Number(g) + '-' + Number(b) + '-' + Number(n); }
+  function exclSet() {
+    var tt = timetable(), set = {};
+    ((tt && tt.excludedStudents) || []).forEach(function (x) { set[exclKey(x.grade, x.ban, x.no)] = String(x.name || ''); });
+    return set;
+  }
+  function isExcl(ex, g, b, n, name) { var k = exclKey(g, b, n); return ex[k] !== undefined && ex[k] !== '' && ex[k] === String(name || ''); }
+  function notExcluded(list) { var ex = exclSet(); return list.filter(function (s) { return !isExcl(ex, s.grade, s.ban, s.no, s.studentName || s.name); }); }
   function byNo(a, b) { return (+a.grade - +b.grade) || (+a.ban - +b.ban) || (+a.no - +b.no); }
 
   // 선생님 한 칸(요일 dow=1~5, 교시 index pi)의 수업 묶음들. 묶음 하나 = { label, subject, students }.
@@ -101,7 +111,7 @@
     records.forEach(function (r) {
       if (!r || r.kind !== 'extra' || r.date !== ds) return;
       if (out.some(function (l) { return l.period === r.period && l.label === r.label; })) return;
-      out.push({ key: r.period + '|' + r.label + '|' + r.subject, period: r.period, label: r.label, subject: r.subject, extra: true, students: (r.students || []).slice().sort(byNo) });
+      out.push({ key: r.period + '|' + r.label + '|' + r.subject, period: r.period, label: r.label, subject: r.subject, extra: true, students: notExcluded(r.students || []).sort(byNo) });
     });
     out.sort(function (a, b) { return a.period - b.period; });
     return out;
@@ -119,7 +129,7 @@
         if (!list.some(function (s) { return Number(s.grade) === a.grade && Number(s.ban) === a.ban && Number(s.no) === a.no; })) list.push({ grade: a.grade, ban: a.ban, no: a.no, studentName: a.studentName });
       });
     });
-    return list.sort(byNo);
+    return notExcluded(list).sort(byNo);
   }
 
   function recId(dateStr, lesson, s) { return dateStr + '|' + lesson.period + '|' + lesson.label + '|' + studentKey(s); }
@@ -541,7 +551,7 @@
         try {
           var ds = String(c.date), day = new Date(+ds.slice(0, 4), +ds.slice(4, 6) - 1, +ds.slice(6, 8));
           var ls = lessonsOn(day).filter(function (l) { return l.period === Number(c.period) && l.label === c.label; })[0];
-          if (ls) roster = ls.students.map(function (s) { return { grade: Number(s.grade), ban: Number(s.ban), no: Number(s.no), name: s.name || s.studentName || '' }; });
+          if (ls) roster = notExcluded(ls.students).map(function (s) { return { grade: Number(s.grade), ban: Number(s.ban), no: Number(s.no), name: s.name || s.studentName || '' }; });
         } catch (e) { roster = undefined; }
         var out = { date: String(c.date), period: Number(c.period), label: c.label, subject: c.subject, confirmed: true, marks: marks };
         if (roster) out.roster = roster;
@@ -601,10 +611,11 @@
       for (var d = a; d <= b; d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) {
         lessonsOn(d).forEach(function (l) {
           out.push({ date: ymd(d), dow: d.getDay(), period: l.period, label: l.label, subject: l.subject, extra: !!l.extra, confirmed: !!recOf(confirmId(ymd(d), l)),
-            roster: l.students.map(function (s) { return { grade: Number(s.grade), ban: Number(s.ban), no: Number(s.no), name: s.studentName || '' }; }) });
+            roster: notExcluded(l.students).map(function (s) { return { grade: Number(s.grade), ban: Number(s.ban), no: Number(s.no), name: s.studentName || '' }; }) });
         });
       }
-      return { version: 1, teacher: teacherName, lessons: out };
+      var tt0 = timetable();
+      return { version: 1, teacher: teacherName, lessons: out, excluded: ((tt0 && tt0.excludedStudents) || []).map(function (x) { return { grade: Number(x.grade), ban: Number(x.ban), no: Number(x.no), name: String(x.name || '') }; }) };
       });
     },
     // 확장프로그램이 나이스 기준으로 보낸 변경을 반영한다: 임시 수업 추가/갱신(extras), 명단 수정(fixes). 모양을 엄격히 검사한다.
@@ -614,6 +625,9 @@
       var okL = function (x) { return typeof x === 'string' && x.length > 0 && x.length <= 20; };
       var ex = (p && p.extras) || [], fx = (p && p.fixes) || [], sk = (p && p.skips) || [];
       if (!Array.isArray(ex) || !Array.isArray(fx) || !Array.isArray(sk) || ex.length > 60 || fx.length > 60 || sk.length > 200) throw new Error('bad');
+      var exs = exclSet();
+      ex.forEach(function (e) { e.students = e.students.filter(function (s) { return !isExcl(exs, s.grade, s.ban, s.no, s.name); }); });
+      fx.forEach(function (f) { f.add = f.add.filter(function (s) { return !isExcl(exs, s.grade, s.ban, s.no, s.name); }); });
       var now = Date.now(), n1 = 0, n2 = 0, n3 = 0;
       ex.forEach(function (e) {
         if (!e || !okD(e.date) || !Number.isInteger(e.period) || e.period < 1 || e.period > 12 || !okL(e.label) || !okL(e.subject) || !Array.isArray(e.students) || e.students.length > 80 || !e.students.every(okS)) throw new Error('bad');
