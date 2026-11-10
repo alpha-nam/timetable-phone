@@ -2066,6 +2066,7 @@ html[data-shell="tabs"] #attendanceCard .card-head, html[data-phone] #attendance
 .catt-share-st { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 700; }
 .catt-share-btn { font-family: inherit; font-size: 12px; font-weight: 700; height: 26px; padding: 0 10px; border-radius: 8px; border: 1px solid rgba(110,125,150,0.5); background: transparent; color: var(--text); cursor: pointer; flex-shrink: 0; }
 .catt-share-btn.main { background: var(--accent); border-color: var(--accent); color: #fff; }
+.catt-share-form[hidden], .catt-share-btn[hidden] { display: none !important; }
 .catt-share-form { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; max-width: 420px; }
 .catt-share-in { font-family: inherit; font-size: 16px; height: 34px; padding: 0 10px; border-radius: 8px; border: 1px solid rgba(110,125,150,0.5); background: var(--row-bg); color: var(--text); box-sizing: border-box; }
 .catt-share-msg { min-height: 16px; font-weight: 700; }

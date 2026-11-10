@@ -3265,7 +3265,7 @@
     var btn = mk(line, 'button', 'catt-share-btn', S.configured() ? '설정' : '연결하기'); btn.type = 'button'; if (auto) btn.hidden = true;
     function paint() { var s0 = S.status(); dot.className = 'catt-share-dot' + (s0.ok ? ' ok' : (S.configured() ? ' bad' : '')); st.textContent = '다른 선생님 교과 출결 ' + (S.configured() ? s0.text : '연결 안 됨'); }
     paint();
-    var form = mk(box, 'div', 'catt-share-form'); form.hidden = !shareFormOpen;
+    var form = mk(box, 'div', 'catt-share-form'); form.hidden = auto || !shareFormOpen;   // 자동으로 연결된 경우엔 입력칸을 아예 보이지 않게
     var u = mk(form, 'input', 'catt-share-in'); u.type = 'text'; u.placeholder = '서버 주소 (https://…)'; u.autocomplete = 'off'; u.value = S.url();
     var c = mk(form, 'input', 'catt-share-in'); c.type = 'password'; c.placeholder = '학교 코드'; c.autocomplete = 'off';
     var msg = mk(form, 'div', 'catt-share-msg');
