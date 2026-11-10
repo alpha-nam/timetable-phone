@@ -80,16 +80,17 @@
     if (mine.length) return [{ label: cell.classLabel || '', subject: cell.subject, students: mine.slice().sort(byNo) }];
     var labels = [];
     (String(cell.classLabel || '').match(/\d-\d+/g) || []).forEach(function (l) { if (labels.indexOf(l) < 0) labels.push(l); });
+    var biweekly = String(cell.classLabel || '').indexOf('/') >= 0 ? (labels.length >= 2 ? 'pair' : 'off') : '';   // 격주: 'pair' = 두 반이 번갈아, 'off' = 한 반과 공강이 번갈아
     return labels.map(function (l) {
       var gb = l.split('-');
       var list = students.filter(function (s) { return String(s.grade) === gb[0] && String(s.ban) === gb[1]; });
       if (!list.length) list = roster().filter(function (s) { return String(s.grade) === gb[0] && String(s.ban) === gb[1]; });
-      return { label: l, subject: cell.subject, students: list.slice().sort(byNo) };
+      return { label: l, subject: cell.subject, biweekly: biweekly, bwKey: biweekly ? ((pi + 1) + '|' + dow + '|' + labels.slice().sort().join(',')) : '', students: list.slice().sort(byNo) };
     }).filter(function (g) { return g.students.length; });
   }
 
   // 그 날짜의 내 수업 목록 = [{ key, period, label, subject, students }]
-  function baseLessonsOn(date) {
+  function baseLessonsOn(date, raw) {
     var tt = timetable();
     var teacher = tt && (tt.teachers || []).filter(function (t) { return t.teacherName === teacherName; })[0];
     var dow = date.getDay(), ds = ymd(date);
@@ -97,13 +98,32 @@
     if (teacher && dow >= 1 && dow <= 5) {
       for (var pi = 0; pi < (tt.periodsPerDay || 7); pi++) {
         groupsFor(tt, teacher, dow, pi).forEach(function (g) {
-          out.push({ key: (pi + 1) + '|' + g.label + '|' + g.subject, period: pi + 1, label: g.label, subject: g.subject, students: applyFixes(g.students, ds, dow, pi + 1, g.label) });
+          out.push({ key: (pi + 1) + '|' + g.label + '|' + g.subject, period: pi + 1, label: g.label, subject: g.subject, biweekly: g.biweekly || '', bwKey: g.bwKey || '', students: applyFixes(g.students, ds, dow, pi + 1, g.label) });
         });
       }
     }
     // 나이스에 없는 수업(연가·체험학습·다른 선생님이 대신 들어감 등): 확인된 날의 그 수업은 시간표에서 뺀다(체크 기록은 지우지 않는다)
+    if (raw) return out;
     out = out.filter(function (l) { return !records.some(function (r) { return r && r.kind === 'skip' && r.date === ds && r.period === l.period && r.label === l.label; }); });
+    // 격주 칸: 나이스에서 확인한 주(기준 주)와 같은 홀짝 주면 그 반, 다른 주면 다른 반(또는 공강). 앞으로의 날에만 쓰고, 이미 체크·마감한 수업은 숨기지 않는다.
+    if (ds >= ymd(new Date())) {
+      out = out.filter(function (l) {
+        if (!l.bwKey) return true;
+        var rule = bwRule(l.bwKey); if (!rule) return true;
+        var act = bwActive(rule, date);
+        if (act === l.label) return true;
+        return records.some(function (r) { return r && r.date === ds && r.period === l.period && r.label === l.label && (notConfirm(r) || isConfirm(r)); });
+      });
+    }
     return out;
+  }
+  function weekNo(d) { return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7)) / 604800000); }
+  function bwRule(key) { for (var i = 0; i < records.length; i++) if (records[i] && records[i].kind === 'bw' && records[i].id === 'bw|' + key) return records[i]; return null; }
+  function bwActive(rule, date) {
+    var a = new Date(+rule.anchor.slice(0, 4), +rule.anchor.slice(4, 6) - 1, +rule.anchor.slice(6, 8));
+    if (Math.abs(weekNo(date) - weekNo(a)) % 2 === 0) return rule.active;
+    var other = (rule.labels || []).filter(function (x) { return x !== rule.active; })[0];
+    return other || '';   // 공강인 주는 ''
   }
   function lessonsOn(date) {
     var out = baseLessonsOn(date), ds = ymd(date);
@@ -172,6 +192,24 @@
   function isConfirm(r) { return !!r && r.kind === 'confirm'; }
   // 학생 체크 기록 = kind 가 없는 기록. 마감('confirm')·임시 수업('extra')·명단 수정('rosterfix') 같은 표시 기록은 체크가 아니다.
   function notConfirm(r) { return !!r && !r.kind; }
+  // 교과출결의 "마감 완료"는 이제 하루 단위다. 학급출결의 일일 마감과 같은 방식(scope:'class-day')으로 저장하되 반 이름 자리에 '교과'를 쓴다
+  // (옛 버전 앱은 'class-day' 기록을 수업 마감으로 읽지 않고 건너뛰므로 안전하다). 예전에 수업마다 한 마감 기록은 그대로 인정한다.
+  var SUBJ_DAY = '교과';
+  function subjDayClosed(ds) { return dayClosed(ds, SUBJ_DAY); }
+  function lessonDone(ds, l) { return subjDayClosed(ds) || !!recOf(confirmId(ds, l)); }
+  function dayAllDone(ds, lessons) { return lessons.length > 0 && lessons.every(function (l) { return lessonDone(ds, l); }); }
+  // 마감을 누르면: 아직 덜 됐으면 그날 전체를 마감하고(예전 수업별 마감 기록은 정리), 다 된 상태면 그날 마감을 푼다.
+  function toggleSubjDay(ds, lessons) {
+    var done = dayAllDone(ds, lessons), now = Date.now();
+    records = records.filter(function (r) {
+      if (r && r.kind === 'confirm' && r.scope !== 'class-day' && String(r.date) === ds) { tombs[r.id] = now; return false; }
+      return true;
+    });
+    var id = classDayId(ds, SUBJ_DAY);
+    if (done) { if (recOf(id)) { records = records.filter(function (x) { return x.id !== id; }); tombs[id] = now; } }
+    else if (!recOf(id)) { records.push({ id: id, kind: 'confirm', scope: 'class-day', date: ds, label: SUBJ_DAY, type: '마감', updatedAt: now }); delete tombs[id]; }
+    save();
+  }
   function confirmId(dateStr, lesson) { return dateStr + '|' + lesson.period + '|' + lesson.label + '|__confirm'; }
   function toggleConfirm(dateStr, lesson) {
     var id = confirmId(dateStr, lesson), now = Date.now();
@@ -233,13 +271,14 @@
     var lesson = lessons.filter(function (l) { return l.key === selKey; })[0];
     var dateStr = ymd(viewDate);
 
-    var confirmed = !!recOf(confirmId(dateStr, lesson));
+    var confirmed = lessonDone(dateStr, lesson);
+    var dayDone = dayAllDone(dateStr, lessons);
     var chips = el('div', 'subj-chips');
     lessons.forEach(function (l) {
       var c = el('button', 'subj-chip' + (l.key === selKey ? ' on' : ''));
       c.type = 'button';
       // 수업 앞의 점: 확인 전은 빨강, 확인 완료는 초록 — 확인 안 한 수업이 한눈에 보인다.
-      c.appendChild(el('i', 'subj-dot' + (recOf(confirmId(dateStr, l)) ? ' ok' : '')));
+      c.appendChild(el('i', 'subj-dot' + (lessonDone(dateStr, l) ? ' ok' : '')));
       c.appendChild(document.createTextNode(l.period + '교시 ' + (l.label ? l.label + ' ' : '') + l.subject));
       if (l.extra) c.appendChild(el('span', 'subj-extra-tag', '대신 수업'));
       c.addEventListener('click', function (ev) { ev.stopPropagation(); selKey = l.key; render(); });
@@ -265,10 +304,10 @@
     var cf = $('subjConfirmBtn');
     if (cf) {
       cf.hidden = false;
-      cf.className = 'subj-confirm-top' + (confirmed ? ' ok' : '');
-      cf.textContent = confirmed ? '마감 완료' : '마감 전';
-      cf.title = confirmed ? '눌러서 마감을 풀면 다시 고칠 수 있어요' : '이 수업의 출결을 다 입력했으면 눌러요 (나이스로 보낼 수업 표시 · 나이스 마감은 아니에요)';
-      curConfirm = { dateStr: dateStr, lesson: lesson };
+      cf.className = 'subj-confirm-top' + (dayDone ? ' ok' : '');
+      cf.textContent = dayDone ? '마감 완료' : '마감 전';
+      cf.title = dayDone ? '눌러서 이 날의 마감을 풀면 다시 고칠 수 있어요' : '이 날의 교과 출결을 모두 입력했으면 눌러요 (하루 단위 · 나이스로 보낼 날 표시 · 나이스 마감은 아니에요)';
+      curConfirm = { dateStr: dateStr, lessons: lessons };
     }
   }
 
@@ -531,7 +570,7 @@
     $('subjConfirmBtn').addEventListener('click', function (ev) {
       ev.stopPropagation();
       if (!curConfirm) return;
-      toggleConfirm(curConfirm.dateStr, curConfirm.lesson); render();
+      toggleSubjDay(curConfirm.dateStr, curConfirm.lessons); render();
     });
     var pick = $('subjDatePick');
     $('subjDate').addEventListener('click', function (ev) {
@@ -554,7 +593,23 @@
   // "마감 완료"한 수업(교과출결)만, 그 수업에서 체크한 학생과 함께 돌려준다. 체크한 학생이 없으면 marks 가 비어 있다(전원 출석).
   // 학급출결의 일일 마감(scope:'class-day')은 나이스 과목별출결과 상관없어서 넣지 않는다.
   function exportForNeis(from, to) {
-    var lessons = records.filter(function (r) { return isConfirm(r) && r.scope !== 'class-day' && String(r.date) >= from && String(r.date) <= to; })
+    // ① 마감한 날(교과 일 단위): 그날 내 수업 전부  ② 예전에 수업마다 한 마감 기록
+    var cands = [], seen = {};
+    function addCand(date, l) {
+      var key = date + '|' + l.period + '|' + l.label;
+      if (seen[key]) return; seen[key] = 1;
+      cands.push({ date: String(date), period: Number(l.period), label: l.label, subject: l.subject });
+    }
+    records.forEach(function (r) {
+      if (!r || r.kind !== 'confirm' || r.scope !== 'class-day' || r.label !== SUBJ_DAY) return;
+      if (String(r.date) < from || String(r.date) > to) return;
+      var ds = String(r.date), day = new Date(+ds.slice(0, 4), +ds.slice(4, 6) - 1, +ds.slice(6, 8));
+      lessonsOn(day).forEach(function (l) { addCand(ds, l); });
+    });
+    records.forEach(function (r) {
+      if (isConfirm(r) && r.scope !== 'class-day' && String(r.date) >= from && String(r.date) <= to) addCand(r.date, { period: r.period, label: r.label, subject: r.subject });
+    });
+    var lessons = cands
       .sort(function (a, b) { return (a.date < b.date ? -1 : a.date > b.date ? 1 : 0) || (a.period - b.period); })
       .map(function (c) {
         var marks = records.filter(function (r) { return notConfirm(r) && r.date === c.date && r.period === c.period && r.label === c.label; })
@@ -567,7 +622,7 @@
           var ls = lessonsOn(day).filter(function (l) { return l.period === Number(c.period) && l.label === c.label; })[0];
           if (ls) roster = notExcluded(ls.students).map(function (s) { return { grade: Number(s.grade), ban: Number(s.ban), no: Number(s.no), name: s.name || s.studentName || '' }; });
         } catch (e) { roster = undefined; }
-        var out = { date: String(c.date), period: Number(c.period), label: c.label, subject: c.subject, confirmed: true, marks: marks };
+        var out = { date: c.date, period: c.period, label: c.label, subject: c.subject, confirmed: true, marks: marks };
         if (roster) out.roster = roster;
         return out;
       });
@@ -624,7 +679,7 @@
       var out = [], a = new Date(+String(from).slice(0, 4), +String(from).slice(4, 6) - 1, +String(from).slice(6, 8)), b = new Date(+String(to).slice(0, 4), +String(to).slice(4, 6) - 1, +String(to).slice(6, 8));
       for (var d = a; d <= b; d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) {
         lessonsOn(d).forEach(function (l) {
-          out.push({ date: ymd(d), dow: d.getDay(), period: l.period, label: l.label, subject: l.subject, extra: !!l.extra, confirmed: !!recOf(confirmId(ymd(d), l)),
+          out.push({ date: ymd(d), dow: d.getDay(), period: l.period, label: l.label, subject: l.subject, extra: !!l.extra, biweekly: l.biweekly || '', confirmed: lessonDone(ymd(d), l),
             roster: notExcluded(l.students).map(function (s) { return { grade: Number(s.grade), ban: Number(s.ban), no: Number(s.no), name: s.studentName || '' }; }) });
         });
       }
@@ -634,6 +689,8 @@
     },
     // 확장프로그램이 나이스 기준으로 보낸 변경을 반영한다: 임시 수업 추가/갱신(extras), 명단 수정(fixes). 모양을 엄격히 검사한다.
     apply: function (p) {
+      var whoApply = p && typeof p.teacher === 'string' ? p.teacher.slice(0, 30) : '';
+      return withTeacher(whoApply, function () {
       var okS = function (s) { return s && Number.isInteger(s.grade) && Number.isInteger(s.ban) && Number.isInteger(s.no) && s.grade > 0 && s.ban > 0 && s.no > 0 && s.grade < 10 && s.ban < 100 && s.no < 100 && typeof s.name === 'string' && s.name.length <= 20; };
       var okD = function (d) { return /^\d{8}$/.test(String(d)); };
       var okL = function (x) { return typeof x === 'string' && x.length > 0 && x.length <= 20; };
@@ -657,7 +714,24 @@
       fx.forEach(function (f) { put({ id: 'fix|' + f.from + '|' + f.dow + '|' + f.period + '|' + f.label, kind: 'rosterfix', from: f.from, dow: f.dow, period: f.period, label: f.label, add: f.add.map(function (s) { return { grade: s.grade, ban: s.ban, no: s.no, studentName: s.name }; }), remove: f.remove, updatedAt: now }); n2++; });
       sk.forEach(function (k) { put({ id: k.date + '|' + k.period + '|' + k.label + '|__skip', kind: 'skip', date: k.date, period: k.period, label: k.label, updatedAt: now }); n3++; });
       if (n1 || n2 || n3) { save(); try { render(); } catch (e) { /* 화면이 없으면 건너뜀 */ } }
+      // 격주 관찰: 나이스에서 확인한 날(date)·교시·반(label) → 그 칸의 홀짝 기준을 저장한다. 같은 칸은 가장 나중 날짜가 이긴다.
+      var ob = (p && p.obs) || [];
+      if (Array.isArray(ob) && ob.length <= 400) {
+        var bwChanged = false;
+        ob.forEach(function (o) {
+          if (!o || !okD(o.date) || !Number.isInteger(o.period) || !okL(o.label)) return;
+          var ds0 = String(o.date), day0 = new Date(+ds0.slice(0, 4), +ds0.slice(4, 6) - 1, +ds0.slice(6, 8));
+          var hit = baseLessonsOn(day0, true).filter(function (l) { return l.period === o.period && l.label === o.label && l.bwKey; })[0];
+          if (!hit) return;
+          var cur = bwRule(hit.bwKey);
+          if (cur && cur.anchor >= ds0) return;
+          var rec = { id: 'bw|' + hit.bwKey, kind: 'bw', key: hit.bwKey, labels: hit.bwKey.split('|')[2].split(','), anchor: ds0, active: o.label, updatedAt: now };
+          records = records.filter(function (x) { return x.id !== rec.id; }); records.push(rec); delete tombs[rec.id]; bwChanged = true;
+        });
+        if (bwChanged) { save(); try { render(); } catch (e0) { /* 화면이 없으면 건너뜀 */ } }
+      }
       return { ok: true, extras: n1, fixes: n2, skips: n3 };
+      });
     }
   };
 
