@@ -3267,7 +3267,9 @@
     else if (!mine.length) add(wrap, 'div', 'catt-empty', home.grade + '학년 ' + home.ban + '반 명단을 아직 못 불러왔어요. 잠시 뒤에 다시 열어 주세요.');
     else {
       var head = add(wrap, 'div', 'catt-head');
-      ['학번', '이름', '구분', '종류', document.documentElement.hasAttribute('data-phone') ? '메모' : '사유·메모·교시 (선택)'].forEach(function (h) { add(head, 'span', '', h); });
+      var phone = document.documentElement.hasAttribute('data-phone');
+      (phone ? ['번', '이름', '구분', '종류', '교과출결'] : ['번호', '이름', '구분', '종류', '비고', '교과별 출결마감']).forEach(function (h) { add(head, 'span', '', h); });
+      var perMap = (window.SUBJ && window.SUBJ.periodsOn) ? window.SUBJ.periodsOn(dateKey) : {};   // 교과 선생님이 체크한 결석·지각 → 학생별 교시 칸
       var list = add(wrap, 'div', 'catt-list');
       mine.forEach(function (s, i) {
         var rs = recs.filter(function (r) { return sameStudentRec(r, s); });
@@ -3281,12 +3283,23 @@
           var d = rec ? null : (attDraft[ln.dk] = attDraft[ln.dk] || { reason: '', type: '', memo: '' });
           var row = add(list, 'div', 'catt-row' + (rec ? ' has' : '') + (li ? ' catt-sub' : ''));
           var line = add(row, 'div', 'catt-line');
-          add(line, 'span', 'catt-id', li ? '' : key);
+          add(line, 'span', 'catt-id', li ? '' : String(s.no));
           add(line, 'span', 'catt-name', li ? '' : s.studentName);
-          var rc = add(line, 'span', 'catt-cell'), kc = add(line, 'span', 'catt-cell'), mc = add(line, 'span', 'catt-memo');
+          var rc = add(line, 'span', 'catt-cell'), kc = add(line, 'span', 'catt-cell'), mc = phone ? null : add(line, 'span', 'catt-memo');
+          var pc = add(line, 'span', 'catt-per');
+          if (!li) {
+            var hits = perMap[key] || [];
+            for (var pn = 1; pn <= 7; pn++) {
+              var ph = hits.filter(function (h) { return h.period === pn; });
+              var old = ph.some(function (h) { return h.type && h.type !== '결과'; });   // 예전 기록(결석·지각·조퇴)이 섞여 있으면 빨강, 새 체크(결과)는 초록
+              var cell = add(pc, 'i', ph.length ? (old ? 'x bad' : 'x') : '', String(pn));
+              if (ph.length) cell.title = ph.map(function (h) { return pn + '교시 ' + h.subject + ' · ' + (h.type === '결과' ? '체크' : h.type); }).join('\n');
+            }
+          }
           var rsel = makeSelect(rc, ATTENDANCE_REASONS, rec ? rec.reason : d.reason, '선택');
           var ksel = makeSelect(kc, ATTENDANCE_TYPES, rec ? rec.type : d.type, '선택');
-          var memo = add(mc, 'input', 'catt-input'); memo.type = 'text'; memo.autocomplete = 'off'; memo.value = rec ? (rec.memo || '') : d.memo;
+          var memoHost = mc || (rec ? add(row, 'div', 'catt-mline') : null);   // 폰은 한 줄에 못 넣어서 메모를 줄 밑에(기록이 있는 학생만)
+          var memo = memoHost ? add(memoHost, 'input', 'catt-input') : document.createElement('input'); memo.type = 'text'; if (!mc) memo.placeholder = '비고'; memo.autocomplete = 'off'; memo.value = rec ? (rec.memo || '') : d.memo;
           memo.readOnly = closed;
           memo.addEventListener('click', function (ev) { ev.stopPropagation(); });
 

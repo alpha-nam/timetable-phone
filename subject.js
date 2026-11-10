@@ -288,7 +288,7 @@
     if (lesson.extra && !confirmed) body.appendChild(el('div', 'subj-extra-note', '나이스에서 가져온 수업이에요. 체크하고 마감 완료를 눌러 주세요.'));
 
     var head = el('div', 'subj-head');
-    ['연번', '번호', '이름', '결과', document.documentElement.hasAttribute('data-phone') ? '사유·메모' : '사유·메모 (선택)'].forEach(function (h) { head.appendChild(el('span', '', h)); });
+    ['연번', '번호', '이름', '결과', '비고'].forEach(function (h) { head.appendChild(el('span', '', h)); });
     body.appendChild(head);
     var list = el('div', 'subj-list');
     var checked = 0;
@@ -322,7 +322,7 @@
     return lessons[0];
   }
 
-  // 한 줄: 번호 · 이름 · (체크하면) 사유·메모 칸. 이름 줄을 누르면 체크가 켜지고 꺼진다.
+  // 한 줄: 번호 · 이름 · (체크하면) 비고 칸. 이름 줄을 누르면 체크가 켜지고 꺼진다.
   function studentRow(dateStr, lesson, s, r, locked, seq) {
     var wrap = el('div', 'subj-row' + (r ? ' has' : '') + (locked ? ' locked' : ''));
     var line = el('div', 'subj-line');
@@ -335,7 +335,7 @@
       // 예전에 결석·지각·조퇴나 사유 버튼으로 남긴 기록은 지우지 않고 "결석 · 질병" 처럼 보여 준다.
       var old = (r.type && r.type !== CHECK ? r.type : '') + (r.reason ? (r.type && r.type !== CHECK ? ' · ' : '') + r.reason : '');
       if (old) cell.appendChild(el('span', 'subj-tag', old));
-      var memo = el('input', 'subj-memo'); memo.type = 'text'; memo.placeholder = '사유·메모'; memo.value = r.memo || '';
+      var memo = el('input', 'subj-memo'); memo.type = 'text'; memo.placeholder = '비고'; memo.value = r.memo || '';
       memo.readOnly = !!locked;
       memo.addEventListener('change', function () { patch(r.id, { memo: memo.value.trim() }); });
       memo.addEventListener('click', function (ev) { ev.stopPropagation(); });
@@ -542,6 +542,15 @@
     return records.filter(function (r) { return r.date === dateStr && notConfirm(r); })
       .sort(function (a, b) { return (a.period - b.period) || byNo(a, b); });
   }
+  // 학급출결 표의 교시 칸용: 그날 체크된 학생별 [{period, subject, type}] ("학년-반-번호" → 목록). 지금은 이 PC에 있는 교과출결만 쓴다.
+  function periodsOn(dateStr) {
+    var m = {};
+    listOn(dateStr).forEach(function (r) {
+      var k = r.grade + '-' + r.ban + '-' + r.no;
+      (m[k] = m[k] || []).push({ period: Number(r.period), subject: r.subject || '', type: r.type || '' });
+    });
+    return m;
+  }
   function openDate(d) { viewDate = new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
 
   function shiftDate(n) { var d = new Date(viewDate); d.setDate(d.getDate() + n); viewDate = d; render(); }
@@ -740,6 +749,7 @@
     show: function () { if (timetable() && !$('subjTeacher').options.length) fillTeachers(); render(); },
     render: render,
     listOn: listOn,
+    periodsOn: periodsOn,
     dayClosed: dayClosed,
     toggleDayClosed: toggleDayClosed,
     openDate: openDate,

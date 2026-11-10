@@ -1955,7 +1955,7 @@ html[data-shell="tabs"]:not([data-phone]) .cal-ag-evtag { font-size: 9.5px; padd
 #attClassSel { height: 32px; max-width: 130px; }
 .catt { display: flex; flex-direction: column; padding: 0 4px 8px 0; }
 .catt-empty { font-size: 13px; color: var(--text-faint); padding: 24px 8px; text-align: center; }
-.catt-head, .catt-line { display: grid; grid-template-columns: 80px 80px 80px 80px minmax(0, 1fr); align-items: stretch; }
+.catt-head, .catt-line { display: grid; grid-template-columns: 44px 68px 70px 70px minmax(0, 1fr) 184px; align-items: stretch; }
 .catt-head { font-size: 13px; font-weight: 700; color: var(--text); background: var(--accent-soft); border: 1px solid rgba(110,125,150,0.4); }
 .catt-head span { padding: 5px 8px; text-align: center; border-right: 1px solid rgba(110,125,150,0.4); white-space: nowrap; }
 .catt-head span:last-child { border-right: 0; }
@@ -1966,7 +1966,7 @@ html[data-shell="tabs"]:not([data-phone]) .cal-ag-evtag { font-size: 9.5px; padd
 .catt-line > * { display: flex; align-items: center; min-width: 0; padding: 0 8px; border-right: 1px solid rgba(110,125,150,0.4); box-sizing: border-box; }
 .catt-line > :last-child { border-right: 0; }
 .catt-seq { justify-content: center; background: rgba(110,125,150,0.09); }
-.catt-id { justify-content: flex-start; padding-left: calc((100% - 2.93em) / 2) !important; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.catt-id { justify-content: center; padding-left: 0 !important; padding-right: 0 !important; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .catt-name { justify-content: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block !important; line-height: 28px; text-align: center; }
 .catt-kind, .catt-reason, .catt-memo { flex-direction: column; justify-content: center; align-items: center; gap: 2px; color: #c9302c; }
 .catt-memo { align-items: flex-start; color: var(--text); }
@@ -1979,6 +1979,14 @@ html[data-shell="tabs"]:not([data-phone]) .cal-ag-evtag { font-size: 9.5px; padd
 .catt-selwrap:focus-within { outline: 2px solid var(--accent); outline-offset: -2px; }
 .catt-input:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .catt-cell { padding: 0 !important; }
+/* 교과 선생님이 체크한 결석·지각이 있는 교시만 초록색으로 칠한다(참고용, 담임이 입력한 기록과는 별개) */
+.catt-per { gap: 3px; justify-content: center; padding: 0 4px !important; }
+.catt-per i { font-style: normal; flex: 0 0 22px; height: 20px; border-radius: 5px; background: rgba(110,125,150,0.07); border: 1px solid rgba(110,125,150,0.28); color: var(--text-faint); font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; box-sizing: border-box; cursor: default; }
+.catt-per i.x { background: #2f9e5b; border-color: #2f9e5b; color: #fff; font-weight: 700; }
+.catt-per i.x.bad { background: #d6483f; border-color: #d6483f; }
+.catt-mline { grid-column: 1 / -1; padding: 0 4px 3px 34px; }
+.catt-mline .catt-input::placeholder { color: var(--text-faint); font-weight: 500; }
+.catt-mline .catt-input { width: 100%; min-height: 22px; font-size: 12px; font-weight: 500; color: var(--text-sub); }
 .catt-memo { gap: 4px; padding: 0 4px 0 0 !important; align-items: center !important; flex-direction: row !important; }
 .catt-input { flex: 1; min-width: 0; height: 100%; min-height: 28px; font-family: inherit; font-size: 13px; font-weight: 700; padding: 0 8px; border: 0; background: transparent; color: var(--text); outline: none; box-sizing: border-box; text-align: left; }
 .catt-input::placeholder { color: transparent; }
@@ -2004,7 +2012,10 @@ html[data-shell="tabs"] #attendanceCard .card-head, html[data-phone] #attendance
 /* 펼친 화면·태블릿(700px 이상)은 PC와 같은 고정 칸 폭을 쓴다 */
 @media (max-width: 699px) {
   html[data-phone] #attendanceCard, html[data-phone] #subjCard { --tb-sel: clamp(104px, 30vw, 128px); --tb-mid: clamp(72px, 22vw, 96px); --tb-sum: clamp(72px, 22vw, 88px); --tbl-fs: clamp(11.5px, 3.3vw, 13px); }
-  html[data-phone] .catt-head, html[data-phone] .catt-line { grid-template-columns: clamp(50px, 15vw, 66px) clamp(44px, 14vw, 62px) clamp(52px, 17vw, 74px) clamp(44px, 13vw, 58px) minmax(0, 1fr); }
+  html[data-phone] .catt-head, html[data-phone] .catt-line { grid-template-columns: clamp(26px, 8vw, 34px) clamp(44px, 14vw, 58px) clamp(38px, 12vw, 50px) clamp(46px, 14vw, 58px) minmax(0, 1fr); }
+  html[data-phone] .catt-per { gap: 2px; padding: 0 2px !important; }
+  html[data-phone] .catt-per i { flex: 1 1 0; min-width: 0; height: 22px; font-size: 10px; border-radius: 3px; }
+  html[data-phone] .catt-mline { display: block; padding: 0 4px 3px 4px; }
   html[data-phone] .subj-head, html[data-phone] .subj-row .subj-line { grid-template-columns: clamp(50px, 15vw, 66px) clamp(44px, 14vw, 62px) clamp(44px, 13vw, 58px) minmax(0, 1fr); }
   html[data-phone] .catt-selwrap::after { display: none; }   /* 화살표를 빼서 칸을 줄인다("선택" 글자가 안내) */
   html[data-phone] .catt-seltext { padding-right: 0; }
