@@ -2649,7 +2649,7 @@
     items.forEach(function (it) {
       var row = document.createElement('div'); row.className = 'cal-ag-item' + (it.star ? ' starred' : '') + (it.done ? ' done' : '');
       var bar = document.createElement('i'); bar.style.background = it.c;
-      var kind = document.createElement('span'); kind.className = 'cal-ag-kind'; kind.textContent = it.k; kind.style.color = it.c;
+      var kind = document.createElement('span'); kind.className = 'cal-ag-kind'; kind.textContent = String(it.k || '').replace(' 출결', ''); kind.style.setProperty('--kc', it.c);   // 학급·교과·메모 칩: 앞쪽 색 띠와 같은 색
       var txt = document.createElement('span'); txt.className = 'cal-ag-text'; txt.textContent = it.t;
       row.appendChild(bar); row.appendChild(kind); row.appendChild(txt);
       if (it.ev) {   // 학사일정(읽기 전용): 손잡이 자리에 자물쇠를 둬서 글자 위치를 맞추고, 오른쪽에 "학사일정" 표시

@@ -1791,7 +1791,6 @@ html[data-shell="tabs"]:not([data-phone]) .cal-ag-text { flex: 1; min-width: 0; 
 html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calendarCard { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
 html[data-shell="tabs"]:not([data-phone]) .cal-ag-item { font-size: 11.5px; padding: 5px 7px; gap: 6px; margin-bottom: 4px; line-height: 1.35; }
 html[data-shell="tabs"]:not([data-phone]) .cal-ag-item i { flex-basis: 3px; }
-html[data-shell="tabs"]:not([data-phone]) .cal-ag-kind { display: none; }
 html[data-shell="tabs"]:not([data-phone]) .cal-ag-head { font-size: 13px; }
 html[data-shell="tabs"]:not([data-phone]) #calAgenda { padding: 8px; }
 html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calendarCard { grid-template-columns: minmax(0, 1.28fr) minmax(0, 1fr); }
@@ -2096,3 +2095,8 @@ html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calEventsBtn.cal
 .cal-month-grid button.now { box-shadow: inset 0 0 0 1.5px var(--accent); }
 .cal-month-grid button.cur { background: var(--accent); color: #fff; }
 .cal-month-today { margin-top: 8px; width: 100%; font-family: inherit; font-size: 12px; font-weight: 700; padding: 7px; border: 1px solid var(--card-border); border-radius: 8px; background: transparent; color: var(--text); cursor: pointer; }
+
+/* 오늘 일정 목록 앞의 종류 칩(학급·교과·메모): 앞쪽 색 띠와 같은 색의 옅은 바탕 */
+.cal-ag-item .cal-ag-kind { display: inline-flex !important; align-items: center; justify-content: center; flex: 0 0 auto; box-sizing: border-box; min-width: 34px !important; height: 20px; padding: 0 8px 1px !important; border-radius: 10px; font-size: 11px !important; font-weight: 700; line-height: 1; align-self: center; color: color-mix(in srgb, var(--kc, #5b6676) 72%, #000); background: color-mix(in srgb, var(--kc, #5b6676) 15%, transparent); }
+.cal-ag-item--ev .cal-ag-kind { display: none !important; }   /* 학사일정 줄은 오른쪽에 이미 꼬리표가 있다 */
+html[data-phone] .cal-ag-item .cal-ag-kind { font-size: 12px !important; height: 22px; min-width: 38px !important; }
