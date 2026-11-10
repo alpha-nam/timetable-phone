@@ -1852,7 +1852,7 @@ html[data-shell="tabs"]:not([data-phone]) .cal-ag-item { padding: 5px 4px; gap: 
 .cal-ag-item.starred { background: rgba(245,176,30,0.2); }
 
 /* PC 탭 화면: 오른쪽 칸에 "다가오는 일정"과 선택한 날짜 목록을 함께 쌓는다 */
-html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calSide { grid-column: 2; grid-row: 2 / 4; overflow-y: auto; min-height: 0; }
+html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calSide { grid-column: 2; grid-row: 1 / 4; overflow-y: auto; min-height: 0; }
 html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calSide #calAgenda { grid-column: auto; grid-row: auto; overflow: visible; }
 html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] .cal-upcoming { margin-top: 0; padding: 6px; }
 html[data-shell="tabs"]:not([data-phone]) .cal-up-item { font-size: 11.5px; padding: 4px; gap: 4px; letter-spacing: -0.2px; }
@@ -2075,8 +2075,11 @@ html[data-shell="tabs"] #attendanceCard .card-head, html[data-phone] #attendance
 /* 캘린더 탭: 월 이동 줄(‹ 11월 ›)은 없애고, 학사일정 막대의 "11월 ▾"을 눌러 월을 고른다 */
 html[data-shell="tabs"] #calendarCard > .card-head { display: none !important; }
 #calendarCard { position: relative; }
-.cal-month-pick { display: inline-flex; align-items: center; background: var(--card-bg); border: 1px solid var(--accent); border-radius: 9px; padding: 1px 9px; color: var(--accent); font-weight: 800; cursor: pointer; white-space: nowrap; flex: 0 0 auto; }
+.cal-month-pick { display: inline-flex; align-items: center; justify-content: center; gap: 7px; box-sizing: border-box; height: 30px; padding: 0 12px 1px 14px; line-height: 1; font-size: 15px; font-weight: 800; color: var(--accent); background: var(--card-bg); border: 1.5px solid var(--accent); border-radius: 15px; cursor: pointer; white-space: nowrap; flex: 0 0 auto; }
+.cal-month-pick::after { content: ''; width: 5px; height: 5px; margin-top: -3px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); }
 .cal-month-pick.on { background: var(--accent); color: #fff; }
+.cal-month-pick.on::after { margin-top: 3px; transform: rotate(-135deg); }
+#calEventsBtn { align-items: center; }
 .cal-events-btn b { flex: 1; }
 .cal-month-pop { position: absolute; z-index: 20; width: 236px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.16); }
 .cal-month-yr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 14px; font-weight: 800; color: var(--text); }

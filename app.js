@@ -2393,7 +2393,7 @@
     btn.classList.toggle('open', open);
     btn.innerHTML = '';
     var pk = document.createElement('span'); pk.className = 'cal-month-pick' + (monthPopOpen ? ' on' : ''); pk.setAttribute('role', 'button'); pk.tabIndex = 0; pk.title = '월 고르기';
-    pk.textContent = (calViewYear === new Date().getFullYear() ? '' : calViewYear + '년 ') + (calViewMonth + 1) + '월 ▾';
+    pk.textContent = (calViewYear === new Date().getFullYear() ? '' : calViewYear + '년 ') + (calViewMonth + 1) + '월';
     var t = document.createElement('b'); t.textContent = '학사일정';
     var n = document.createElement('span'); n.className = 'cal-events-cnt'; n.textContent = ranges.length;
     var ar = document.createElement('span'); ar.className = 'cal-events-arrow'; ar.textContent = open ? '▲' : '▼';
