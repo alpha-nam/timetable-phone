@@ -2388,7 +2388,7 @@
     return out;
   }
   // 일정 줄 사이를 20% 넓힌다(줄 안 위아래 여백·줄 사이 간격·줄 높이). 화면 크기마다 CSS 값이 달라서, 줄을 그린 뒤 실제 값에 1.2를 곱해 넣는다.
-  var ROW_SPACE = 1.2;
+  var ROW_SPACE = 0.9;
   function spaceRow(row) {
     ['padding-top', 'padding-bottom', 'margin-bottom', 'line-height'].forEach(function (k) { row.style.removeProperty(k); });
     var c = getComputedStyle(row), fs = parseFloat(c.fontSize) || 12;
