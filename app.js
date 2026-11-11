@@ -3438,7 +3438,8 @@
             for (var pn = 1; pn <= 7; pn++) {
               var ph = hits.filter(function (h) { return h.period === pn; });
               var old = ph.some(function (h) { return h.type && h.type !== '결과' && h.type !== '마감'; });   // 예전 기록(결석·지각·조퇴)이 섞여 있으면 빨강, 새 체크(결과)는 초록
-              var cell = add(pc, 'i', ph.length ? (old ? 'x bad' : 'x') : '', String(pn));
+              var onlyClose = ph.length && ph.every(function (h) { return h.type === '마감'; });   // 체크한 학생이 아니라 "수업 마감"만 있는 칸은 초록
+              var cell = add(pc, 'i', ph.length ? (onlyClose ? 'x ok' : (old ? 'x bad' : 'x')) : '', String(pn));
               if (ph.length) cell.title = ph.map(function (h) { return pn + '교시 ' + h.subject + (h.teacher ? ' · ' + h.teacher : '') + (h.type === '마감' ? ' · 마감 완료' : (h.type && h.type !== '결과' ? ' (' + h.type + ')' : '')) + (h.memo ? ' · ' + h.memo : ''); }).join('\n');
             }
           }

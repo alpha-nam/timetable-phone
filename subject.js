@@ -906,7 +906,7 @@
       var m = peers[k];
       if (!m || m.date !== dateStr || m.teacher === me) return;   // 내 체크는 내 앱에 이미 있다
       var key = h.grade + '-' + h.ban + '-' + m.no;
-      (out[key] = out[key] || []).push({ period: Number(m.period), subject: m.subject, type: m.type, teacher: m.teacher, memo: m.memo || '' });
+      (out[key] = out[key] || []).push({ period: Number(m.period), subject: m.subject, type: /\|__ok$/.test(String(k)) ? '마감' : m.type, teacher: m.teacher, memo: m.memo || '' });
     });
     return out;
   }

@@ -1983,6 +1983,7 @@ html[data-shell="tabs"]:not([data-phone]) .cal-ag-evtag { font-size: 9.5px; padd
 .catt-per i { font-style: normal; flex: 0 0 22px; height: 20px; border-radius: 5px; background: rgba(110,125,150,0.07); border: 1px solid rgba(110,125,150,0.28); color: var(--text-faint); font-size: 11px; font-weight: 500; display: flex; align-items: center; justify-content: center; box-sizing: border-box; cursor: default; }
 .catt-per i.x { background: #d6483f; border-color: #d6483f; color: #fff; font-weight: 700; }
 .catt-per i.x.bad { background: #d6483f; border-color: #d6483f; }
+.catt-per i.x.ok { background: #2f9e5b; border-color: #2f9e5b; color: #fff; }   /* 그 교시 수업을 마감했고 이 학생은 체크 없음 = 출석 확인 */
 .catt-mline { grid-column: 1 / -1; padding: 0 4px 3px 34px; }
 .catt-mline .catt-input::placeholder { color: var(--text-faint); font-weight: 500; }
 .catt-mline .catt-input { width: 100%; min-height: 22px; font-size: 12px; font-weight: 500; color: var(--text-sub); }
