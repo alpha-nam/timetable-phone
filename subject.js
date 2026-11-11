@@ -550,6 +550,17 @@
       var k = r.grade + '-' + r.ban + '-' + r.no;
       (m[k] = m[k] || []).push({ period: Number(r.period), subject: r.subject || '', type: r.type || '', teacher: teacherName || '', memo: String(r.memo || '').trim() });
     });
+    try {   // 내 수업을 마감(전원 출석 포함)했으면, 그 수업 명단의 학생 칸도 초록으로 켠다. 체크한 학생은 위에서 이미 들어 있다.
+      var ds0 = String(dateStr), day0 = new Date(+ds0.slice(0, 4), +ds0.slice(4, 6) - 1, +ds0.slice(6, 8));
+      lessonsOn(day0).forEach(function (l) {
+        if (!lessonDone(ds0, l)) return;
+        notExcluded(l.students || []).forEach(function (s) {
+          var k = s.grade + '-' + s.ban + '-' + s.no;
+          if ((m[k] || []).some(function (h) { return h.period === Number(l.period); })) return;
+          (m[k] = m[k] || []).push({ period: Number(l.period), subject: l.subject || '', type: '마감', teacher: teacherName || '', memo: '' });
+        });
+      });
+    } catch (e) { /* 시간표가 아직 없으면 체크한 칸만 보여 준다 */ }
     if (window.TTSHARE) {   // 다른 선생님이 올린 체크(공유 서버)도 합친다
       var pm = window.TTSHARE.peerPeriods(dateStr);
       Object.keys(pm).forEach(function (k) { (m[k] = m[k] || []).push.apply(m[k], pm[k]); });
