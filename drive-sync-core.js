@@ -6,7 +6,7 @@
  * 드라이브에 만드는 파일(모두 이 앱이 만든 파일, 권한 drive.file):
  *  - TimeTablePlus-attendance.json : { records:[출결 기록] }                 폰·PC가 같이 읽고 씀
  *  - TimeTablePlus-notes.json      : { memo:[메모 카드], sections:[섹션], dayTasks:[날짜별 할 일], trash:[휴지통], prefs:[설정(학기 시작일 등)], subj:[교과 출결] } 폰·PC가 같이 읽고 씀
- *  - TimeTablePlus-backup-YYYYMMDD.json : 하루 한 번 남기는 전체 사본(최근 14개만 보관)
+ *  - TimeTablePlus-backup-YYYYMMDD.json : 하루 한 번 남기는 전체 사본(최근 31개만 보관 = 약 한 달)
  *  - TimeTablePlus-bundle.json     : { hash, files:{...} } 시간표·명단·결보강·API 키 — PC가 올리고 폰이 읽음
  *  - TimeTablePlus-meta.json       : { hash, updatedAt } 번들이 바뀌었는지 가볍게 확인하는 용도
  * 기록마다 id·updatedAt이 있고 삭제는 deleted:true 표시로 남긴다. 합치는 규칙: 같은 id면 updatedAt이 큰 쪽이 이긴다(같으면 원격 우선).
@@ -235,7 +235,7 @@
       return findFile(name).then(function (id) {
         if (id) return false;
         return createJson(name, Object.assign({ version: 1, createdAt: now() }, snapshot))
-          .then(function () { return pruneBackups(keep || 14); }).then(function () { return true; });
+          .then(function () { return pruneBackups(keep || 31); }).then(function () { return true; });
       });
     }
     function readBackup(id) {

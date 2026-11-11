@@ -575,6 +575,23 @@
       if (ex[exclKey(r.grade, r.ban, r.no)] !== undefined) return;
       out.push({ id: r.id, date: String(r.date), period: Number(r.period), grade: Number(r.grade), ban: Number(r.ban), no: Number(r.no), subject: String(r.subject || '').slice(0, 20), type: (r.type === '결석' || r.type === '지각' || r.type === '조퇴') ? r.type : '결과', memo: String(r.memo || '').replace(/\s+/g, ' ').trim().slice(0, 60) });
     });
+    // 내가 마감한 수업(전원 출석 포함)은 명단 학생 전원을 "결과"로 올려서, 담임 선생님 학급출결 칸이 초록으로 켜지게 한다. 이미 체크한 학생은 위에서 올라갔으니 건너뛴다.
+    try {
+      var have = {}; out.forEach(function (m) { have[m.date + '|' + m.period + '|' + m.grade + '-' + m.ban + '-' + m.no] = 1; });
+      for (var dd = new Date(Date.now() - 3 * 86400000); ymd(dd) <= hi; dd = new Date(dd.getFullYear(), dd.getMonth(), dd.getDate() + 1)) {
+        var ds1 = ymd(dd);
+        lessonsOn(dd).forEach(function (l) {
+          if (!lessonDone(ds1, l)) return;
+          notExcluded(l.students || []).forEach(function (st) {
+            if (!st.grade || !st.ban || !st.no) return;
+            var hk = ds1 + '|' + l.period + '|' + st.grade + '-' + st.ban + '-' + st.no;
+            if (have[hk]) return;
+            have[hk] = 1;
+            out.push({ id: ds1 + '|' + l.period + '|' + l.label + '|' + st.grade + '-' + st.ban + '-' + st.no + '|__ok', date: ds1, period: Number(l.period), grade: Number(st.grade), ban: Number(st.ban), no: Number(st.no), subject: String(l.subject || '').slice(0, 20), type: '결과', memo: '' });
+          });
+        });
+      }
+    } catch (e) { /* 시간표가 아직 없으면 체크한 학생만 올린다 */ }
     return out;
   }
   function shareTeacher() { ensureTeacher(); return teacherName; }
