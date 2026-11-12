@@ -4,6 +4,18 @@
 (function () {
   'use strict';
 
+  // PC 앱: 기본 확인창·알림창을 닫은 뒤 입력칸이 먹통이 되는 일이 있어서, 닫을 때마다 창 포커스를 한 번 다시 잡는다.
+  if (window.TTHOST && window.TTHOST.refocus) {
+    ['confirm', 'alert'].forEach(function (n) {
+      var orig = window[n];
+      window[n] = function () {
+        var r = orig.apply(window, arguments);
+        setTimeout(function () { try { window.TTHOST.refocus(); } catch (e) { /* 앱이 아니면 건너뜀 */ } }, 0);
+        return r;
+      };
+    });
+  }
+
   var CONFIG = window.DASHBOARD_CONFIG;
 
   // ── 공통 유틸 ──
