@@ -597,6 +597,30 @@
     } catch (e) { /* 시간표가 아직 없으면 체크한 학생만 올린다 */ }
     return out;
   }
+  // 학생 한 명의 그날 그 교시 수업(과목·선생님). 마감하지 않은 칸도 누구 수업인지 알 수 있게 학급출결 칸 설명에 쓴다.
+  // 학생 시간표에 적힌 선생님이 선생님 시간표와 어긋나면(그 선생님은 그 시간에 다른 학년 수업을 하거나 수업이 없음) 그 이름은 빼고,
+  // 하나도 안 남으면 선생님 시간표에서 이 학생의 반(예: 3-6) 수업을 하는 선생님을 찾는다. 그래도 없으면 선생님 이름은 비워 둔다(틀린 이름을 보이지 않는다).
+  function slotOf(dateStr, grade, ban, no, period) {
+    try {
+      var tt = timetable(); if (!tt) return null;
+      var ds = String(dateStr), d = new Date(+ds.slice(0, 4), +ds.slice(4, 6) - 1, +ds.slice(6, 8)), dow = d.getDay(), pi = Number(period) - 1;
+      var cellOf = function (x) { return (((x && x.days) || {})[dow] || [])[pi] || null; };
+      var s = (tt.students || []).filter(function (x) { return String(x.grade) === String(grade) && String(x.ban) === String(ban) && String(x.no) === String(no); })[0];
+      var c = cellOf(s);
+      if (!c || (!c.subject && !c.classLabel)) return null;
+      var gr = String(grade), gb = gr + '-' + ban, teachers = tt.teachers || [];
+      var codesOf = function (tc) { return String((tc && tc.classLabel) || '').match(/\d-\d+/g) || []; };
+      var names = String(c.classLabel || '').split(/[·,\/]/).map(function (x) { return x.trim(); }).filter(Boolean);
+      var valid = names.filter(function (n) {
+        var t = teachers.filter(function (x) { return x.teacherName === n; })[0], tc = cellOf(t);
+        if (!t || !tc) return false;
+        var codes = codesOf(tc);
+        return !codes.length || codes.some(function (x) { return x.split('-')[0] === gr; });
+      });
+      if (!valid.length) valid = teachers.filter(function (t) { return codesOf(cellOf(t)).indexOf(gb) >= 0; }).map(function (t) { return t.teacherName; });
+      return { subject: String(c.subject || ''), teacher: valid.join('·') };
+    } catch (e) { return null; }
+  }
   function shareTeacher() { ensureTeacher(); return teacherName; }
   function openDate(d) { viewDate = new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
 
@@ -797,6 +821,7 @@
     render: render,
     listOn: listOn,
     periodsOn: periodsOn,
+    slotOf: slotOf,
     shareMarks: shareMarks,
     shareTeacher: shareTeacher,
     dayClosed: dayClosed,

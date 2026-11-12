@@ -3387,6 +3387,22 @@
     return box;
   }
 
+  // 학급출결 교시 칸을 눌렀을 때 뜨는 작은 안내(마우스를 올릴 수 없는 폰에서도 어느 교과·선생님인지 보이게). 3.5초 뒤 또는 다른 곳을 누르면 사라진다.
+  var cellTipEl = null, cellTipT = null;
+  function hideCellTip() { clearTimeout(cellTipT); if (cellTipEl && cellTipEl.parentNode) cellTipEl.parentNode.removeChild(cellTipEl); cellTipEl = null; }
+  function showCellTip(anchor, text) {
+    hideCellTip();
+    var tip = document.createElement('div'); tip.className = 'catt-tip'; tip.setAttribute('role', 'status');
+    String(text).split('\n').forEach(function (ln) { var r = document.createElement('div'); r.textContent = ln; tip.appendChild(r); });
+    document.body.appendChild(tip); cellTipEl = tip;
+    var a = anchor.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight, vw = document.documentElement.clientWidth;
+    var left = Math.min(Math.max(8, a.left + a.width / 2 - w / 2), Math.max(8, vw - w - 8));
+    var top = a.bottom + 6; if (top + h > window.innerHeight - 8) top = Math.max(8, a.top - h - 6);
+    tip.style.left = left + 'px'; tip.style.top = top + 'px';
+    cellTipT = setTimeout(hideCellTip, 3500);
+  }
+  document.addEventListener('click', function () { if (cellTipEl) hideCellTip(); });
+
   function buildClassAttendance(dateKey, opts) {
     opts = opts || {};
     var again = opts.refresh || renderAttendanceTab;   // 기록을 바꾸면 이 표를 다시 그린다(탭 화면은 탭을, 입력·수정 창은 창 안을)
@@ -3448,7 +3464,13 @@
               var old = ph.some(function (h) { return h.type && h.type !== '결과' && h.type !== '마감'; });   // 예전 기록(결석·지각·조퇴)이 섞여 있으면 빨강, 새 체크(결과)는 초록
               var onlyClose = ph.length && ph.every(function (h) { return h.type === '마감'; });   // 체크한 학생이 아니라 "수업 마감"만 있는 칸은 초록
               var cell = add(pc, 'i', ph.length ? (onlyClose ? 'x ok' : (old ? 'x bad' : 'x')) : '', String(pn));
+              if (!ph.length && window.SUBJ && window.SUBJ.slotOf) {   // 체크·마감이 없는 칸도 "누구 수업인지" 보여 준다(마감 요청할 때 쓰도록)
+                var sl = window.SUBJ.slotOf(dateKey, s.grade, s.ban, s.no, pn);
+                if (sl) cell.title = pn + '교시 ' + sl.subject + (sl.teacher ? ' · ' + sl.teacher + ' 선생님' : '') + '\n마감 전';
+              }
               if (ph.length) cell.title = ph.map(function (h) { return pn + '교시 ' + h.subject + (h.teacher ? ' · ' + h.teacher : '') + (h.type === '마감' ? ' · 마감 완료' : (h.type && h.type !== '결과' ? ' (' + h.type + ')' : '')) + (h.memo ? ' · ' + h.memo : ''); }).join('\n');
+              // 폰처럼 마우스를 올릴 수 없을 때를 위해, 칸을 누르면 같은 설명을 작은 안내로 보여 준다
+              cell.addEventListener('click', function (ev) { if (!cell.title) return; ev.stopPropagation(); showCellTip(cell, cell.title); });
             }
           }
           var rsel = makeSelect(rc, ATTENDANCE_REASONS, rec ? rec.reason : d.reason, '선택');
