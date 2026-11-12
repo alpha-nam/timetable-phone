@@ -78,6 +78,9 @@
         mine = students.filter(function (s) { return at(s).split(/[·,\/]/).map(function (x) { return x.trim(); }).indexOf(teacher.teacherName) >= 0; });
       }
     }
+    // 선생님 칸에 적힌 반(예: 1-5)의 학년과 다른 학년 학생이 "내 이름"으로 잡히면(학생 시간표가 선생님 시간표와 어긋난 경우) 그 학생들은 뺀다 → 아래에서 그 반 명단을 쓴다.
+    var lgr = (String(cell.classLabel || '').match(/\d-\d+/g) || []).map(function (l) { return l.split('-')[0]; });
+    if (lgr.length && mine.length) mine = mine.filter(function (s) { return lgr.indexOf(String(s.grade)) >= 0; });
     if (mine.length) return [{ label: cell.classLabel || '', subject: cell.subject, students: mine.slice().sort(byNo) }];
     var labels = [];
     (String(cell.classLabel || '').match(/\d-\d+/g) || []).forEach(function (l) { if (labels.indexOf(l) < 0) labels.push(l); });
