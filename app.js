@@ -2671,20 +2671,16 @@
       var bar = document.createElement('i'); bar.style.background = it.c;
       var kind = document.createElement('span'); kind.className = 'cal-ag-kind'; kind.textContent = String(it.k || '').replace(' 출결', ''); kind.style.setProperty('--kc', it.c);
       // 학급·교과·메모는 글자 칩 대신 위쪽 탭과 같은 아이콘을 쓴다(마우스를 올리면 이름이 나온다)
-      var tabOf = { '학급 출결': 'attendance', '교과 출결': 'subject', '메모': 'memo' }[it.k], tabSvg = tabOf && document.querySelector('.tabbtn[data-tab="' + tabOf + '"] svg');
+      var tabOf = { '학급 출결': 'attendance', '교과 출결': 'subject', '메모': 'memo', '학사일정': 'timetable' }[it.k], tabSvg = tabOf && document.querySelector('.tabbtn[data-tab="' + tabOf + '"] svg');
       if (tabSvg) {
         var ic = tabSvg.cloneNode(true); ic.removeAttribute('class'); ic.setAttribute('width', '20'); ic.setAttribute('height', '20'); ic.setAttribute('aria-hidden', 'true');
-        kind.textContent = ''; kind.appendChild(ic); kind.classList.add('cal-ag-kind--icon'); kind.style.setProperty('--kc', { attendance: '#2f9e5b', subject: '#8b7cf6', memo: '#e0793a' }[tabOf]);   // 칸 테두리 색 = 아이콘 색
-        kind.title = { attendance: '학급출결', subject: '교과출결', memo: '메모' }[tabOf];
+        kind.textContent = ''; kind.appendChild(ic); kind.classList.add('cal-ag-kind--icon'); kind.style.setProperty('--kc', { attendance: '#2f9e5b', subject: '#8b7cf6', memo: '#e0793a', timetable: '#3d7fd6' }[tabOf]);   // 칸 테두리 색 = 아이콘 색
+        kind.title = { attendance: '학급출결', subject: '교과출결', memo: '메모', timetable: '학사일정(수정할 수 없어요)' }[tabOf];
       }
       var txt = document.createElement('span'); txt.className = 'cal-ag-text'; txt.textContent = it.t;
       row.appendChild(bar); row.appendChild(kind); row.appendChild(txt);
       if (it.ev) {   // 학사일정(읽기 전용): 손잡이 자리에 자물쇠를 둬서 글자 위치를 맞추고, 오른쪽에 "학사일정" 표시
         row.classList.add('cal-ag-item--ev');
-        var lk = document.createElement('span'); lk.className = 'cal-ag-lock'; lk.title = '학교 학사일정(수정할 수 없어요)';
-        lk.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
-        row.insertBefore(lk, kind);
-        var tg = document.createElement('span'); tg.className = 'cal-ag-evtag'; tg.textContent = '학사일정'; row.appendChild(tg);
       }
       if (it.done) { var ck = document.createElement('span'); ck.className = 'cal-ag-check'; ck.textContent = '✓'; ck.setAttribute('aria-label', '완료'); row.insertBefore(ck, txt); }
       if (it.g) {

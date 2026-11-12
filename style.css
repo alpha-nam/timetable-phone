@@ -2099,7 +2099,7 @@ html[data-shell="tabs"]:not([data-phone])[data-tab="calendar"] #calEventsBtn.cal
 
 /* 오늘 일정 목록 앞의 종류 칩(학급·교과·메모): 앞쪽 색 띠와 같은 색의 옅은 바탕 */
 .cal-ag-item .cal-ag-kind { display: inline-flex !important; align-items: center; justify-content: center; flex: 0 0 auto; box-sizing: border-box; min-width: 34px !important; height: 20px; padding: 0 8px 1px !important; border-radius: 10px; font-size: 11px !important; font-weight: 700; line-height: 1; align-self: center; color: color-mix(in srgb, var(--kc, #5b6676) 72%, #000); background: color-mix(in srgb, var(--kc, #5b6676) 24%, transparent); }
-.cal-ag-item--ev .cal-ag-kind { display: none !important; }   /* 학사일정 줄은 오른쪽에 이미 꼬리표가 있다 */
+/* 학사일정 줄도 다른 줄처럼 왼쪽에 아이콘(캘린더)을 둔다 */
 html[data-phone] .cal-ag-item .cal-ag-kind { font-size: 12px !important; height: 22px; min-width: 38px !important; }
 .cal-ag-item > i { display: none !important; }   /* 앞쪽 색 띠는 종류 칩이 대신한다 */
 /* ⋮⋮ 표시는 모두 숨기고 칩을 왼쪽 끝에 붙인다. 끌기 자리는 눈에 안 보이게 남긴다(위쪽 목록은 종류 칩 위, 아래 목록은 왼쪽 가장자리 8px) */
