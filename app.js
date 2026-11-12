@@ -3466,11 +3466,12 @@
               var cell = add(pc, 'i', ph.length ? (onlyClose ? 'x ok' : (old ? 'x bad' : 'x')) : '', String(pn));
               if (!ph.length && window.SUBJ && window.SUBJ.slotOf) {   // 체크·마감이 없는 칸도 "누구 수업인지" 보여 준다(마감 요청할 때 쓰도록)
                 var sl = window.SUBJ.slotOf(dateKey, s.grade, s.ban, s.no, pn);
+                if (!sl && window.SUBJ.noLessonOf && window.SUBJ.noLessonOf(dateKey, s.grade, s.ban, s.no, pn)) { cell.className = 'nol'; cell.title = pn + '교시 수업 없음'; }   // 이 반은 그 시간에 수업이 없다
                 if (sl) cell.title = pn + '교시 ' + sl.subject + (sl.teacher ? ' · ' + sl.teacher + ' 선생님' : '') + '\n마감 전';
               }
               if (ph.length) cell.title = ph.map(function (h) { return pn + '교시 ' + h.subject + (h.teacher ? ' · ' + h.teacher : '') + (h.type === '마감' ? ' · 마감 완료' : (h.type && h.type !== '결과' ? ' (' + h.type + ')' : '')) + (h.memo ? ' · ' + h.memo : ''); }).join('\n');
               // 폰처럼 마우스를 올릴 수 없을 때를 위해, 칸을 누르면 같은 설명을 작은 안내로 보여 준다
-              cell.addEventListener('click', function (ev) { if (!cell.title) return; ev.stopPropagation(); showCellTip(cell, cell.title); });
+              cell.addEventListener('click', function (ev) { var c0 = ev.currentTarget; if (!c0.title) return; ev.stopPropagation(); showCellTip(c0, c0.title); });   // var cell 은 반복문 밖에서 공유되므로 누른 칸은 currentTarget 으로 찾는다
             }
           }
           var rsel = makeSelect(rc, ATTENDANCE_REASONS, rec ? rec.reason : d.reason, '선택');

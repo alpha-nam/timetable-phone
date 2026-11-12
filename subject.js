@@ -621,6 +621,31 @@
       return { subject: String(c.subject || ''), teacher: valid.join('·') };
     } catch (e) { return null; }
   }
+  // 학급출결 교시 칸용: 그 학생(반)이 그 요일 그 교시에 "수업이 없는" 시간이면 true. 시간표가 없거나 평일이 아니면 false(모르면 수업 있음으로 본다).
+  // 학생 시간표가 있는 학년(2·3학년)은 학생의 칸이 비었는지로, 학생 시간표가 없는 학년(1학년)은 선생님 시간표에 그 반의 수업이 하나도 없는지로 본다.
+  function noLessonOf(dateStr, grade, ban, no, period) {
+    try {
+      var tt = timetable(); if (!tt) return false;
+      var ds = String(dateStr), d = new Date(+ds.slice(0, 4), +ds.slice(4, 6) - 1, +ds.slice(6, 8)), dow = d.getDay(), pi = Number(period) - 1;
+      if (dow < 1 || dow > 5) return false;
+      var cellOf = function (x) { return (((x && x.days) || {})[dow] || [])[pi] || null; };
+      var s = (tt.students || []).filter(function (x) { return String(x.grade) === String(grade) && String(x.ban) === String(ban) && String(x.no) === String(no); })[0];
+      if (s) { var c = cellOf(s); return !c || (!c.subject && !c.classLabel); }
+      var gr = String(grade), gb = gr + '-' + ban, any = false;
+      var teachers = tt.teachers || [];
+      for (var i = 0; i < teachers.length; i++) {
+        var row = (teachers[i].days || {});
+        for (var dw = 1; dw <= 5 && !any; dw++) ((row[dw] || [])).forEach(function (cc) { if (cc && String(cc.classLabel || '').match(/\d-\d+/g)) any = any || (cc.classLabel.indexOf(gr + '-') >= 0); });
+        if (any) break;
+      }
+      if (!any) return false;   // 이 학년 자료가 시간표에 아예 없으면 모른다
+      for (var j = 0; j < teachers.length; j++) {
+        var tc = cellOf(teachers[j]);
+        if (tc && (String(tc.classLabel || '').match(/\d-\d+/g) || []).indexOf(gb) >= 0) return false;
+      }
+      return true;
+    } catch (e) { return false; }
+  }
   function shareTeacher() { ensureTeacher(); return teacherName; }
   function openDate(d) { viewDate = new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
 
@@ -822,6 +847,7 @@
     listOn: listOn,
     periodsOn: periodsOn,
     slotOf: slotOf,
+    noLessonOf: noLessonOf,
     shareMarks: shareMarks,
     shareTeacher: shareTeacher,
     dayClosed: dayClosed,
