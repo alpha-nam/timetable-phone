@@ -1197,6 +1197,7 @@
   })();
   window.TTAPP = {
     scheduleSync: function () { scheduleCloudSync(); },
+    openAttendanceSummary: function (st) { openAttendanceSummary(st); },   // 교과출결 종합에서 "학급 출결"을 누르면 보던 기간 그대로 연다
     refreshCalendar: function () { renderCalendar(); },
     homeroom: function () { return loadHomeroom(); },
     getPref: function (id) { return prefs.filter(function (x) { return x.id === id; })[0] || null; },
@@ -1403,9 +1404,9 @@
   // 자동으로 분류되고, 기존에 이미 저장된 기록에도 그대로(소급) 적용됨.
   var ATTENDANCE_CATEGORIES = ['학급', '교과'];
   function attendanceCategoryOf(r) {
-    // 입력할 때 고른 구분(학급/교과)을 그대로 쓴다. 구분이 없던 옛 기록만 예전 규칙(결과=교과)으로 가른다.
+    // 입력할 때 고른 구분(학급/교과)을 그대로 쓴다. 구분이 없던 옛 기록은 담임이 학급출결 목록에 넣은 것이므로 학급으로 본다(교과출결은 따로 저장된다).
     if (r.category === '학급' || r.category === '교과') return r.category;
-    return r.type === '결과' ? '교과' : '학급';
+    return '학급';
   }
   // 입력 폼에서 "종류" 버튼 목록을 교과/학급 선택에 맞춰 좁혀서 보여준다(위 attendanceCategoryOf
   // 규칙과 항상 같은 결과가 나오도록 — 교과를 고르면 "결과"만, 학급을 고르면 나머지 셋만 뜬다).
@@ -2118,7 +2119,7 @@
   // 2월 범위(academicYearRange)를 그대로 재사용.
   var ATTENDANCE_CATEGORY_ICON = { '학급': '🏫', '교과': '📚' };
 
-  function openAttendanceSummary() {
+  function openAttendanceSummary(init) {
     closeAttendanceSummary();
     var mode = 'month';
     var category = '학급';
@@ -2134,25 +2135,40 @@
 
     // 학급출결/교과출결 — "따로 관리할 수 있게 탭으로" 요청. 위 시간범위 탭과는 다른 축이라
     // 시각적으로도 구분되게(아이콘+알약 모양) 별도 줄로 뒀다.
-    var categoryTabRow = document.createElement('div');
-    categoryTabRow.className = 'att-category-tabs';
+    var categoryTabRow = document.createElement('div');   // 학급 출결 / 교과 출결 작은 스위치(표 바로 위 얇은 줄 왼쪽)
+    categoryTabRow.className = 'att-seg';
     var categoryBtns = ATTENDANCE_CATEGORIES.map(function (cat) {
       var b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'att-category-tab';
-      b.innerHTML = '<span class="att-category-tab-icon">' + ATTENDANCE_CATEGORY_ICON[cat] + '</span><span>' + cat + ' 출결</span>';
-      b.addEventListener('click', function (ev) { ev.stopPropagation(); category = cat; render(); });
+      b.type = 'button'; b.className = 'att-seg-btn att-seg-btn--' + (cat === '학급' ? 'cls' : 'subj');
+      b.innerHTML = tabIconHtml(cat === '학급' ? 'attendance' : 'subject') + '<span>' + cat + ' 출결</span>';
+      b.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        if (cat === '교과') {   // 교과 출결은 교과출결 종합 화면으로 간다(보던 기간을 그대로 이어서)
+          var st = { mode: mode, selYear: selYear, selMonthIdx: selMonthIdx, customFrom: customFrom, customTo: customTo };
+          closeAttendanceSummary();
+          if (window.SUBJ && window.SUBJ.openSummary) window.SUBJ.openSummary(st);
+          return;
+        }
+        category = cat; render();
+      });
       categoryTabRow.appendChild(b);
       return b;
     });
-    // 학급 출결만 쓰므로, 예전에 "교과"로 입력한 기록이 있을 때만 탭을 보여 준다(그 기록을 볼 수 있게).
-    categoryTabRow.hidden = !attendanceRecords.some(function (r) { return attendanceCategoryOf(r) === '교과'; });
 
     // 학년도(3월~다음 해 2월) 드롭다운 + 월 드롭다운, 그 아래에 월별/1학기/2학기/학년도 전체 탭.
     var now0 = new Date();
     var selYear = academicYearRange(now0).start.getFullYear();
     var selMonthIdx = (now0.getMonth() + 10) % 12;   // 0 = 3월 … 11 = 2월
-    var MODES = [['month', '월별'], ['sem1', '1학기'], ['sem2', '2학기'], ['year', '학년도 전체']];
+    var MODES = [['month', '월별'], ['sem1', '1학기'], ['sem2', '2학기'], ['year', '학년도 전체'], ['custom', '기간 선택']];
+    var customFrom = ymd(new Date(now0.getFullYear(), now0.getMonth(), 1)), customTo = ymd(now0);   // '기간 선택'의 처음값: 이번 달 1일 ~ 오늘
+    var incRecog = false;   // 인정내역(출석인정) 포함
+    if (init) {   // 교과출결 종합에서 넘어올 때 보던 기간을 그대로 이어받는다
+      if (init.mode) mode = init.mode;
+      if (init.selYear) selYear = init.selYear;
+      if (init.selMonthIdx != null) selMonthIdx = init.selMonthIdx;
+      if (init.customFrom) customFrom = init.customFrom;
+      if (init.customTo) customTo = init.customTo;
+    }
 
     var pickRow = document.createElement('div');
     pickRow.className = 'att-pick-row';
@@ -2228,8 +2244,116 @@
         .catch(function () { cand.textContent = '학사일정을 불러오지 못했습니다.'; });
     }
 
+    // '기간 선택': 시작일 ~ 종료일. 브라우저 기본 날짜 입력칸 대신, 위쪽 드롭다운과 같은 알약 모양에 글자만 보이고 누르면 달력이 열린다.
+    function makeDatePill(onPick) {
+      var wrap = document.createElement('span'); wrap.className = 'att-date-pill';
+      var txt = document.createElement('span'); txt.className = 'att-date-pill-t';
+      var inp = document.createElement('input'); inp.type = 'date'; inp.setAttribute('aria-label', '날짜 고르기');
+      inp.addEventListener('click', function () { try { inp.showPicker(); } catch (e) { /* 달력이 안 열려도 직접 입력은 된다 */ } });
+      inp.addEventListener('change', function () { if (inp.value) onPick(inp.value.split('-').join('')); });
+      wrap.appendChild(txt); wrap.appendChild(inp);
+      return {
+        el: wrap,
+        set: function (ymdStr) { inp.value = ymdStr.slice(0, 4) + '-' + ymdStr.slice(4, 6) + '-' + ymdStr.slice(6, 8); txt.textContent = ymdStr.slice(0, 4) + '.' + ymdStr.slice(4, 6) + '.' + ymdStr.slice(6, 8); }
+      };
+    }
+    var rangeRow = document.createElement('span');
+    rangeRow.className = 'att-range-row';
+    rangeRow.hidden = true;
+    var fromPill = makeDatePill(function (v) { customFrom = v; render(); });
+    var toPill = makeDatePill(function (v) { customTo = v; render(); });
+    var tilde = document.createElement('span'); tilde.className = 'att-range-tilde'; tilde.textContent = '~';
+    rangeRow.appendChild(fromPill.el); rangeRow.appendChild(tilde); rangeRow.appendChild(toPill.el);
+
+    // 옵션(학급 출결 표에서만 보임): 인정내역 포함 — 위쪽 탭과 같은 알약 모양의 켜고 끄는 단추
+    var optRow = document.createElement('button');
+    optRow.type = 'button';
+    optRow.className = 'att-chip';
+    optRow.setAttribute('aria-pressed', 'false');
+    optRow.textContent = '인정내역 포함';
+    optRow.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      incRecog = !incRecog;
+      optRow.classList.toggle('on', incRecog); optRow.setAttribute('aria-pressed', String(incRecog));
+      render();
+    });
+
     var tableWrap = document.createElement('div');
     tableWrap.className = 'att-summary-table-wrap';
+
+    // 나이스 「학급별출결현황」처럼 학급 학생 전원을 한 줄씩, 결석·지각·조퇴·결과 × 질병·미인정·기타(+인정) 와 종류별 총계로 보여 준다.
+    // 학생 줄을 누르면 그 학생의 기록(날짜·사유·비고)이 펼쳐지고, 각 줄을 누르면 캘린더의 그 날짜로 넘어간다.
+    function renderMatrix(records, roster) {
+      var TYPES = ['결석', '지각', '조퇴', '결과'];
+      var REASONS = incRecog ? ['질병', '미인정', '기타', '출석인정'] : ['질병', '미인정', '기타'];
+      var W = { '질병': 29, '미인정': 29, '기타': 29, '출석인정': 29 };   // 사유 열 폭을 모두 같게
+      var colN = 2 + TYPES.length * REASONS.length + TYPES.length;
+      var cnt = {}, items = {};
+      records.forEach(function (r) {
+        var k = r.grade + '-' + r.ban + '-' + r.no;
+        if (!cnt[k]) { cnt[k] = {}; items[k] = []; }
+        var key = r.type + '|' + (r.reason || '기타');
+        cnt[k][key] = (cnt[k][key] || 0) + 1;
+        items[k].push(r);
+      });
+      tableWrap.innerHTML = '';
+      var wrap = document.createElement('div'); wrap.className = 'att-mx-wrap';
+      var table = document.createElement('table'); table.className = 'att-mx';
+      var cg = document.createElement('colgroup');
+      var addCol = function (w) { var c = document.createElement('col'); c.style.width = w + 'px'; cg.appendChild(c); };
+      var totalW = 0;
+      var addColW = function (w) { totalW += w; addCol(w); };
+      addColW(26); addColW(50);
+      TYPES.forEach(function () { REASONS.forEach(function (rs) { addColW(W[rs]); }); });
+      TYPES.forEach(function () { addColW(28); });   // 계 열은 두 줄 머리글(결석/계)이라 좁게
+      table.style.width = '100%'; table.style.minWidth = totalW + 'px';   // 창이 넓으면 가득 채우고, 좁으면 열 폭을 줄이지 않고 옆으로 밀어 보게 한다
+      table.appendChild(cg);
+      var thead = document.createElement('thead');
+      var tr1 = document.createElement('tr'), tr2 = document.createElement('tr');
+      var th = function (tr, text, attrs) { var c = document.createElement('th'); c.textContent = text; if (attrs) Object.keys(attrs).forEach(function (k2) { c.setAttribute(k2, attrs[k2]); }); tr.appendChild(c); return c; };
+      th(tr1, '번호', { rowspan: 2, class: 'mx-no' }); th(tr1, '성명', { rowspan: 2, class: 'mx-nm' });
+      TYPES.forEach(function (t) { th(tr1, t, { colspan: REASONS.length, class: 'mx-g mx-gend' }); });
+      TYPES.forEach(function (t) { var tc = th(tr1, '', { rowspan: 2, class: 'mx-sum' }); tc.innerHTML = t + '<br>계'; });
+      TYPES.forEach(function () { REASONS.forEach(function (rs, ri) { th(tr2, rs === '출석인정' ? '인정' : rs, ri === REASONS.length - 1 ? { class: 'mx-gend' } : null); }); });
+      thead.appendChild(tr1); thead.appendChild(tr2); table.appendChild(thead);
+      var tbody = document.createElement('tbody');
+      roster.forEach(function (s, i) {
+        var k = s.grade + '-' + s.ban + '-' + s.no, c = cnt[k] || {};
+        var tr = document.createElement('tr');
+        if (i % 2 === 1) tr.className = 'mx-even';   // 짝수 줄에 옅은 줄무늬(학급출결 표와 같게)
+        var td = function (text, cls) { var d = document.createElement('td'); d.textContent = text; if (cls) d.className = cls; tr.appendChild(d); return d; };
+        td(s.no, 'mx-no'); td(s.studentName || s.name || '', 'mx-nm').title = s.studentName || s.name || '';
+        TYPES.forEach(function (t) { REASONS.forEach(function (rs, ri) { var v = c[t + '|' + rs] || 0; td(v, (v ? 'mx-n1' : 'mx-z') + (ri === REASONS.length - 1 ? ' mx-gend' : '')); }); });
+        TYPES.forEach(function (t) {
+          var sum = 0; ['질병', '미인정', '기타'].forEach(function (rs) { sum += c[t + '|' + rs] || 0; });
+          td(sum, 'mx-tot' + (sum ? ' mx-n1' : ' mx-z'));
+        });
+        tbody.appendChild(tr);
+        var list = (items[k] || []).slice().sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+        if (list.length) {
+          tr.classList.add('mx-click');
+          var dtr = document.createElement('tr'); dtr.className = 'mx-detail'; dtr.hidden = true;
+          var dtd = document.createElement('td'); dtd.colSpan = colN;
+          var dv = document.createElement('div'); dv.className = 'att-sum-detail';
+          list.forEach(function (it) {
+            var line = document.createElement('div');
+            line.className = 'att-sum-detail-line att-sum-detail-line--go';
+            line.title = '누르면 캘린더의 그 날짜로 이동해요';
+            line.addEventListener('click', function (ev2) { ev2.stopPropagation(); jumpToDate(it.date, 'attendance'); });
+            var d = document.createElement('b'); d.textContent = formatShortDate(it.date);
+            var lab = document.createElement('span'); lab.textContent = (it.reason || '') + it.type;
+            line.appendChild(d); line.appendChild(lab);
+            if (it.memo) { var memo = document.createElement('i'); memo.textContent = it.memo; line.appendChild(memo); }
+            dv.appendChild(line);
+          });
+          dtd.appendChild(dv); dtr.appendChild(dtd); tbody.appendChild(dtr);
+          tr.addEventListener('click', function (ev) { ev.stopPropagation(); dtr.hidden = !dtr.hidden; tr.classList.toggle('mx-open', !dtr.hidden); });
+        }
+      });
+      table.appendChild(tbody);
+      wrap.appendChild(table);
+      tableWrap.appendChild(wrap);
+    }
 
     function render() {
       var acStart = ymd(new Date(selYear, 2, 1)), acEnd = ymd(new Date(selYear + 1, 2, 0));
@@ -2246,12 +2370,18 @@
       } else if (mode === 'sem2') {
         from = semStart; to = acEnd;
         rangeLabel = selYear + '학년도 2학기';
+      } else if (mode === 'custom') {
+        from = customFrom <= customTo ? customFrom : customTo; to = customFrom <= customTo ? customTo : customFrom;
+        rangeLabel = (+from.slice(0, 4)) + '.' + (+from.slice(4, 6)) + '.' + (+from.slice(6, 8)) + ' ~ ' + (+to.slice(0, 4)) + '.' + (+to.slice(4, 6)) + '.' + (+to.slice(6, 8));
       } else {
         from = acStart; to = acEnd;
         rangeLabel = selYear + '학년도';
       }
       var records = attendanceRecords.filter(function (r) { return r.date >= from && r.date <= to; });
       monthSel.hidden = mode !== 'month';
+      yearSel.hidden = mode === 'custom';   // 기간을 직접 고를 때는 학년도·월 칸이 필요 없다
+      rangeRow.hidden = mode !== 'custom';
+      if (mode === 'custom') { fromPill.set(from); toPill.set(to); }
       var showSem = mode === 'sem1' || mode === 'sem2';
       if (showSem && !prefs.some(function (x) { return x.id === 'sem-' + selYear && x.date; })) {
         ensureSemAuto(selYear).then(function (changed) { if (changed && $('attSummaryOverlay')) render(); });
@@ -2272,6 +2402,15 @@
       modeBtns.forEach(function (bt, i) { bt.classList.toggle('active', MODES[i][0] === mode); });
       categoryBtns.forEach(function (b, i) { b.classList.toggle('active', ATTENDANCE_CATEGORIES[i] === category); });
 
+      var homeSel = loadHomeroom();
+      var rosterSel = homeSel ? allClassStudents().filter(function (s) { return String(s.grade) === String(homeSel.grade) && String(s.ban) === String(homeSel.ban); }).sort(function (a, b) { return a.no - b.no; }) : [];
+      optRow.hidden = !(category === '학급' && rosterSel.length);
+      if (category === '학급' && rosterSel.length) {
+        title.hidden = true;   // 학급 표는 제목 없이 바로 보여 준다(기간·반은 아래 줄과 표에 이미 보인다)
+        renderMatrix(records, rosterSel);
+        return;
+      }
+      title.hidden = false;
       var agg = aggregateAttendance(records);
       tableWrap.innerHTML = '';
       if (!agg.length) {
@@ -2352,11 +2491,21 @@
     closeBtn.textContent = '닫기';
     closeBtn.addEventListener('click', function (ev) { ev.stopPropagation(); closeAttendanceSummary(); });
 
-    box.appendChild(title);
+    // 학년도·월(또는 시작~끝)·기간 탭·옵션을 한 줄에 모은다
+    pickRow.classList.add('att-ctl-row');
+    pickRow.appendChild(rangeRow);
+    pickRow.appendChild(tabRow);
+    var titleRow = document.createElement('div');   // 제목 줄: 학급 표에서는 숨겨지고(제목 없이 바로 조절 줄), 예전 목록·교과 화면에서만 보인다
+    titleRow.className = 'att-title-row';
+    titleRow.appendChild(title);
+    box.appendChild(titleRow);
     box.appendChild(pickRow);
-    box.appendChild(tabRow);
     box.appendChild(semNote);
-    box.appendChild(categoryTabRow);
+    var slimRow = document.createElement('div');   // 표 바로 위 얇은 줄: 왼쪽 학급/교과 스위치, 오른쪽 인정내역 포함
+    slimRow.className = 'att-slim-row';
+    slimRow.appendChild(categoryTabRow);
+    slimRow.appendChild(optRow);
+    box.appendChild(slimRow);
     box.appendChild(tableWrap);
     box.appendChild(closeBtn);
     overlay.appendChild(box);

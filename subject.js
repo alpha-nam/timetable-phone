@@ -359,21 +359,28 @@
 
   // ───────── 종합 ─────────
   // 학급출결 종합과 같은 모양: 제목 · 학년도/월 선택 · 월별/1학기/2학기/학년도 전체 · 학생별 줄(누르면 날짜별로 펼침)
-  function openSummary() {
+  function openSummary(init) {
     var old = $('subjSummaryOverlay');
     if (old) old.remove();
     var overlay = el('div', 'day-task-overlay'); overlay.id = 'subjSummaryOverlay';
     var box = el('div', 'day-task-box day-task-box--wide att-summary-box');
-    var title = el('div', 'day-task-title');
-    var pickRow = el('div', 'att-pick-row');
+    var pickRow = el('div', 'att-pick-row att-ctl-row');
     var yearSel = el('select', 'att-summary-select'), monthSel = el('select', 'att-summary-select'), cls = el('select', 'att-summary-select');
     var tabRow = el('div', 'day-task-tabs');
     var wrap = el('div', 'att-summary-table-wrap');
-    var MODES = [['month', '월별'], ['sem1', '1학기'], ['sem2', '2학기'], ['year', '학년도 전체']];
+    var MODES = [['month', '월별'], ['sem1', '1학기'], ['sem2', '2학기'], ['year', '학년도 전체'], ['custom', '기간 선택']];
     var now0 = new Date();
     var selYear = now0.getMonth() >= 2 ? now0.getFullYear() : now0.getFullYear() - 1;   // 학년도: 3월 ~ 다음 해 2월
     var selMonthIdx = (now0.getMonth() + 10) % 12;   // 0 = 3월 … 11 = 2월
     var mode = 'month';
+    var customFrom = ymd(new Date(now0.getFullYear(), now0.getMonth(), 1)), customTo = ymd(now0);
+    if (init) {   // 학급출결 종합에서 넘어올 때 보던 기간을 그대로 이어받는다
+      if (init.mode) mode = init.mode;
+      if (init.selYear) selYear = init.selYear;
+      if (init.selMonthIdx != null) selMonthIdx = init.selMonthIdx;
+      if (init.customFrom) customFrom = init.customFrom;
+      if (init.customTo) customTo = init.customTo;
+    }
 
     function pad(n) { return String(n).padStart(2, '0'); }
     function groupName(r) { return (r.label ? r.label + ' ' : '') + r.subject; }
@@ -429,13 +436,30 @@
       }
       if (mode === 'sem1') return [acStart, String(+s2 - 1), selYear + '학년도 1학기'];
       if (mode === 'sem2') return [s2, acEnd, selYear + '학년도 2학기'];
+      if (mode === 'custom') { var f = customFrom <= customTo ? customFrom : customTo, tt2 = customFrom <= customTo ? customTo : customFrom; return [f, tt2, f + ' ~ ' + tt2]; }
       return [acStart, acEnd, selYear + '학년도'];
     }
 
+    // '기간 선택': 학급출결 종합과 같은 알약 모양 날짜 칸(글자만 보이고 누르면 달력)
+    function makeDatePill(onPick) {
+      var w = el('span', 'att-date-pill'), txt = el('span', 'att-date-pill-t');
+      var inp = el('input'); inp.type = 'date'; inp.setAttribute('aria-label', '날짜 고르기');
+      inp.addEventListener('click', function () { try { inp.showPicker(); } catch (e) { /* 달력이 안 열려도 직접 입력은 된다 */ } });
+      inp.addEventListener('change', function () { if (inp.value) onPick(inp.value.split('-').join('')); });
+      w.appendChild(txt); w.appendChild(inp);
+      return { el: w, set: function (v) { inp.value = v.slice(0, 4) + '-' + v.slice(4, 6) + '-' + v.slice(6, 8); txt.textContent = v.slice(0, 4) + '.' + v.slice(4, 6) + '.' + v.slice(6, 8); } };
+    }
+    var rangeRow = el('span', 'att-range-row'); rangeRow.hidden = true;
+    var fromPill = makeDatePill(function (v) { customFrom = v; draw(); });
+    var toPill = makeDatePill(function (v) { customTo = v; draw(); });
+    rangeRow.appendChild(fromPill.el); rangeRow.appendChild(el('span', 'att-range-tilde', '~')); rangeRow.appendChild(toPill.el);
+
     function draw() {
       var b = bounds();
-      title.textContent = '출결 종합 · ' + b[2] + ' · 교과출결';
       monthSel.hidden = mode !== 'month';
+      yearSel.hidden = mode === 'custom';
+      rangeRow.hidden = mode !== 'custom';
+      if (mode === 'custom') { fromPill.set(b[0]); toPill.set(b[1]); }
       [].forEach.call(tabRow.children, function (bt, k) { bt.classList.toggle('active', MODES[k][0] === mode); });
       wrap.innerHTML = '';
       var rows = marks().filter(function (r) { return String(r.date) >= b[0] && String(r.date) <= b[1]; }).filter(matchesClass);
@@ -445,45 +469,58 @@
       rows.forEach(function (r) {
         var k = groupName(r) + '|' + r.grade + '-' + r.ban + '-' + r.no + '|' + r.studentName;
         var g = by[k] = by[k] || { r: r, group: groupName(r), c: {}, items: [] };
-        g.c[r.type] = (g.c[r.type] || 0) + 1; g.items.push(r);
+        g.c['결과'] = (g.c['결과'] || 0) + 1; g.items.push(r);   // 교과출결은 모두 "결과"로 센다
       });
       var list = Object.keys(by).map(function (k) { return by[k]; }).sort(function (a, c) { return a.group.localeCompare(c.group, 'ko') || byNo(a.r, c.r); });
-      var cols = ['결석', '지각', '조퇴'].filter(function (t) { return list.some(function (g) { return g.c[t]; }); }).concat(['결과']);
-      var grid = 'minmax(64px, 1.3fr) minmax(112px, 2.2fr) repeat(' + cols.length + ', minmax(34px, 0.8fr)) minmax(30px, 0.7fr)';
-      var table = el('div', 'att-summary-table');
-      var head = el('div', 'att-summary-row att-summary-row--head'); head.style.gridTemplateColumns = grid;
-      ['수업', '학생'].concat(cols, ['합계']).forEach(function (h, k) { var hc = el('div', '', h); if (k === 1) hc.style.textAlign = 'left'; head.appendChild(hc); });
-      table.appendChild(head);
-      var prevGroup = null;
+      var cols = ['결과'];
+      // 학급출결 종합과 같은 표(att-mx): 연한 줄, 회색 머리글, 0은 연하게·기록 있는 숫자는 굵게, 합계는 파랑
+      var tbl = el('table', 'att-mx att-mx--subj');
+      var cg = el('colgroup'), totalW = 0;
+      var addW = function (w) { var c = el('col'); c.style.width = w + 'px'; cg.appendChild(c); totalW += w; };
+      var layoutA = window.__subjLayout !== 'B';   // A: 수업 칸을 세로로 합쳐 가운데 · B: 수업별 제목 줄
+      if (layoutA) { addW(120); addW(80); addW(100); cols.forEach(function () { addW(80); }); } else { addW(100); addW(100); cols.forEach(function () { addW(100); }); }
+      tbl.style.width = '100%'; tbl.style.minWidth = totalW + 'px'; tbl.appendChild(cg);
+      var thead = el('thead'), htr = el('tr');
+      (layoutA ? ['수업', '반-번호', '성명'] : ['반-번호', '성명']).concat(cols).forEach(function (h) { htr.appendChild(el('th', '', h)); });
+      thead.appendChild(htr); tbl.appendChild(thead);
+      var tbody = el('tbody'), prevGroup = null, inGroup = 0, groupSize = {};
+      list.forEach(function (g) { groupSize[g.group] = (groupSize[g.group] || 0) + 1; });
       list.forEach(function (g) {
-        var item = el('div', 'att-summary-item');
-        var r = el('div', 'att-summary-row att-summary-row--click'); r.style.gridTemplateColumns = grid;
-        r.appendChild(el('div', 'att-summary-type', g.group === prevGroup ? '' : g.group)); prevGroup = g.group;   // 같은 수업이 이어지면 첫 줄에만 이름을 보인다
-        var nameCell = el('div'), nameLine = el('div', '', g.r.grade + '-' + g.r.ban + ' ' + g.r.no + '번 ' + g.r.studentName);
-        nameCell.style.textAlign = 'left'; nameCell.style.whiteSpace = 'nowrap';
-        var caret = el('span', 'att-summary-caret', '▸'); nameLine.appendChild(caret); nameCell.appendChild(nameLine); r.appendChild(nameCell);
-        var total = 0;
-        cols.forEach(function (t) { total += g.c[t] || 0; r.appendChild(el('div', '', String(g.c[t] || 0))); });
-        r.appendChild(el('div', 'att-summary-total', String(total)));
-        var detail = el('div', 'att-sum-detail'); detail.hidden = true;
+        var newGroup = g.group !== prevGroup;
+        if (newGroup) inGroup = 0;
+        if (newGroup && !layoutA) {
+          var btr = el('tr', 'mx-bandrow'), btd = el('td', 'mx-band'); btd.colSpan = 2 + cols.length;
+          btd.appendChild(el('b', '', g.group)); btd.appendChild(el('span', '', groupSize[g.group] + '명'));
+          btr.appendChild(btd); tbody.appendChild(btr);
+        }
+        var tr = el('tr', 'mx-click' + (inGroup % 2 === 1 ? ' mx-even' : ''));
+        inGroup++;
+        var td = function (text, cls2) { var d = el('td', cls2 || '', text); tr.appendChild(d); return d; };
+        if (layoutA && newGroup) { var lt = td(g.group, 'mx-lesson'); lt.rowSpan = groupSize[g.group] * 2; }   // 같은 수업은 칸을 세로로 합쳐 가운데에 둔다(숨은 상세 줄 포함)
+        prevGroup = g.group;
+        td(g.r.ban + '-' + g.r.no).title = g.r.grade + '-' + g.r.ban + ' ' + g.r.no + '번';
+        td(g.r.studentName, 'mx-nm2');
+        cols.forEach(function (t2) { var v = g.c[t2] || 0; td(String(v), v ? 'mx-n1' : 'mx-z'); });
+        tbody.appendChild(tr);
+        var dtr = el('tr', 'mx-detail'); dtr.hidden = true;
+        var dtd = el('td'); dtd.colSpan = 2 + cols.length;
+        var detail = el('div', 'att-sum-detail');
         g.items.slice().sort(function (a, c) { return a.date < c.date ? -1 : a.date > c.date ? 1 : (a.period - c.period); }).forEach(function (it) {
           var line = el('div', 'att-sum-detail-line att-sum-detail-line--go');
           line.title = '누르면 캘린더의 그 날짜로 이동해요';
-          line.addEventListener('click', function (ev2) { ev2.stopPropagation(); if (window.TTAPP && window.TTAPP.jumpToDate) window.TTAPP.jumpToDate(it.date, 'subject'); });
+          line.addEventListener('click', function (ev2) { ev2.stopPropagation(); if (window.TTAPP && window.TTAPP.jumpToDate) window.TTAPP.jumpToDate(it.date, it.legacy ? 'attendance' : 'subject'); });
           var dd = new Date(+it.date.slice(0, 4), +it.date.slice(4, 6) - 1, +it.date.slice(6, 8));
-          line.appendChild(el('b', '', (+it.date.slice(4, 6)) + '월 ' + (+it.date.slice(6, 8)) + '일 (' + DAY_NAMES[dd.getDay()] + ') ' + it.period + '교시'));
+          line.appendChild(el('b', '', (+it.date.slice(4, 6)) + '월 ' + (+it.date.slice(6, 8)) + '일 (' + DAY_NAMES[dd.getDay()] + ')' + (it.period ? ' ' + it.period + '교시' : '')));
           line.appendChild(el('span', '', it.type + (it.reason ? ' · ' + it.reason : '')));
           if (it.memo) line.appendChild(el('i', '', it.memo));
           detail.appendChild(line);
         });
-        r.addEventListener('click', function (ev) {
-          ev.stopPropagation(); detail.hidden = !detail.hidden;
-          caret.textContent = detail.hidden ? '▸' : '▾';
-          r.classList.toggle('att-summary-row--open', !detail.hidden);
-        });
-        item.appendChild(r); item.appendChild(detail); table.appendChild(item);
+        dtd.appendChild(detail); dtr.appendChild(dtd); tbody.appendChild(dtr);
+        tr.addEventListener('click', function (ev) { ev.stopPropagation(); dtr.hidden = !dtr.hidden; tr.classList.toggle('mx-open', !dtr.hidden); });
       });
-      wrap.appendChild(table);
+      tbl.appendChild(tbody);
+      var mxWrap = el('div', 'att-mx-wrap'); mxWrap.appendChild(tbl);
+      wrap.appendChild(mxWrap);
     }
 
     yearSel.addEventListener('change', function () { selYear = +yearSel.value; draw(); });
@@ -494,12 +531,29 @@
       bt.addEventListener('click', function (ev) { ev.stopPropagation(); mode = p[0]; draw(); });
       tabRow.appendChild(bt);
     });
-    pickRow.appendChild(yearSel); pickRow.appendChild(monthSel); pickRow.appendChild(cls); cls.classList.add('subj-sum-cls');
+    pickRow.appendChild(yearSel); pickRow.appendChild(monthSel); pickRow.appendChild(rangeRow); pickRow.appendChild(tabRow);
+
+    // 표 바로 위 얇은 줄: 왼쪽 학급/교과 스위치, 오른쪽 수업 선택 (학급출결 종합과 같은 자리·같은 모양)
+    var slimRow = el('div', 'att-slim-row');
+    var seg = el('div', 'att-seg');
+    [['학급', '학급 출결'], ['교과', '교과 출결']].forEach(function (p) {
+      var sb = el('button', 'att-seg-btn att-seg-btn--' + (p[0] === '학급' ? 'cls' : 'subj') + (p[0] === '교과' ? ' active' : '')); sb.type = 'button';
+      var iconSrc = document.querySelector('.tabbtn[data-tab="' + (p[0] === '학급' ? 'attendance' : 'subject') + '"] svg');
+      sb.innerHTML = (iconSrc ? iconSrc.outerHTML : '') + '<span>' + p[1] + '</span>';
+      sb.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        if (p[0] === '교과') return;
+        var st = { mode: mode, selYear: selYear, selMonthIdx: selMonthIdx, customFrom: customFrom, customTo: customTo };
+        overlay.remove();
+        if (window.TTAPP && window.TTAPP.openAttendanceSummary) window.TTAPP.openAttendanceSummary(st);
+      });
+      seg.appendChild(sb);
+    });
+    slimRow.appendChild(seg); slimRow.appendChild(cls); cls.classList.add('subj-sum-cls');
 
     var close = el('button', 'day-task-close day-task-close--bottom', '닫기'); close.type = 'button';
     close.addEventListener('click', function (ev) { ev.stopPropagation(); overlay.remove(); });
-    box.appendChild(title); box.appendChild(pickRow);
-    box.appendChild(tabRow); box.appendChild(wrap); box.appendChild(close);
+    box.appendChild(pickRow); box.appendChild(slimRow); box.appendChild(wrap); box.appendChild(close);
     overlay.appendChild(box);
     overlay.addEventListener('click', function (ev) { if (ev.target === overlay) overlay.remove(); });
     box.addEventListener('click', function (ev) { ev.stopPropagation(); });
@@ -845,6 +899,7 @@
     init: init,
     show: function () { if (timetable() && !$('subjTeacher').options.length) fillTeachers(); render(); },
     render: render,
+    openSummary: openSummary,
     listOn: listOn,
     periodsOn: periodsOn,
     slotOf: slotOf,
