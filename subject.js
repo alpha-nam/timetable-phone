@@ -479,11 +479,11 @@
       var addW = function (w) { var c = el('col'); c.style.width = w + 'px'; cg.appendChild(c); totalW += w; };
       var layoutA = window.__subjLayout !== 'B';   // A: 수업 칸을 세로로 합쳐 가운데 · B: 수업별 제목 줄
       if (layoutA) { addW(120); addW(80); addW(100); cols.forEach(function () { addW(80); }); } else { addW(100); addW(100); cols.forEach(function () { addW(100); }); }
-      tbl.style.width = '100%'; tbl.style.minWidth = totalW + 'px'; tbl.appendChild(cg);
+      tbl.style.width = '100%'; tbl.style.minWidth = (totalW + 10) + 'px'; tbl.appendChild(cg);
       var thead = el('thead'), htr = el('tr');
       (layoutA ? ['수업', '반-번호', '성명'] : ['반-번호', '성명']).concat(cols).forEach(function (h) { htr.appendChild(el('th', '', h)); });
       thead.appendChild(htr); tbl.appendChild(thead);
-      var tbody = el('tbody'), prevGroup = null, inGroup = 0, groupSize = {};
+      var tbody = el('tbody'), prevGroup = null, inGroup = 0, groupSize = {}, lessonCell = {};
       list.forEach(function (g) { groupSize[g.group] = (groupSize[g.group] || 0) + 1; });
       list.forEach(function (g) {
         var newGroup = g.group !== prevGroup;
@@ -496,7 +496,7 @@
         var tr = el('tr', 'mx-click' + (inGroup % 2 === 1 ? ' mx-even' : ''));
         inGroup++;
         var td = function (text, cls2) { var d = el('td', cls2 || '', text); tr.appendChild(d); return d; };
-        if (layoutA && newGroup) { var lt = td(g.group, 'mx-lesson'); lt.rowSpan = groupSize[g.group] * 2; }   // 같은 수업은 칸을 세로로 합쳐 가운데에 둔다(숨은 상세 줄 포함)
+        if (layoutA && newGroup) { var lt = td(g.group, 'mx-lesson'); lt.rowSpan = groupSize[g.group]; lessonCell[g.group] = lt; }   // 같은 수업은 칸을 세로로 합쳐 가운데에 둔다. 상세 줄을 펴면 그만큼 칸을 늘린다(숨긴 줄은 표 계산에서 빠진다)
         prevGroup = g.group;
         td(g.r.ban + '-' + g.r.no).title = g.r.grade + '-' + g.r.ban + ' ' + g.r.no + '번';
         td(g.r.studentName, 'mx-nm2');
@@ -516,7 +516,7 @@
           detail.appendChild(line);
         });
         dtd.appendChild(detail); dtr.appendChild(dtd); tbody.appendChild(dtr);
-        tr.addEventListener('click', function (ev) { ev.stopPropagation(); dtr.hidden = !dtr.hidden; tr.classList.toggle('mx-open', !dtr.hidden); });
+        tr.addEventListener('click', function (ev) { ev.stopPropagation(); dtr.hidden = !dtr.hidden; tr.classList.toggle('mx-open', !dtr.hidden); if (lessonCell[g.group]) lessonCell[g.group].rowSpan += dtr.hidden ? -1 : 1; });
       });
       tbl.appendChild(tbody);
       var mxWrap = el('div', 'att-mx-wrap'); mxWrap.appendChild(tbl);

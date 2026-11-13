@@ -2328,3 +2328,4 @@ html:not([data-phone]) #calGrid .cal-cell { min-height: 56px; }   /* 날짜 + 2�
 .att-mx--subj tr.mx-bandrow td.mx-band { background: #ecf2fb !important; text-align: left; padding: 6px 12px; font-size: 13px; color: var(--text); }
 .att-mx--subj td.mx-band b { margin-right: 8px; }
 .att-mx--subj td.mx-band span { color: var(--text-sub); font-weight: 600; font-size: 12px; }
+.att-mx-orphan { margin: 6px 2px 0; font-size: 12px; font-weight: 600; color: var(--text-sub); }

@@ -1404,8 +1404,7 @@
   // 자동으로 분류되고, 기존에 이미 저장된 기록에도 그대로(소급) 적용됨.
   var ATTENDANCE_CATEGORIES = ['학급', '교과'];
   function attendanceCategoryOf(r) {
-    // 입력할 때 고른 구분(학급/교과)을 그대로 쓴다. 구분이 없던 옛 기록은 담임이 학급출결 목록에 넣은 것이므로 학급으로 본다(교과출결은 따로 저장된다).
-    if (r.category === '학급' || r.category === '교과') return r.category;
+    // 학급출결 목록(attendanceRecords)에 저장된 기록은 모두 담임이 입력한 학급출결이다. 교과출결은 따로 저장되므로 여기서 가르지 않는다.
     return '학급';
   }
   // 입력 폼에서 "종류" 버튼 목록을 교과/학급 선택에 맞춰 좁혀서 보여준다(위 attendanceCategoryOf
@@ -2292,7 +2291,7 @@
       records.forEach(function (r) {
         var k = r.grade + '-' + r.ban + '-' + r.no;
         if (!cnt[k]) { cnt[k] = {}; items[k] = []; }
-        var key = r.type + '|' + (r.reason || '기타');
+        var key = r.type + '|' + (['질병', '미인정', '기타', '출석인정'].indexOf(r.reason) >= 0 ? r.reason : '기타');   // 목록에 없는 사유(옛 버전·백업)는 기타로 센다
         cnt[k][key] = (cnt[k][key] || 0) + 1;
         items[k].push(r);
       });
@@ -2306,7 +2305,7 @@
       addColW(26); addColW(50);
       TYPES.forEach(function () { REASONS.forEach(function (rs) { addColW(W[rs]); }); });
       TYPES.forEach(function () { addColW(28); });   // 계 열은 두 줄 머리글(결석/계)이라 좁게
-      table.style.width = '100%'; table.style.minWidth = totalW + 'px';   // 창이 넓으면 가득 채우고, 좁으면 열 폭을 줄이지 않고 옆으로 밀어 보게 한다
+      table.style.width = '100%'; table.style.minWidth = (totalW + 10) + 'px';   // 창이 넓으면 가득 채우고, 좁으면 열 폭을 줄이지 않고 옆으로 밀어 보게 한다
       table.appendChild(cg);
       var thead = document.createElement('thead');
       var tr1 = document.createElement('tr'), tr2 = document.createElement('tr');
@@ -2353,6 +2352,14 @@
       table.appendChild(tbody);
       wrap.appendChild(table);
       tableWrap.appendChild(wrap);
+      [].forEach.call(tr2.children, function (c) { c.style.top = tr1.offsetHeight + 'px'; });   // 글꼴 배율이 달라도 두 머리글 줄이 겹치지 않게
+      var inRoster = {}; roster.forEach(function (s) { inRoster[s.grade + '-' + s.ban + '-' + s.no] = true; });
+      var orphan = records.filter(function (r) { return !inRoster[r.grade + '-' + r.ban + '-' + r.no]; }).length;
+      if (orphan) {
+        var on = document.createElement('div'); on.className = 'att-mx-orphan';
+        on.textContent = '현재 우리 반 명단에 없는 학생의 기록 ' + orphan + '건은 이 표에 포함되지 않았어요. (지난 학년도·전출 등)';
+        tableWrap.appendChild(on);
+      }
     }
 
     function render() {
