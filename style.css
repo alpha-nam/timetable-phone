@@ -2329,3 +2329,7 @@ html:not([data-phone]) #calGrid .cal-cell { min-height: 56px; }   /* 날짜 + 2�
 .att-mx--subj td.mx-band b { margin-right: 8px; }
 .att-mx--subj td.mx-band span { color: var(--text-sub); font-weight: 600; font-size: 12px; }
 .att-mx-orphan { margin: 6px 2px 0; font-size: 12px; font-weight: 600; color: var(--text-sub); }
+
+/* 수업명: 칸 가운데에 놓되 글자는 같은 시작 위치에서 시작하게 고정 폭 상자 안에서 왼쪽 정렬 */
+.att-mx--subj .mx-lesson-in { display: inline-block; width: 7.5em; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+.att-mx--subj tr.mx-gstart td { border-top: 2px solid rgba(110,125,150,0.55); }

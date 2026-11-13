@@ -483,20 +483,20 @@
       var thead = el('thead'), htr = el('tr');
       (layoutA ? ['수업', '반-번호', '성명'] : ['반-번호', '성명']).concat(cols).forEach(function (h) { htr.appendChild(el('th', '', h)); });
       thead.appendChild(htr); tbl.appendChild(thead);
-      var tbody = el('tbody'), prevGroup = null, inGroup = 0, groupSize = {}, lessonCell = {};
+      var tbody = el('tbody'), prevGroup = null, rowIdx = 0, groupSize = {}, lessonCell = {}; var lessonIn = [];
       list.forEach(function (g) { groupSize[g.group] = (groupSize[g.group] || 0) + 1; });
       list.forEach(function (g) {
         var newGroup = g.group !== prevGroup;
-        if (newGroup) inGroup = 0;
         if (newGroup && !layoutA) {
           var btr = el('tr', 'mx-bandrow'), btd = el('td', 'mx-band'); btd.colSpan = 2 + cols.length;
           btd.appendChild(el('b', '', g.group)); btd.appendChild(el('span', '', groupSize[g.group] + '명'));
           btr.appendChild(btd); tbody.appendChild(btr);
         }
-        var tr = el('tr', 'mx-click' + (inGroup % 2 === 1 ? ' mx-even' : ''));
-        inGroup++;
+        // 줄무늬는 수업이 바뀌어도 이어서 번갈아 넣고, 수업이 바뀌는 곳은 굵은 선으로 가른다
+        var tr = el('tr', 'mx-click' + (rowIdx % 2 === 1 ? ' mx-even' : '') + (newGroup && prevGroup !== null ? ' mx-gstart' : ''));
+        rowIdx++;
         var td = function (text, cls2) { var d = el('td', cls2 || '', text); tr.appendChild(d); return d; };
-        if (layoutA && newGroup) { var lt = td(g.group, 'mx-lesson'); lt.rowSpan = groupSize[g.group]; lessonCell[g.group] = lt; }   // 같은 수업은 칸을 세로로 합쳐 가운데에 둔다. 상세 줄을 펴면 그만큼 칸을 늘린다(숨긴 줄은 표 계산에서 빠진다)
+        if (layoutA && newGroup) { var lt = td('', 'mx-lesson'); lt.appendChild(el('span', 'mx-lesson-in', g.group)); lessonIn.push(lt.firstChild); lt.rowSpan = groupSize[g.group]; lessonCell[g.group] = lt; }   // 같은 수업은 칸을 세로로 합쳐 가운데에 둔다. 상세 줄을 펴면 그만큼 칸을 늘린다(숨긴 줄은 표 계산에서 빠진다)
         prevGroup = g.group;
         td(g.r.ban + '-' + g.r.no).title = g.r.grade + '-' + g.r.ban + ' ' + g.r.no + '번';
         td(g.r.studentName, 'mx-nm2');
@@ -518,6 +518,10 @@
         dtd.appendChild(detail); dtr.appendChild(dtd); tbody.appendChild(dtr);
         tr.addEventListener('click', function (ev) { ev.stopPropagation(); dtr.hidden = !dtr.hidden; tr.classList.toggle('mx-open', !dtr.hidden); if (lessonCell[g.group]) lessonCell[g.group].rowSpan += dtr.hidden ? -1 : 1; });
       });
+      // 수업명 상자 폭: 가장 긴 수업명에 딱 맞춰, 짧은 이름도 같은 시작 위치에서 시작하면서 칸 가운데에 오게 한다
+      var nameEm = function (str) { var w = 0; for (var q = 0; q < str.length; q++) w += /[ᄀ-ᇿ㄰-㆏가-힯Ⅰ-ⅿ]/.test(str[q]) ? 1 : 0.58; return w; };
+      var maxEm = 0; list.forEach(function (g) { maxEm = Math.max(maxEm, nameEm(g.group)); });
+      lessonIn.forEach(function (sp) { sp.style.width = Math.min(9, maxEm + 0.4) + 'em'; });
       tbl.appendChild(tbody);
       var mxWrap = el('div', 'att-mx-wrap'); mxWrap.appendChild(tbl);
       wrap.appendChild(mxWrap);
