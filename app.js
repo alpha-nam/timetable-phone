@@ -983,6 +983,7 @@
     pr.then(function (d) { if (!d || !Object.keys(d).length) delete monthEventCache[ck]; });   // 실패·빈 결과는 기억하지 않는다
     return pr;
   }
+  var calEventCounts = {};   // 날짜 → 그날 학사일정 건수(달력 칸의 빨간 원 숫자)
   function fetchMonthEventsRaw(year, month) {
     var neis = CONFIG.neis;
     var from = new Date(year, month, 1);
@@ -996,13 +997,15 @@
       .then(function (res) { return res.json(); })
       .then(function (data) {
         var rows = data.SchoolSchedule && data.SchoolSchedule[1] && data.SchoolSchedule[1].row;
-        var days = {};
+        var days = {}, cnt = {};
         // 같은 날짜에 행사가 여러 건이면(방학 기간 등) 첫 번째 것만 칸 안에 표시한다.
         (rows || []).forEach(function (r) {
           if (isHiddenEvent(r)) return;
+          cnt[r.AA_YMD] = (cnt[r.AA_YMD] || 0) + 1;
           if (!days[r.AA_YMD]) days[r.AA_YMD] = r.EVENT_NM;
           if (r.SBTR_DD_SC_NM === '공휴일') neisHolidays[r.AA_YMD] = true;   // 개천절·한글날처럼 이름에 "공휴일"이 없는 공휴일도 빨갛게
         });
+        Object.keys(cnt).forEach(function (k) { calEventCounts[k] = cnt[k]; });
         return days;
       })
       .catch(function (err) {
@@ -2843,22 +2846,29 @@
         var memoBadgeRecs = agendaMode() ? dayMemos : [];
         var eventBadge = agendaMode() && eventName;
         if (attRecords.length || subjRecords.length || memoBadgeRecs.length || eventBadge) {
-          var badges = document.createElement('div');
-          badges.className = 'cal-badges';
-          var addBadge = function (kind, count, title) {
-            var b = document.createElement('span');
-            b.className = 'cal-badge cal-badge--' + kind;
-            b.innerHTML = badgeIcon(kind) + '<b></b>';
-            b.lastChild.textContent = count;
-            if (count === '') b.lastChild.remove();
-            b.title = title;
-            badges.appendChild(b);
+          // 칸마다 같은 자리에 같은 종류가 오는 2×2 아이콘(학급·교과 / 메모·학사). 없는 종류는 자리만 비워 둔다.
+          // 아이콘은 위쪽 탭·아래 목록과 같은 것이고, 개수는 모서리의 작은 빨간 원으로 보여 준다(학사일정도 그날 건수).
+          var icons = document.createElement('div');
+          icons.className = 'cal-ics';
+          var addIcon = function (kind, tab, count, title) {
+            var tile = document.createElement('div');
+            tile.className = 'cal-ic' + (count === 0 ? ' cal-ic--empty' : '');
+            var src = count === 0 ? null : document.querySelector('.tabbtn[data-tab="' + tab + '"] svg');
+            if (src) {
+              var w = document.createElement('span'); w.className = 'cal-ic-w';
+              var sv = src.cloneNode(true); sv.removeAttribute('class'); sv.removeAttribute('width'); sv.removeAttribute('height'); sv.setAttribute('aria-hidden', 'true');
+              w.appendChild(sv);
+              if (count > 0) { var n = document.createElement('b'); n.className = 'cal-ic-n'; n.textContent = count > 9 ? '9+' : count; w.appendChild(n); }
+              tile.appendChild(w);
+              tile.title = title;
+            }
+            icons.appendChild(tile);
           };
-          if (eventBadge) addBadge('event', '', '학사일정\n' + eventName);
-          if (memoBadgeRecs.length) addBadge(memoBadgeRecs.some(function (m4) { return m4.star; }) ? 'star' : 'memo', memoBadgeRecs.length, '메모\n' + memoBadgeRecs.map(function (m3) { return (m3.done ? '✓ ' : '') + m3.text; }).join('\n'));
-          if (attRecords.length) addBadge('cls', attRecords.length, '학급 출결\n' + attRecords.map(function (r) { return attendanceStudentLabel(r) + ' - ' + attendanceTypeLabel(r); }).join('\n'));
-          if (subjRecords.length) addBadge('subj', subjRecords.length, '교과 출결\n' + subjRecords.map(function (r) { return r.period + '교시 ' + r.studentName + ' - ' + r.type; }).join('\n'));
-          cell.appendChild(badges);
+          addIcon('cls', 'attendance', attRecords.length, '학급 출결\n' + attRecords.map(function (r) { return attendanceStudentLabel(r) + ' - ' + attendanceTypeLabel(r); }).join('\n'));
+          addIcon('subj', 'subject', subjRecords.length, '교과 출결\n' + subjRecords.map(function (r) { return r.period + '교시 ' + r.studentName + ' - ' + r.type; }).join('\n'));
+          addIcon('memo', 'memo', memoBadgeRecs.length, '메모\n' + memoBadgeRecs.map(function (m3) { return (m3.done ? '✓ ' : '') + m3.text; }).join('\n'));
+          addIcon('event', 'timetable', eventBadge ? (calEventCounts[ymd(cellDate)] || 1) : 0, '학사일정\n' + (eventName || ''));
+          cell.appendChild(icons);
         }
 
         // 토요일=파랑, 일요일=빨강, 공휴일(대체공휴일 포함 — NEIS 학사일정 이름에 "공휴일"이
@@ -3684,6 +3694,8 @@
     });
     if (persist) { try { localStorage.setItem(TAB_KEY, tab); } catch (e) {} }
     requestAnimationFrame(function () { refreshTab(tab); });
+    // 출결·메모 탭을 열 때 바로 한 번 동기화한다(폰에서 누른 마감이 최대 1분 기다리지 않고 곧 보이게). 연동이 꺼져 있으면 아무 일도 하지 않는다.
+    if (tab === 'attendance' || tab === 'subject' || tab === 'calendar' || tab === 'today') scheduleCloudSync(400);
   }
 
   // 결보강 탭(swap.js)이 "시간표 탭에서 고른 교사"를 기본값으로 쓸 수 있게 알려 준다.

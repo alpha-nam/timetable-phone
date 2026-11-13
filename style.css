@@ -2157,3 +2157,18 @@ html:not([data-phone]) .day-editor-panel--card .card-head { gap: 4px !important;
 html:not([data-phone]) .day-editor-panel--card .card-head * { white-space: nowrap; }
 .day-task-box--wide .day-task-title { margin-bottom: 6px; }
 .day-task-box--wide .day-task-tabs { margin-bottom: 6px; }
+
+/* 달력 날짜 칸: 학급·교과 / 메모·학사 2×2 아이콘(자리 고정). 개수는 모서리의 작은 빨간 원 */
+.cal-ics { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; flex: 1; width: 100%; min-height: 0; margin-top: 1px; }
+.cal-ic { position: relative; display: flex; align-items: center; justify-content: center; min-height: 0; min-width: 0; }
+.cal-ic-w { position: relative; display: block; width: 14.4px; height: 14.4px; }
+.cal-ic-w svg { display: block; width: 100%; height: 100%; }
+.cal-ic-n { position: absolute; right: -5px; bottom: -4px; min-width: 10px; height: 10px; padding: 0 2px; box-sizing: border-box; border-radius: 5px; background: #e5584f; color: #fff; font-size: 8px; font-weight: 800; line-height: 10px; text-align: center; box-shadow: 0 0 0 1px var(--card-bg, #fff); }
+.cal-cell--today .cal-ic-n { box-shadow: 0 0 0 1px #3d7fd6; }
+html:not([data-phone]) #calGrid .cal-cell { min-height: 56px; }   /* 날짜 + 2×2 아이콘이 들어가는 최소 높이(평소엔 창 크기에 맞춰 늘어난다) */
+#calGrid .cal-cell { container-type: inline-size; }
+@container (min-width: 70px) {
+  .cal-ic-w { width: 18px; height: 18px; }
+  .cal-ic-n { min-width: 12px; height: 12px; line-height: 12px; border-radius: 6px; font-size: 9px; right: -6px; bottom: -4px; }
+}
+

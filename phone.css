@@ -264,3 +264,6 @@ html[data-phone] .cal-ag-kind--icon svg { width: 24px; height: 24px; }
 html[data-phone] .cal-up-item .cal-up-d { width: 42px; min-width: 42px !important; height: 24px; font-size: 12px !important; }
 html[data-phone] .cal-ag-item[data-g] > .cal-ag-grip { width: 50px; }
 html[data-phone] .cal-ag-item, html[data-phone] .cal-up-item { min-height: 37px; }
+
+/* 달력 칸: 학급·교과·메모·학사 네 줄이 다 들어가도록 정사각 비율 대신 높이를 직접 준다 */
+html[data-phone] #calGrid .cal-cell { aspect-ratio: 1 / 1.08 !important; min-height: 56px; }

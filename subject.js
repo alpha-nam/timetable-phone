@@ -548,6 +548,7 @@
   }
   // 학급출결 표의 교시 칸용: 그날 체크된 학생별 [{period, subject, type}] ("학년-반-번호" → 목록). 지금은 이 PC에 있는 교과출결만 쓴다.
   function periodsOn(dateStr) {
+    ensureTeacher();   // 교과출결 탭을 아직 안 열어 선생님이 정해지지 않았어도 내 수업 마감이 학급출결 칸에 보이게
     var m = {};
     listOn(dateStr).forEach(function (r) {
       var k = r.grade + '-' + r.ban + '-' + r.no;
