@@ -269,6 +269,7 @@
     var tsel = $('subjTeacher'); if (tsel && tsel.value !== teacherName && [].some.call(tsel.options, function (o) { return o.value === teacherName; })) tsel.value = teacherName;
     if (!teacherName) { body.appendChild(el('div', 'subj-empty', '위에서 선생님 이름을 고르면 내 수업이 나와요.')); return; }
 
+    if (isRest(viewDate) && !listOn(ymd(viewDate)).length) { body.appendChild(el('div', 'subj-empty', '쉬는 날이에요.')); return; }   // 쉬는 날에는 빈 화면(이미 체크한 기록이 있으면 그대로 보여 준다)
     var lessons = lessonsOn(viewDate);
     if (!lessons.length) { body.appendChild(el('div', 'subj-empty', dateLabel(viewDate) + '에는 출결을 볼 수업이 없어요.')); return; }
     if (!lessons.some(function (l) { return l.key === selKey; })) selKey = defaultLesson(lessons).key;
@@ -708,7 +709,29 @@
   function shareTeacher() { ensureTeacher(); return teacherName; }
   function openDate(d) { viewDate = new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
 
-  function shiftDate(n) { var d = new Date(viewDate); d.setDate(d.getDate() + n); viewDate = d; render(); }
+  // 쉬는 날(토·일·공휴일)은 하루씩 넘길 때 건너뛴다.
+  function isRest(d) { return hooks().isRestDay ? hooks().isRestDay(d) : (d.getDay() === 0 || d.getDay() === 6); }
+  function nextSchoolDay(from, step) {
+    var d = new Date(from);
+    for (var i = 0; i < 14; i++) { d.setDate(d.getDate() + step); if (!isRest(d)) break; }
+    return d;
+  }
+  function shiftDate(n) {
+    var step = n < 0 ? -1 : 1;
+    viewDate = nextSchoolDay(viewDate, step); render();
+    settleDate(viewDate, step, 0);
+  }
+  // 새로 도착한 날의 달 공휴일을 불러온 뒤에도 쉬는 날이면 한 번 더 건너뛴다(달이 바뀌면 그 달도 불러온다).
+  function settleDate(shown, step, depth) {
+    if (!hooks().loadHolidays) return;
+    var p; try { p = hooks().loadHolidays(shown.getFullYear(), shown.getMonth()); } catch (e) { return; }
+    p.then(function () {
+      if (viewDate !== shown || !isRest(shown)) return;
+      var n = nextSchoolDay(shown, step);
+      viewDate = n; render();
+      if (depth < 4) settleDate(n, step, depth + 1);
+    });
+  }
 
   // 개발 중 시험(11/9 가짜 나이스)으로 잘못 들어온 임시 수업·명단 수정·수업 빼기 기록을 한 번 지운다(삭제 표시를 남겨 구글 드라이브·폰에서도 지워진다).
   // 지운 뒤 "나이스 읽고 시간표 맞추기"를 다시 하면 진짜 나이스 기준으로 다시 만들어진다.

@@ -3713,6 +3713,12 @@
     updateAttConfirmBtn(ymd(d));
     var body = $('attTabBody');
     body.innerHTML = '';
+    if (isRestDay(d) && !attendanceRecordsForDate(ymd(d)).length) {   // 쉬는 날에는 빈 화면(이미 들어간 기록이 있으면 가리지 않고 그대로 보여 준다)
+      var cb = $('attConfirmBtn'); if (cb) cb.hidden = true;
+      var rest = document.createElement('div'); rest.className = 'att-list-empty att-rest'; rest.textContent = '쉬는 날이에요.';
+      body.appendChild(rest);
+      return;
+    }
     body.appendChild(buildClassAttendance(ymd(d)));
   }
 
@@ -3822,11 +3828,29 @@
     document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') closeAttCalendar(); });
   }
 
+  // 쉬는 날: 토·일, NEIS 학사일정에 공휴일로 표시된 날. (재량휴업일은 NEIS 연동으로 따로 처리되므로 여기서는 보지 않는다)
+  function isRestDay(d) { return d.getDay() === 0 || d.getDay() === 6 || !!neisHolidays[ymd(d)]; }
+  // 하루씩 넘길 때 쉬는 날은 건너뛴다. 그 달 공휴일을 아직 못 불렀으면 불러온 뒤 한 번 더 건너뛴다.
+  function nextSchoolDay(from, step) {
+    var d = new Date(from);
+    for (var i = 0; i < 14; i++) { d.setDate(d.getDate() + step); if (!isRestDay(d)) break; }
+    return d;
+  }
   function shiftAttDate(days) {
-    var d = new Date(attViewDate);
-    d.setDate(d.getDate() + days);
-    attViewDate = d;
+    var step = days < 0 ? -1 : 1;
+    attViewDate = nextSchoolDay(attViewDate, step);
     renderAttendanceTab();
+    settleAttDate(attViewDate, step, 0);
+  }
+  // 새로 도착한 날의 달 공휴일을 불러온 뒤에도 쉬는 날이면 한 번 더 건너뛴다(달이 바뀌면 그 달도 불러온다).
+  function settleAttDate(shown, step, depth) {
+    var p; try { p = loadHolidaysFor(shown.getFullYear(), shown.getMonth()); } catch (e) { return; }
+    p.then(function () {
+      if (attViewDate !== shown || !isRestDay(shown)) return;
+      var n = nextSchoolDay(shown, step);
+      attViewDate = n; renderAttendanceTab();
+      if (depth < 4) settleAttDate(n, step, depth + 1);
+    });
   }
 
   // 탭을 바꾼 직후 — 그 탭의 카드가 이제 막 보이게 됐으니 크기에 맞는 글자 축소와 내용 갱신을 한 번 돌린다.
@@ -3859,6 +3883,8 @@
     periodTimes: function () { return (timetableData && timetableData.periodTimes) || []; },
     currentPeriod: function () { return currentPeriodIndex((timetableData && timetableData.periodTimes) || []); },
     fitTimetable: function () { fitTimetableFont(); },
+    isRestDay: function (d) { return isRestDay(d); },
+    loadHolidays: function (year, month) { return loadHolidaysFor(year, month); },
     timetable: function () { return timetableData; },
     semesterStartOf: function (startYear) { return semesterStartOf(startYear); },
     ensureSemAuto: function (startYear) { return ensureSemAuto(startYear); },
