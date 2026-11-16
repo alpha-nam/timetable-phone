@@ -78,6 +78,12 @@
 
   // ───────── 후보 찾기 규칙(swap-finder.js와 같은 규칙) ─────────
   function isAlternatingFree(e) { return !!(e && e.roomNote && String(e.roomNote).split('@').indexOf('공강') !== -1); }
+  // 격주로 서로 거울처럼 번갈아 공강인 짝(예: 한 분은 '2-3@공강', 다른 분은 '공강@2-3')은 한쪽이 수업하는 주에 다른 쪽이 늘 공강이라 확인할 필요가 없다.
+  function isMirrorFree(absent, cand) {
+    if (!absent || !cand || !absent.roomNote || !cand.roomNote) return false;
+    var a = String(absent.roomNote).split('@'), c = String(cand.roomNote).split('@');
+    return a.length === 2 && c.length === 2 && a[0] === c[1] && a[1] === c[0] && (a[0] === '공강' || a[1] === '공강');
+  }
   function entryAt(tid, d, p) { return data.map.get(key(tid, d, p)); }
   function isFree(tid, d, p) { return !data.map.has(key(tid, d, p)); }
 
@@ -91,8 +97,8 @@
       return {
         teacher: t,
         isSame: pref !== '' && normalizeSubject(t.subject) === pref,
-        isPinned: !!o.pinnedTeacherId && t.id === o.pinnedTeacherId,
-        isAlternating: !!entryAt(t.id, day, period)
+        isPinned: (!!o.pinnedTeacherId && t.id === o.pinnedTeacherId) || (!!o.pinnedTeacherIds && o.pinnedTeacherIds.indexOf(t.id) >= 0),
+        isAlternating: !!entryAt(t.id, day, period) && !isMirrorFree(o.absentEntry, entryAt(t.id, day, period))
       };
     });
     res.sort(function (a, b) {
@@ -101,6 +107,22 @@
       return (a.teacher.name || '').localeCompare(b.teacher.name || '', 'ko');
     });
     return res;
+  }
+
+  // 같은 과목명을 맡은 다른 선생님(반이 달라도 같은 과목이면 같은 수업 담당으로 본다).
+  // 예: 교육 G_교육A(3-6)와 L_교육B(3-7)처럼 분반이 달라도 같은 과목이다.
+  function sameLessonTeachers(e, myId) {
+    if (!e || e.subject === CREATIVE) return [];
+    var subj = normalizeSubject(e.subject);
+    if (!subj) return [];
+    var seen = {}, out = [];
+    data.entries.forEach(function (x) {
+      if (x.teacherId === myId || seen[x.teacherId]) return;
+      if (normalizeSubject(x.subject) !== subj) return;
+      var tt = data.byId[x.teacherId]; if (!tt) return;
+      seen[x.teacherId] = true; out.push(tt);
+    });
+    return out;
   }
 
   function reciprocalEligible(className) {
@@ -314,7 +336,10 @@
     body.appendChild(tog);
     if (!eligible) body.appendChild(el('div', 'swap-note', '이 수업은 선택과목이라 1:1 교체는 불가능하고 대체(보강)만 가능합니다.'));
     if (st.mode === 'reciprocal' && eligible) listReciprocal(body, t, c, pref);
-    else listSubstitute(body, t, c, { preferredSubject: pref });
+    else {
+      var co2 = sameLessonTeachers(e, t.id);
+      listSubstitute(body, t, c, { preferredSubject: pref, pinnedTeacherIds: co2.map(function (x) { return x.id; }), pinLabel: '같은 수업 담당', absentEntry: e });
+    }
   }
 
   function listSubstitute(body, t, c, o) {
@@ -327,8 +352,8 @@
       var info = el('div', 'swap-row-info');
       info.appendChild(el('span', 'swap-name', x.teacher.name));
       if (x.teacher.subject) info.appendChild(badge(x.teacher.subject));
-      if (x.isPinned) info.appendChild(badge('부담임', 'good'));
-      if (x.isSame) info.appendChild(badge('같은 교과', 'good'));
+      if (x.isPinned) info.appendChild(badge(o.pinLabel || '부담임', 'good'));
+      if (x.isSame && !(x.isPinned && o.pinLabel)) info.appendChild(badge('같은 교과', 'good'));   // 같은 수업 담당이면 "같은 교과"는 겹치므로 한 번만 보여 준다
       if (x.isAlternating) info.appendChild(badge('격주 공강(확인)', 'warn'));
       row.appendChild(info);
       row.appendChild(el('span', 'swap-go', '시간표 ›'));
