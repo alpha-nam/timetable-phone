@@ -2333,3 +2333,9 @@ html:not([data-phone]) #calGrid .cal-cell { min-height: 56px; }   /* 날짜 + 2�
 /* 수업명: 칸 가운데에 놓되 글자는 같은 시작 위치에서 시작하게 고정 폭 상자 안에서 왼쪽 정렬 */
 .att-mx--subj .mx-lesson-in { display: inline-block; width: 7.5em; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
 .att-mx--subj tr.mx-gstart td { border-top: 2px solid rgba(110,125,150,0.55); }
+
+/* 결보강 안내 상자: 흰 바탕 + 가는 테두리, 색은 앞의 점 하나로만 */
+.swap-warn, .swap-note { display: flex; align-items: center; gap: 9px; padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(60,100,150,0.14); background: #fff; color: var(--text); font-size: 12.5px; font-weight: 600; line-height: 1.45; }
+.swap-warn::before, .swap-note::before { content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; }
+.swap-warn::before { background: #e8a317; }
+.swap-note::before { background: var(--accent); }

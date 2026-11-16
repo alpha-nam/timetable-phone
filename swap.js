@@ -333,8 +333,8 @@
       b.addEventListener('click', function (ev) { ev.stopPropagation(); if (b.disabled) return; st.mode = m[0]; render(); });
       tog.appendChild(b);
     });
-    body.appendChild(tog);
     if (!eligible) body.appendChild(el('div', 'swap-note', '이 수업은 선택과목이라 1:1 교체는 불가능하고 대체(보강)만 가능합니다.'));
+    body.appendChild(tog);   // 안내를 먼저 보여 주고, 모드 단추는 그 아래에 둔다
     if (st.mode === 'reciprocal' && eligible) listReciprocal(body, t, c, pref);
     else {
       var co2 = sameLessonTeachers(e, t.id);
