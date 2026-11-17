@@ -2339,3 +2339,81 @@ html:not([data-phone]) #calGrid .cal-cell { min-height: 56px; }   /* 날짜 + 2�
 .swap-warn::before, .swap-note::before { content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; }
 .swap-warn::before { background: #e8a317; }
 .swap-note::before { background: var(--accent); }
+
+/* 칸이 좁을 때(섹션을 나눈 가로 보기 232px) 글이 한 글자씩 세로로 쌓이지 않게: 글은 최소 폭을 지키고, 별·날짜·꼬리표는 모자라면 아래 줄로 내려간다 */
+.bd-main { flex-wrap: wrap; row-gap: 4px; }
+.bd-main .bd-text { flex: 1 1 8em; min-width: 8em; }
+.bd-main .bd-edit { flex: 1 1 100%; }
+
+/* 메모 글은 어절(띄어쓰기) 단위로 줄을 바꾼다. 어절 하나가 칸보다 길 때만(주소 등) 그 안에서 끊는다 */
+.bd-text, .bd-sec-title { word-break: keep-all; overflow-wrap: break-word; line-break: strict; text-wrap: pretty; }
+
+/* ── 메모 탭 보드 모양(Padlet의 열 형식을 참고): 칸 제목은 색 띠, 칸 바탕은 투명, 카드는 둥글고 그림자 없이 ── */
+#memoBoard { gap: 18px; }
+.bd-sec { background: transparent; padding: 0; border-radius: 0; }
+.board--h .bd-sec { flex: 0 0 248px; width: 248px; }
+.bd-sec.bd-none-only { padding: 0; }
+.bd-sec-head { height: 40px; padding: 0 6px 0 12px; border-radius: 10px; background: #e9f0f8; margin-bottom: 10px; flex: none; }
+.bd-sec-title { font-size: 15px; font-weight: 700; }
+.bd-sec-count { margin-left: 2px; font-size: 12px; font-weight: 700; color: var(--text-sub); background: #fff; border-radius: 99px; padding: 1px 8px; }
+.bd-sec-head.dark .bd-sec-count { color: #fff; background: rgba(255,255,255,0.2); }
+.bd-sec-head.dark .bd-sec-more, .bd-sec-head.dark .bd-sec-grip { color: rgba(255,255,255,0.8); }
+.bd-sec-body { gap: 10px; }
+.bd-add { height: 34px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--accent); background: #fff; border: 1.5px dashed #b9cde6; border-radius: 10px; }
+.bd-cards { gap: 10px; }
+.bd-card { background: #f3f7fc; border: 1px solid rgba(60,100,150,0.12); border-radius: 12px; box-shadow: none; padding: 10px 8px 10px 6px; }
+.bd-sec.dark .bd-add { color: var(--accent); background: #fff; border-color: #b9cde6; }
+
+/* ── 메모 카드 안 정리(별·⋮은 오른쪽 위, 꼬리표·날짜는 글 아래), 고정 표시, 보드 꾸미기 ── */
+.board--h .bd-sec { flex: 0 0 var(--bd-w, 248px); width: var(--bd-w, 248px); }
+.bd-sec-head { background: var(--bd-band, #e9f0f8); }
+.bd-card { align-items: flex-start; }
+.bd-chk { margin-top: 1px; }
+.bd-grip { margin-top: 2px; }
+.bd-main { display: block; }
+.bd-main .bd-text { flex: none; min-width: 0; }
+.bd-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.bd-meta .bd-tag, .bd-meta .bd-date { margin-top: 0; }
+.bd-side { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: none; }
+.bd-side .bd-star { margin: 0; }
+.bd-side .bd-more { margin-left: 0; }
+.bd-pinmark { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: var(--text-sub); margin-bottom: 4px; }
+.bd-pinmark::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+.bd-sec.bd-drop-on .bd-cards { outline: 2px dashed var(--accent); outline-offset: 4px; border-radius: 12px; }
+.bd-placeholder { border-radius: 12px; min-height: 44px; }
+.bd-look { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; min-width: 210px; }
+.bd-look-label { font-size: 12px; font-weight: 700; color: var(--text-sub); margin-top: 4px; }
+.bd-look-sw { display: flex; flex-wrap: wrap; gap: 6px; }
+.bd-look-swatch { width: 26px; height: 26px; border-radius: 8px; border: 1.5px solid rgba(60,100,150,0.2); cursor: pointer; padding: 0; font-family: inherit; font-size: 10px; font-weight: 700; color: var(--text-sub); background: #e9f0f8; }
+.bd-look-swatch.none { width: auto; padding: 0 8px; background: #fff; }
+.bd-look-swatch.on { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(61,127,214,0.25); }
+
+/* ── 메모 카드 정돈: 칸마다 폭이 같고, 카드는 글만 깔끔히. 손잡이·별·날짜는 마우스를 올릴 때만 ── */
+.bd-sec-body { scrollbar-width: thin; scrollbar-gutter: stable; padding-right: 2px; }
+.bd-card { align-items: flex-start; gap: 8px; padding: 12px 8px 12px 6px; }
+.bd-grip { margin-top: 2px; opacity: 0; transition: opacity .12s; }
+.bd-chk { width: 18px; height: 18px; border-radius: 6px; margin-top: 1px; font-size: 11px; }
+.bd-text { line-height: 1.5; }
+.bd-star:not(.on) { opacity: 0; transition: opacity .12s; }
+.bd-card:hover .bd-grip, .bd-card:hover .bd-star:not(.on), .bd-card:hover .bd-date.off { opacity: 1; }
+.bd-meta { margin-top: 6px; }
+.bd-meta:empty { display: none; }
+.bd-date.off { opacity: 0; border: none; padding-left: 0; padding-right: 0; transition: opacity .12s; }
+.bd-date.off:hover { border: none; }
+@media (hover: none) { .bd-grip, .bd-star:not(.on), .bd-date.off { opacity: 1; } .bd-date.off { padding-left: 8px; } }
+.bd-card { min-height: 52px; }
+
+.bd-card { position: relative; }
+.bd-side .bd-date.off { position: absolute; right: 8px; bottom: 6px; margin: 0; padding: 1px 6px; font-size: 10.5px; background: rgba(255,255,255,0.85); border-radius: 99px; }
+.bd-side .bd-date.off:hover { color: var(--accent); }
+.bd-card { min-height: 0; }
+
+.bd-card { padding-left: 14px; }
+.bd-grip { position: absolute; left: 2px; top: 14px; width: 10px; margin: 0; }
+
+.bd-sec-body > * { flex-shrink: 0; }
+.bd-cards > .bd-card { flex-shrink: 0; }
+
+/* 제목이 길거나 글자를 키워도 띠가 넘치지 않게 */
+.bd-sec-head { height: auto; min-height: 40px; padding-top: 4px; padding-bottom: 4px; }
+.bd-sec-title { min-width: 0; }

@@ -11,7 +11,7 @@
 (function () {
   var KEYS = {
     cards: 'dashboardMemoTodos', sections: 'dashboardMemoSections', tombs: 'dashboardMemoTombstones',
-    secTombs: 'dashboardMemoSecTombs', trash: 'dashboardTrash', trashTombs: 'dashboardTrashTombs', layout: 'dashboardMemoLayout'
+    secTombs: 'dashboardMemoSecTombs', trash: 'dashboardTrash', trashTombs: 'dashboardTrashTombs', layout: 'dashboardMemoLayout', look: 'dashboardMemoLook'
   };
   var TRASH_KEEP_MS = 90 * 24 * 3600 * 1000;
   var TAG_COLORS = ['#f6bd56', '#6aa9f0', '#6cc58b', '#f08bb0', '#a98be8'];
@@ -20,6 +20,7 @@
   var cards = [], sections = [], tombs = {}, secTombs = {}, trash = [], trashTombs = {};
   var sigCards = null, sigSecs = null;
   var layout = 'h';
+  var look = { w: 'm', band: '' };   // 보드 모양(이 기기에만 저장): 칸 너비(s/m/l)와 제목 띠 기본 색
   var addingIn = null;           // 메모 추가 입력창이 열려 있는 섹션 id
   var editingId = null;          // 제자리 편집 중인 메모 id
   var $ = function (id) { return document.getElementById(id); };
@@ -30,7 +31,7 @@
   function read(key, fallback) { try { var v = JSON.parse(localStorage.getItem(key)); return v == null ? fallback : v; } catch (e) { return fallback; } }
   function write(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* 저장 불가 */ } }
 
-  function sigCard(c) { return JSON.stringify([c.text, !!c.done, c.sectionId, c.order, c.tag ? [c.tag.text, c.tag.color] : null, styleSig(c.style), c.date || '', c.dateEnd || '', c.star ? 1 : 0]); }
+  function sigCard(c) { return JSON.stringify([c.text, !!c.done, c.sectionId, c.order, c.tag ? [c.tag.text, c.tag.color] : null, styleSig(c.style), c.date || '', c.dateEnd || '', c.star ? 1 : 0, c.pin ? 1 : 0]); }
   function sigSec(s) { return JSON.stringify([s.name, s.order, styleSig(s.style)]); }
   function sigMap(list, fn) { var m = {}; list.forEach(function (x) { if (x && x.id) m[x.id] = fn(x); }); return m; }
 
@@ -51,6 +52,7 @@
     trash = trash.filter(function (t) { return (t.deletedAt || 0) >= cut; });
     // 처음에는 PC·태블릿은 가로 칸, 폰은 세로로 쌓는다(바꾸면 기억).
     layout = read(KEYS.layout, null) || (document.documentElement.hasAttribute('data-phone') && window.innerWidth < 700 ? 'v' : 'h');
+    var lk = read(KEYS.look, null); if (lk && typeof lk === 'object') look = { w: ['s', 'm', 'l'].indexOf(lk.w) >= 0 ? lk.w : 'm', band: /^#[0-9a-f]{6}$/i.test(lk.band || '') ? lk.band : '' };
     sigCards = sigMap(cards, sigCard); sigSecs = sigMap(sections, sigSec);
   }
 
@@ -138,6 +140,7 @@
   function inNone(c) { return !c.sectionId || !sections.some(function (s) { return s.id === c.sectionId; }); }
   function sectionCards(sid) {
     return cards.filter(function (c) { return sid === '' ? inNone(c) : c.sectionId === sid; }).sort(function (a, b) {
+      if (!!a.pin !== !!b.pin) return a.pin ? -1 : 1;   // 고정한 메모는 칸 맨 위
       var ao = a.order == null ? 1e9 : a.order, bo = b.order == null ? 1e9 : b.order;
       return ao - bo || (b.updatedAt || 0) - (a.updatedAt || 0) || (a.id < b.id ? -1 : 1);
     });
@@ -175,6 +178,7 @@
   }
   function toggleDone(card) {
     card.done = !card.done;
+    if (card.done && card.pin) delete card.pin;   // 끝낸 메모는 고정을 풀어 맨 아래로 보낸다
     var list = sectionCards(card.sectionId).filter(function (c) { return c.id !== card.id; });
     var idx;
     if (card.done) idx = list.length;                                   // 완료하면 맨 아래로
@@ -285,8 +289,11 @@
     var root = $('memoBoard');
     if (!root) return;
     closeMenu();
+    [].forEach.call(document.querySelectorAll('.bd-ghost'), function (g) { g.remove(); });   // 끌던 중 화면이 다시 그려져도 그림자가 남지 않게
     root.innerHTML = '';
     root.className = 'board board--' + layout;
+    root.style.setProperty('--bd-w', { s: '208px', m: '248px', l: '300px' }[look.w] || '248px');
+    if (look.band) root.style.setProperty('--bd-band', look.band); else root.style.removeProperty('--bd-band');
     paintTools();
     var open = cards.filter(function (c) { return !c.done; }).length;
     if ($('memoCount')) $('memoCount').textContent = open ? '남은 일 ' + open : '';
@@ -315,7 +322,39 @@
     add.addEventListener('click', function (ev) { ev.stopPropagation(); promptAddSection(); });
     var rec = el('button', 'board-tool', '휴지통 · 백업'); rec.type = 'button';
     rec.addEventListener('click', function (ev) { ev.stopPropagation(); openRecovery(); });
-    t.appendChild(seg); t.appendChild(add); t.appendChild(rec);
+    var lookBtn = el('button', 'board-tool', '보드 꾸미기'); lookBtn.type = 'button';
+    lookBtn.addEventListener('click', function (ev) { ev.stopPropagation(); openLookPanel(lookBtn); });
+    t.appendChild(seg); t.appendChild(add); t.appendChild(lookBtn); t.appendChild(rec);
+  }
+
+  // 보드 꾸미기: 칸 너비와 제목 띠 기본 색(섹션마다 따로 고른 색이 있으면 그쪽이 우선). 이 기기에만 저장된다.
+  function openLookPanel(anchor) {
+    closeMenu();
+    var m = el('div', 'board-menu bd-look'); m.id = 'boardMenu';
+    m.addEventListener('click', function (ev) { ev.stopPropagation(); });
+    function setLook(patch) { look = Object.assign({}, look, patch); write(KEYS.look, look); render(); openLookPanel(anchor); }
+    m.appendChild(el('div', 'bd-look-label', '칸 너비'));
+    var seg = el('div', 'board-seg');
+    [['s', '좁게'], ['m', '보통'], ['l', '넓게']].forEach(function (p) {
+      var b = el('button', 'board-seg-btn' + (look.w === p[0] ? ' active' : ''), p[1]); b.type = 'button';
+      b.addEventListener('click', function (ev) { ev.stopPropagation(); setLook({ w: p[0] }); });
+      seg.appendChild(b);
+    });
+    m.appendChild(seg);
+    m.appendChild(el('div', 'bd-look-label', '칸 제목 띠 색'));
+    var row = el('div', 'bd-look-sw');
+    [['', '기본'], ['#fdecc8', ''], ['#dff3e3', ''], ['#e0ecff', ''], ['#fbe0ea', ''], ['#ece5fb', ''], ['#e3f3f3', ''], ['#3a4660', '']].forEach(function (p) {
+      var b = el('button', 'bd-look-swatch' + (look.band === p[0] ? ' on' : '') + (p[0] ? '' : ' none'), p[1]); b.type = 'button';
+      if (p[0]) b.style.background = p[0];
+      b.title = p[0] ? '' : '기본 색';
+      b.addEventListener('click', function (ev) { ev.stopPropagation(); setLook({ band: p[0] }); });
+      row.appendChild(b);
+    });
+    m.appendChild(row);
+    $('board').appendChild(m);
+    var r = anchor.getBoundingClientRect();
+    m.style.top = Math.max(8, Math.min(r.bottom + 4, window.innerHeight - m.offsetHeight - 8)) + 'px';
+    m.style.left = Math.max(8, Math.min(r.right - m.offsetWidth, window.innerWidth - m.offsetWidth - 8)) + 'px';
   }
 
   function promptAddSection() {
@@ -338,9 +377,10 @@
   function renderSection(sec) {
     var wrap = el('div', 'bd-sec' + (sec.plain ? ' bd-none-only' : '')); wrap.dataset.sid = sec.id;
     var secBg = sec.style && sec.style.bg;
-    if (secBg) wrap.style.background = secBg;
-    if (isDark(secBg)) wrap.classList.add('dark');
     var head = el('div', 'bd-sec-head');
+    if (secBg) head.style.background = secBg;   // 섹션 색은 칸 제목 띠에 입힌다(칸 전체가 아니라)
+    var bandBg = secBg || look.band;
+    if (isDark(bandBg)) head.classList.add('dark');
     if (!sec.pseudo) {
       var sgrip = el('span', 'bd-sec-grip', '⋮⋮'); sgrip.title = '끌어서 섹션 순서 바꾸기';
       sgrip.addEventListener('pointerdown', function (ev) { startSectionDrag(ev, wrap, sec); });
@@ -349,7 +389,7 @@
     var title = el('span', 'bd-sec-title', sec.name);
     title.title = '눌러서 이름 바꾸기';
     var secEff = effText(null, sec);
-    applyText(title, secEff, secBg);
+    applyText(title, secEff, bandBg);
     if (secEff.size) title.style.fontSize = Math.max(12, secEff.size + 1) + 'px';
     if (secEff.align) title.style.flex = '1 1 auto';
     if (!sec.pseudo) title.addEventListener('click', function (ev) { ev.stopPropagation(); renameSection(sec, title); });
@@ -366,7 +406,9 @@
       items.push('-', { label: '섹션 삭제', danger: true, onClick: function () { deleteSection(sec); } });
       openMenu(more, items);
     });
-    head.appendChild(title); if (!sec.pseudo) head.appendChild(more);
+    head.appendChild(title);
+    head.appendChild(el('span', 'bd-sec-count', String(list.length)));   // 메모 개수
+    if (!sec.pseudo) head.appendChild(more);
     if (!sec.plain) wrap.appendChild(head);
 
     var body = el('div', 'bd-sec-body');
@@ -421,13 +463,16 @@
     if (c.style && c.style.starColor) starVars(row, c.style.starColor);
     var eff = effText(c, owner);
     // 어두운 섹션 안의 메모는 따로 색을 안 줬으면 어두운 반투명 메모로 보여서 흰 글씨가 읽히게 한다.
-    var darkOwnerBg = !cardBg && owner && owner.style && isDark(owner.style.bg) ? owner.style.bg : '';
-    if (darkOwnerBg) { row.style.background = 'rgba(255,255,255,0.14)'; row.style.borderColor = 'rgba(255,255,255,0.18)'; }
+    var darkOwnerBg = '';   // 섹션 색은 제목 띠에만 입히므로, 카드는 자기 색(없으면 기본 카드색)만 쓴다
+    if (!(c.style && c.style.color) && !isDark(cardBg)) delete eff.color;   // 섹션의 글자색(흰색 등)이 밝은 카드로 흘러들지 않게
+    row.dataset.pin = c.pin ? '1' : '';
     var grip = el('span', 'bd-grip', '⋮⋮'); grip.title = '끌어서 옮기기';
     grip.addEventListener('pointerdown', function (ev) { startDrag(ev, row, c); });
     var chk = el('button', 'bd-chk', c.done ? '✓' : ''); chk.type = 'button'; chk.setAttribute('aria-label', c.done ? '완료 취소' : '완료');
     chk.addEventListener('click', function (ev) { ev.stopPropagation(); toggleDone(c); render(); });
     var main = el('div', 'bd-main');
+    var meta = el('div', 'bd-meta'), side = el('div', 'bd-side');
+    if (c.pin && editingId !== c.id) main.appendChild(el('div', 'bd-pinmark', '고정됨'));
     if (editingId === c.id) {
       var ta = el('textarea', 'bd-edit'); ta.value = c.text; ta.rows = Math.min(6, Math.max(2, c.text.split('\n').length));
       function finish(commit) { var v = ta.value.trim(); editingId = null; if (commit && v && v !== c.text) { c.text = v; save(); } render(); }
@@ -443,17 +488,18 @@
       main.appendChild(txt);
       if (c.tag && c.tag.text) {
         var tag = el('span', 'bd-tag', c.tag.text); tag.style.background = c.tag.color || TAG_COLORS[0];
-        main.appendChild(tag);
+        meta.appendChild(tag);
       }
       // 날짜(선택): 캘린더에 이 날짜로 보인다. 지났는데 안 끝낸 메모는 붉게.
       var late = !!c.date && isPastDate(c.dateEnd || c.date) && !c.done;
       var sbtn = el('button', 'bd-star' + (c.star ? ' on' : ''), c.star ? '★' : '☆'); sbtn.type = 'button'; sbtn.title = c.star ? '중요 표시 해제' : '중요 메모로 표시(캘린더 맨 위·노란 강조)';
       sbtn.addEventListener('click', function (ev) { ev.stopPropagation(); if (c.star) delete c.star; else c.star = true; save(); render(); });
-      main.appendChild(sbtn);
+      side.appendChild(sbtn);
       var dchip = el('button', 'bd-date ' + (c.date ? (late ? 'past' : 'on') : 'off'), c.date ? rangeChipText(c) + (late ? ' · 지남' : '') : '+ 날짜');
       dchip.type = 'button'; dchip.title = c.date ? '날짜 바꾸기' : '날짜 지정(캘린더에 표시)';
       dchip.addEventListener('click', function (ev) { ev.stopPropagation(); openDatePick(c, dchip); });
-      main.appendChild(dchip);
+      if (c.date) meta.appendChild(dchip); else side.appendChild(dchip);   // 날짜가 없으면 "+ 날짜"는 마우스를 올릴 때만 카드 오른쪽 아래에 나온다
+      main.appendChild(meta);
     }
     var more = el('button', 'bd-more', '⋮'); more.type = 'button'; more.title = '메모 메뉴';
     more.addEventListener('click', function (ev) {
@@ -464,12 +510,14 @@
         { label: c.tag ? '꼬리표 바꾸기' : '꼬리표 달기', onClick: function () { promptTag(c, more); } },
         c.tag ? { label: '꼬리표 지우기', onClick: function () { delete c.tag; save(); render(); } } : null,
         { label: c.star ? '중요 표시 해제' : '중요 표시(★)', onClick: function () { c.star = !c.star; if (!c.star) delete c.star; save(); render(); } },
+        { label: c.pin ? '고정 해제' : '칸 맨 위에 고정', onClick: function () { if (c.pin) delete c.pin; else c.pin = true; save(); render(); } },
         { label: c.date ? '날짜 바꾸기' : '날짜 지정', onClick: function () { openDatePick(c, more); } },
         c.date ? { label: '날짜 지우기', onClick: function () { delete c.date; delete c.dateEnd; save(); render(); } } : null,
         '-', { label: '삭제', danger: true, onClick: function () { deleteCard(c); render(); } }
       ].filter(Boolean));
     });
-    row.appendChild(grip); row.appendChild(chk); row.appendChild(main); row.appendChild(more);
+    side.appendChild(more);
+    row.appendChild(grip); row.appendChild(chk); row.appendChild(main); row.appendChild(side);
     return row;
   }
 
@@ -812,10 +860,18 @@
       var secEl = null;
       for (var i = 0; i < hit.length; i++) { var s = hit[i].closest && hit[i].closest('.bd-sec'); if (s) { secEl = s; break; } }
       if (!secEl) return;
+      [].forEach.call(document.querySelectorAll('.bd-sec.bd-drop-on'), function (x) { if (x !== secEl) x.classList.remove('bd-drop-on'); });
+      secEl.classList.add('bd-drop-on');   // 지금 놓으면 들어갈 칸
       var list = secEl.querySelector('.bd-cards');
       var others = [].filter.call(list.children, function (x) { return x !== ph && x.classList.contains('bd-card') && x.style.display !== 'none'; });
-      var before = null;
-      for (var k = 0; k < others.length; k++) { var r = others[k].getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) { before = others[k]; break; } }
+      var before = null, grp = card.pin ? '1' : '';   // 고정한 메모는 고정 메모끼리, 아닌 메모는 아닌 메모끼리만 자리를 잡는다(화면에는 고정이 항상 위라서)
+      var same = others.filter(function (x) { return (x.dataset.pin || '') === grp; });
+      for (var k = 0; k < same.length; k++) { var r = same[k].getBoundingClientRect(); if (e.clientY < r.top + r.height / 2) { before = same[k]; break; } }
+      if (before === null) {
+        if (same.length) before = same[same.length - 1].nextElementSibling;
+        else before = grp ? (others[0] || null) : null;
+      }
+      if (before === ph) before = ph.nextElementSibling;
       list.insertBefore(ph, before);
     }
     function up() {
@@ -825,6 +881,7 @@
       var index = 0;
       if (list) { var seen = 0; for (var i = 0; i < list.children.length; i++) { var x = list.children[i]; if (x === ph) break; if (x.classList.contains('bd-card') && x.style.display !== 'none') seen++; } index = seen; }
       ghost.remove(); ph.remove(); row.style.display = '';
+      [].forEach.call(document.querySelectorAll('.bd-sec.bd-drop-on'), function (x) { x.classList.remove('bd-drop-on'); });
       if (sid !== null && sid !== undefined) placeCard(card, sid, index);
       render();
     }
