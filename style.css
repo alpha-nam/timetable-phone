@@ -2417,3 +2417,24 @@ html:not([data-phone]) #calGrid .cal-cell { min-height: 56px; }   /* 날짜 + 2�
 /* 제목이 길거나 글자를 키워도 띠가 넘치지 않게 */
 .bd-sec-head { height: auto; min-height: 40px; padding-top: 4px; padding-bottom: 4px; }
 .bd-sec-title { min-width: 0; }
+
+/* ── 메모 카드 한 줄형: 글 · 꼬리표 · 날짜가 같은 줄에, 별·⋮은 오른쪽 끝에. 자리가 모자랄 때만 날짜가 아래로 ── */
+.bd-card { align-items: center; padding-top: 10px; padding-bottom: 10px; }
+.bd-grip { top: 50%; transform: translateY(-50%); }
+.bd-main { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-width: 0; flex: 1 1 auto; }
+.bd-main .bd-text { flex: 1 1 150px; min-width: 0; }
+.bd-pinmark { flex: 0 0 100%; margin-bottom: 0; }
+.bd-meta { flex: none; flex-wrap: nowrap; margin-top: 0; }
+.bd-meta .bd-date, .bd-meta .bd-tag { white-space: nowrap; }
+.bd-side { flex-direction: row; align-items: center; gap: 0; }
+.bd-side .bd-date.off { top: 50%; bottom: auto; right: 56px; transform: translateY(-50%); }
+
+/* 태블릿·폰(손가락): 손잡이를 카드 왼쪽 전체 높이로 넓혀 끌기 쉽게 */
+@media (pointer: coarse) {
+  .bd-card { padding-left: 30px; }
+  .bd-grip { left: 0; top: 0; bottom: 0; width: 28px; transform: none; display: flex; align-items: center; justify-content: center; font-size: 15px; opacity: 1; border-radius: 12px 0 0 12px; }
+}
+
+/* 카드 바탕은 흰색으로(예전 느낌): 옅은 그림자와 얇은 테두리로만 구분 */
+.bd-card { background: var(--card-bg, #fff); border: 1px solid rgba(60,100,150,0.10); box-shadow: 0 1px 3px rgba(30,60,110,0.08); }
+.bd-side .bd-date.off { background: rgba(255,255,255,0.95); }

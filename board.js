@@ -20,7 +20,7 @@
   var cards = [], sections = [], tombs = {}, secTombs = {}, trash = [], trashTombs = {};
   var sigCards = null, sigSecs = null;
   var layout = 'h';
-  var look = { w: 'm', band: '' };   // 보드 모양(이 기기에만 저장): 칸 너비(s/m/l)와 제목 띠 기본 색
+  var look = { w: 'l', band: '#dff3e3' };   // 보드 모양(이 기기에만 저장): 칸 너비(s/m/l)와 제목 띠 기본 색
   var addingIn = null;           // 메모 추가 입력창이 열려 있는 섹션 id
   var editingId = null;          // 제자리 편집 중인 메모 id
   var $ = function (id) { return document.getElementById(id); };
@@ -52,7 +52,7 @@
     trash = trash.filter(function (t) { return (t.deletedAt || 0) >= cut; });
     // 처음에는 PC·태블릿은 가로 칸, 폰은 세로로 쌓는다(바꾸면 기억).
     layout = read(KEYS.layout, null) || (document.documentElement.hasAttribute('data-phone') && window.innerWidth < 700 ? 'v' : 'h');
-    var lk = read(KEYS.look, null); if (lk && typeof lk === 'object') look = { w: ['s', 'm', 'l'].indexOf(lk.w) >= 0 ? lk.w : 'm', band: /^#[0-9a-f]{6}$/i.test(lk.band || '') ? lk.band : '' };
+    var lk = read(KEYS.look, null); if (lk && typeof lk === 'object') look = { w: ['s', 'm', 'l'].indexOf(lk.w) >= 0 ? lk.w : 'l', band: /^#[0-9a-f]{6}$/i.test(lk.band || '') ? lk.band : (lk.band === '' ? '' : '#dff3e3') };
     sigCards = sigMap(cards, sigCard); sigSecs = sigMap(sections, sigSec);
   }
 
@@ -511,6 +511,7 @@
         c.tag ? { label: '꼬리표 지우기', onClick: function () { delete c.tag; save(); render(); } } : null,
         { label: c.star ? '중요 표시 해제' : '중요 표시(★)', onClick: function () { c.star = !c.star; if (!c.star) delete c.star; save(); render(); } },
         { label: c.pin ? '고정 해제' : '칸 맨 위에 고정', onClick: function () { if (c.pin) delete c.pin; else c.pin = true; save(); render(); } },
+        sortedSections().some(function (s) { return s.id !== c.sectionId; }) ? { label: '다른 칸으로 옮기기', onClick: function () { openMoveMenu(c, more); } } : null,
         { label: c.date ? '날짜 바꾸기' : '날짜 지정', onClick: function () { openDatePick(c, more); } },
         c.date ? { label: '날짜 지우기', onClick: function () { delete c.date; delete c.dateEnd; save(); render(); } } : null,
         '-', { label: '삭제', danger: true, onClick: function () { deleteCard(c); render(); } }
@@ -519,6 +520,14 @@
     side.appendChild(more);
     row.appendChild(grip); row.appendChild(chk); row.appendChild(main); row.appendChild(side);
     return row;
+  }
+
+  // 메모를 다른 칸의 맨 아래로 옮긴다(끌기가 어려운 폰에서도 쓸 수 있게 메뉴로도 제공).
+  function openMoveMenu(c, anchor) {
+    var items = sortedSections().filter(function (s) { return s.id !== c.sectionId; }).map(function (s) {
+      return { label: s.name, onClick: function () { delete c.pin; placeCard(c, s.id, 1e9); render(); toast('"' + s.name + '" 칸으로 옮겼습니다.'); } };
+    });
+    if (items.length) openMenu(anchor, items);
   }
 
   // ───────── 메모 날짜(선택) ─────────
